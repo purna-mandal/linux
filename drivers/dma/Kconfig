@@ -578,4 +578,12 @@ config DMATEST
 config DMA_ENGINE_RAID
 	bool
 
+config DMA_PIC32
+	tristate "Microchip PIC32 DMA engine support"
+	depends on MACH_PIC32
+	select DMA_ENGINE
+	select DMA_VIRTUAL_CHANNELS
+	help
+	  Enable support for the PIC32 DMA controller.
+
 endif
