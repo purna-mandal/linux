@@ -398,6 +398,14 @@ config MIPS_MALTA
 	  This enables support for the MIPS Technologies Malta evaluation
 	  board.
 
+config MACH_PIC32
+	bool "Microchip PIC32 Family"
+	help
+	  This enables support for the Microchip PIC32 family of platforms.
+
+	  PIC32 is a family of general-purpose 32 bit MIPS core
+	  microcontrollers.
+
 config MIPS_SEAD3
 	bool "MIPS SEAD3 board"
 	select BOOT_ELF32
@@ -902,6 +910,7 @@ source "arch/mips/loongson/Kconfig"
 source "arch/mips/loongson1/Kconfig"
 source "arch/mips/netlogic/Kconfig"
 source "arch/mips/paravirt/Kconfig"
+source "arch/mips/pic32/Kconfig"
 
 endmenu
 

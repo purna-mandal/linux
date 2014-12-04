@@ -1,0 +1,11 @@
+if MACH_PIC32
+
+choice
+	prompt "Machine Type"
+
+endchoice
+
+config PIC32
+	bool
+
+endif # MACH_PIC32
