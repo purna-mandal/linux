@@ -60,7 +60,11 @@
  * instruction, so the lower 16 bits must be zero.  Should be true on
  * on any sane architecture; generic code does not use this assumption.
  */
+#ifdef CONFIG_XIP_KERNEL
+extern unsigned long mips_io_port_base;
+#else
 extern const unsigned long mips_io_port_base;
+#endif
 
 /*
  * Gcc will generate code to load the value of mips_io_port_base after each

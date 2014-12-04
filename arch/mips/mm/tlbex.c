@@ -1427,9 +1427,15 @@ static void build_r4000_tlb_refill_handler(void)
 	dump_handler("r4000_tlb_refill", (u32 *)ebase, 64);
 }
 
+#ifdef CONFIG_XIP_KERNEL
+extern u32 handle_tlbl_start[], handle_tlbl_end[];
+extern u32 handle_tlbs_start[], handle_tlbs_end[];
+extern u32 handle_tlbm_start[], handle_tlbm_end[];
+#else
 extern u32 handle_tlbl[], handle_tlbl_end[];
 extern u32 handle_tlbs[], handle_tlbs_end[];
 extern u32 handle_tlbm[], handle_tlbm_end[];
+#endif
 extern u32 tlbmiss_handler_setup_pgd_start[], tlbmiss_handler_setup_pgd[];
 extern u32 tlbmiss_handler_setup_pgd_end[];
 
@@ -1445,8 +1451,13 @@ static void build_setup_pgd(void)
 	long pgdc = (long)pgd_current;
 #endif
 
+#ifdef CONFIG_XIP_KERNEL
+	memset(tlbmiss_handler_setup_pgd_start, 0, tlbmiss_handler_setup_pgd_size *
+		sizeof(tlbmiss_handler_setup_pgd_start[0]));
+#else
 	memset(tlbmiss_handler_setup_pgd, 0, tlbmiss_handler_setup_pgd_size *
-					sizeof(tlbmiss_handler_setup_pgd[0]));
+		sizeof(tlbmiss_handler_setup_pgd[0]));
+#endif
 	memset(labels, 0, sizeof(labels));
 	memset(relocs, 0, sizeof(relocs));
 	pgd_reg = allocate_kscratch();
@@ -1500,11 +1511,19 @@ static void build_setup_pgd(void)
 		panic("tlbmiss_handler_setup_pgd space exceeded");
 
 	uasm_resolve_relocs(relocs, labels);
+#ifdef CONFIG_XIP_KERNEL
+	pr_debug("Wrote tlbmiss_handler_setup_pgd (%u instructions).\n",
+		 (unsigned int)(p - tlbmiss_handler_setup_pgd_start));
+
+	dump_handler("tlbmiss_handler", tlbmiss_handler_setup_pgd_start,
+					tlbmiss_handler_setup_pgd_size);
+#else
 	pr_debug("Wrote tlbmiss_handler_setup_pgd (%u instructions).\n",
 		 (unsigned int)(p - tlbmiss_handler_setup_pgd));
 
 	dump_handler("tlbmiss_handler", tlbmiss_handler_setup_pgd,
 					tlbmiss_handler_setup_pgd_size);
+#endif
 }
 
 static void
@@ -1747,12 +1766,21 @@ build_r3000_tlbchange_handler_head(u32 **p, unsigned int pte,
 
 static void build_r3000_tlb_load_handler(void)
 {
+#ifdef CONFIG_XIP_KERNEL
+	u32 *p = handle_tlbl_start;
+	const int handle_tlbl_size = handle_tlbl_end - handle_tlbl_start;
+#else
 	u32 *p = handle_tlbl;
 	const int handle_tlbl_size = handle_tlbl_end - handle_tlbl;
+#endif
 	struct uasm_label *l = labels;
 	struct uasm_reloc *r = relocs;
 
+#ifdef CONFIG_XIP_KERNEL
+	memset(handle_tlbl_start, 0, handle_tlbl_size * sizeof(handle_tlbl_start[0]));
+#else
 	memset(handle_tlbl, 0, handle_tlbl_size * sizeof(handle_tlbl[0]));
+#endif
 	memset(labels, 0, sizeof(labels));
 	memset(relocs, 0, sizeof(relocs));
 
@@ -1770,20 +1798,34 @@ static void build_r3000_tlb_load_handler(void)
 		panic("TLB load handler fastpath space exceeded");
 
 	uasm_resolve_relocs(relocs, labels);
+#ifdef CONFIG_XIP_KERNEL
+	pr_debug("Wrote TLB load handler fastpath (%u instructions).\n",
+		 (unsigned int)(p - handle_tlbl_start));
+	dump_handler("r3000_tlb_load", handle_tlbl_start, handle_tlbl_size);
+#else
 	pr_debug("Wrote TLB load handler fastpath (%u instructions).\n",
 		 (unsigned int)(p - handle_tlbl));
-
 	dump_handler("r3000_tlb_load", handle_tlbl, handle_tlbl_size);
+#endif
 }
 
 static void build_r3000_tlb_store_handler(void)
 {
+#ifdef CONFIG_XIP_KERNEL
+	u32 *p = handle_tlbs_start;
+	const int handle_tlbs_size = handle_tlbs_end - handle_tlbs_start;
+#else
 	u32 *p = handle_tlbs;
 	const int handle_tlbs_size = handle_tlbs_end - handle_tlbs;
+#endif
 	struct uasm_label *l = labels;
 	struct uasm_reloc *r = relocs;
 
+#ifdef CONFIG_XIP_KERNEL
+	memset(handle_tlbs_start, 0, handle_tlbs_size * sizeof(handle_tlbs_start[0]));
+#else
 	memset(handle_tlbs, 0, handle_tlbs_size * sizeof(handle_tlbs[0]));
+#endif
 	memset(labels, 0, sizeof(labels));
 	memset(relocs, 0, sizeof(relocs));
 
@@ -1801,20 +1843,36 @@ static void build_r3000_tlb_store_handler(void)
 		panic("TLB store handler fastpath space exceeded");
 
 	uasm_resolve_relocs(relocs, labels);
+#ifdef CONFIG_XIP_KERNEL
+	pr_debug("Wrote TLB store handler fastpath (%u instructions).\n",
+		 (unsigned int)(p - handle_tlbs_start));
+
+	dump_handler("r3000_tlb_store", handle_tlbs_start, handle_tlbs_size);
+#else
 	pr_debug("Wrote TLB store handler fastpath (%u instructions).\n",
 		 (unsigned int)(p - handle_tlbs));
 
 	dump_handler("r3000_tlb_store", handle_tlbs, handle_tlbs_size);
+#endif
 }
 
 static void build_r3000_tlb_modify_handler(void)
 {
+#ifdef CONFIG_XIP_KERNEL
+	u32 *p = handle_tlbm_start;
+	const int handle_tlbm_size = handle_tlbm_end - handle_tlbm_start;
+#else
 	u32 *p = handle_tlbm;
 	const int handle_tlbm_size = handle_tlbm_end - handle_tlbm;
+#endif
 	struct uasm_label *l = labels;
 	struct uasm_reloc *r = relocs;
 
+#ifdef CONFIG_XIP_KERNEL
+	memset(handle_tlbm_start, 0, handle_tlbm_size * sizeof(handle_tlbm_start[0]));
+#else
 	memset(handle_tlbm, 0, handle_tlbm_size * sizeof(handle_tlbm[0]));
+#endif
 	memset(labels, 0, sizeof(labels));
 	memset(relocs, 0, sizeof(relocs));
 
@@ -1832,10 +1890,17 @@ static void build_r3000_tlb_modify_handler(void)
 		panic("TLB modify handler fastpath space exceeded");
 
 	uasm_resolve_relocs(relocs, labels);
+#ifdef CONFIG_XIP_KERNEL
+	pr_debug("Wrote TLB modify handler fastpath (%u instructions).\n",
+		 (unsigned int)(p - handle_tlbm_start));
+
+	dump_handler("r3000_tlb_modify", handle_tlbm_start, handle_tlbm_size);
+#else
 	pr_debug("Wrote TLB modify handler fastpath (%u instructions).\n",
 		 (unsigned int)(p - handle_tlbm));
 
 	dump_handler("r3000_tlb_modify", handle_tlbm, handle_tlbm_size);
+#endif
 }
 #endif /* CONFIG_MIPS_PGD_C0_CONTEXT */
 
@@ -1906,13 +1971,22 @@ build_r4000_tlbchange_handler_tail(u32 **p, struct uasm_label **l,
 
 static void build_r4000_tlb_load_handler(void)
 {
+#ifdef CONFIG_XIP_KERNEL
+	u32 *p = handle_tlbl_start;
+	const int handle_tlbl_size = handle_tlbl_end - handle_tlbl_start;
+#else
 	u32 *p = handle_tlbl;
 	const int handle_tlbl_size = handle_tlbl_end - handle_tlbl;
+#endif
 	struct uasm_label *l = labels;
 	struct uasm_reloc *r = relocs;
 	struct work_registers wr;
 
+#ifdef CONFIG_XIP_KERNEL
+	memset(handle_tlbl_start, 0, handle_tlbl_size * sizeof(handle_tlbl_start[0]));
+#else
 	memset(handle_tlbl, 0, handle_tlbl_size * sizeof(handle_tlbl[0]));
+#endif
 	memset(labels, 0, sizeof(labels));
 	memset(relocs, 0, sizeof(relocs));
 
@@ -2067,6 +2141,11 @@ static void build_r4000_tlb_load_handler(void)
 
 	uasm_l_nopage_tlbl(&l, p);
 	build_restore_work_registers(&p);
+#ifdef CONFIG_XIP_KERNEL
+	uasm_i_lui(&p, K0, uasm_rel_hi((long)tlb_do_page_fault_0));
+	uasm_i_addiu(&p, K0, K0, uasm_rel_lo((long)tlb_do_page_fault_0));
+	uasm_i_jr(&p, K0);
+#else
 #ifdef CONFIG_CPU_MICROMIPS
 	if ((unsigned long)tlb_do_page_fault_0 & 1) {
 		uasm_i_lui(&p, K0, uasm_rel_hi((long)tlb_do_page_fault_0));
@@ -2075,27 +2154,44 @@ static void build_r4000_tlb_load_handler(void)
 	} else
 #endif
 	uasm_i_j(&p, (unsigned long)tlb_do_page_fault_0 & 0x0fffffff);
+#endif
 	uasm_i_nop(&p);
 
 	if (p >= handle_tlbl_end)
 		panic("TLB load handler fastpath space exceeded");
 
 	uasm_resolve_relocs(relocs, labels);
+#ifdef CONFIG_XIP_KERNEL
+	pr_debug("Wrote TLB load handler fastpath (%u instructions).\n",
+		 (unsigned int)(p - handle_tlbl_start));
+
+	dump_handler("r4000_tlb_load", handle_tlbl_start, handle_tlbl_size);
+#else
 	pr_debug("Wrote TLB load handler fastpath (%u instructions).\n",
 		 (unsigned int)(p - handle_tlbl));
 
 	dump_handler("r4000_tlb_load", handle_tlbl, handle_tlbl_size);
+#endif
 }
 
 static void build_r4000_tlb_store_handler(void)
 {
+#ifdef CONFIG_XIP_KERNEL
+	u32 *p = handle_tlbs_start;
+	const int handle_tlbs_size = handle_tlbs_end - handle_tlbs_start;
+#else
 	u32 *p = handle_tlbs;
 	const int handle_tlbs_size = handle_tlbs_end - handle_tlbs;
+#endif
 	struct uasm_label *l = labels;
 	struct uasm_reloc *r = relocs;
 	struct work_registers wr;
 
+#ifdef CONFIG_XIP_KERNEL
+	memset(handle_tlbs_start, 0, handle_tlbs_size * sizeof(handle_tlbs_start[0]));
+#else
 	memset(handle_tlbs, 0, handle_tlbs_size * sizeof(handle_tlbs[0]));
+#endif
 	memset(labels, 0, sizeof(labels));
 	memset(relocs, 0, sizeof(relocs));
 
@@ -2122,6 +2218,11 @@ static void build_r4000_tlb_store_handler(void)
 
 	uasm_l_nopage_tlbs(&l, p);
 	build_restore_work_registers(&p);
+#ifdef CONFIG_XIP_KERNEL
+	uasm_i_lui(&p, K0, uasm_rel_hi((long)tlb_do_page_fault_1));
+	uasm_i_addiu(&p, K0, K0, uasm_rel_lo((long)tlb_do_page_fault_1));
+	uasm_i_jr(&p, K0);
+#else
 #ifdef CONFIG_CPU_MICROMIPS
 	if ((unsigned long)tlb_do_page_fault_1 & 1) {
 		uasm_i_lui(&p, K0, uasm_rel_hi((long)tlb_do_page_fault_1));
@@ -2130,27 +2231,44 @@ static void build_r4000_tlb_store_handler(void)
 	} else
 #endif
 	uasm_i_j(&p, (unsigned long)tlb_do_page_fault_1 & 0x0fffffff);
+#endif
 	uasm_i_nop(&p);
 
 	if (p >= handle_tlbs_end)
 		panic("TLB store handler fastpath space exceeded");
 
 	uasm_resolve_relocs(relocs, labels);
+#ifdef CONFIG_XIP_KERNEL
+	pr_debug("Wrote TLB store handler fastpath (%u instructions).\n",
+		 (unsigned int)(p - handle_tlbs_start));
+
+	dump_handler("r4000_tlb_store", handle_tlbs_start, handle_tlbs_size);
+#else
 	pr_debug("Wrote TLB store handler fastpath (%u instructions).\n",
 		 (unsigned int)(p - handle_tlbs));
 
 	dump_handler("r4000_tlb_store", handle_tlbs, handle_tlbs_size);
+#endif
 }
 
 static void build_r4000_tlb_modify_handler(void)
 {
+#ifdef CONFIG_XIP_KERNEL
+	u32 *p = handle_tlbm_start;
+	const int handle_tlbm_size = handle_tlbm_end - handle_tlbm_start;
+#else
 	u32 *p = handle_tlbm;
 	const int handle_tlbm_size = handle_tlbm_end - handle_tlbm;
+#endif
 	struct uasm_label *l = labels;
 	struct uasm_reloc *r = relocs;
 	struct work_registers wr;
 
+#ifdef CONFIG_XIP_KERNEL
+	memset(handle_tlbm_start, 0, handle_tlbm_size * sizeof(handle_tlbm_start[0]));
+#else
 	memset(handle_tlbm, 0, handle_tlbm_size * sizeof(handle_tlbm[0]));
+#endif
 	memset(labels, 0, sizeof(labels));
 	memset(relocs, 0, sizeof(relocs));
 
@@ -2178,6 +2296,11 @@ static void build_r4000_tlb_modify_handler(void)
 
 	uasm_l_nopage_tlbm(&l, p);
 	build_restore_work_registers(&p);
+#ifdef CONFIG_XIP_KERNEL
+	uasm_i_lui(&p, K0, uasm_rel_hi((long)tlb_do_page_fault_1));
+	uasm_i_addiu(&p, K0, K0, uasm_rel_lo((long)tlb_do_page_fault_1));
+	uasm_i_jr(&p, K0);
+#else
 #ifdef CONFIG_CPU_MICROMIPS
 	if ((unsigned long)tlb_do_page_fault_1 & 1) {
 		uasm_i_lui(&p, K0, uasm_rel_hi((long)tlb_do_page_fault_1));
@@ -2186,28 +2309,47 @@ static void build_r4000_tlb_modify_handler(void)
 	} else
 #endif
 	uasm_i_j(&p, (unsigned long)tlb_do_page_fault_1 & 0x0fffffff);
+#endif
 	uasm_i_nop(&p);
 
 	if (p >= handle_tlbm_end)
 		panic("TLB modify handler fastpath space exceeded");
 
 	uasm_resolve_relocs(relocs, labels);
+#ifdef CONFIG_XIP_KERNEL
+	pr_debug("Wrote TLB modify handler fastpath (%u instructions).\n",
+		 (unsigned int)(p - handle_tlbm_start));
+
+	dump_handler("r4000_tlb_modify", handle_tlbm_start, handle_tlbm_size);
+#else
 	pr_debug("Wrote TLB modify handler fastpath (%u instructions).\n",
 		 (unsigned int)(p - handle_tlbm));
 
 	dump_handler("r4000_tlb_modify", handle_tlbm, handle_tlbm_size);
+#endif
 }
 
 static void flush_tlb_handlers(void)
 {
-	local_flush_icache_range((unsigned long)handle_tlbl,
+#ifdef CONFIG_XIP_KERNEL
+	local_flush_icache_range((unsigned long)handle_tlbl_start,
 			   (unsigned long)handle_tlbl_end);
-	local_flush_icache_range((unsigned long)handle_tlbs,
+	local_flush_icache_range((unsigned long)handle_tlbs_start,
 			   (unsigned long)handle_tlbs_end);
-	local_flush_icache_range((unsigned long)handle_tlbm,
+	local_flush_icache_range((unsigned long)handle_tlbm_start,
 			   (unsigned long)handle_tlbm_end);
-	local_flush_icache_range((unsigned long)tlbmiss_handler_setup_pgd,
+	local_flush_icache_range((unsigned long)tlbmiss_handler_setup_pgd_start,
 			   (unsigned long)tlbmiss_handler_setup_pgd_end);
+#else
+	local_flush_icache_range((unsigned long)handle_tlbl,
+				(unsigned long)handle_tlbl_end);
+	local_flush_icache_range((unsigned long)handle_tlbs,
+				(unsigned long)handle_tlbs_end);
+	local_flush_icache_range((unsigned long)handle_tlbm,
+				(unsigned long)handle_tlbm_end);
+	local_flush_icache_range((unsigned long)tlbmiss_handler_setup_pgd,
+				(unsigned long)tlbmiss_handler_setup_pgd_end);
+#endif
 }
 
 static void print_htw_config(void)

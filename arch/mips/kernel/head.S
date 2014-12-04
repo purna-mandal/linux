@@ -60,12 +60,25 @@
 #endif
 	.endm
 
+#ifdef CONFIG_XIP_KERNEL
+	/* For XIP, just jump right to kernel_entry. */
+	lui	k0,%hi(kernel_entry)
+	ori	k0,k0,%lo(kernel_entry)
+	jr	k0
+	nop
+	.align	10
+#else
 #ifndef CONFIG_NO_EXCEPT_FILL
 	/*
 	 * Reserved space for exception handlers.
 	 * Necessary for machines which link their kernels at KSEG0.
 	 */
 	.fill	0x400
+#endif
+#endif
+
+#ifdef CONFIG_XIP_KERNEL
+__HEAD
 #endif
 
 EXPORT(_stext)
@@ -93,6 +106,24 @@ NESTED(kernel_entry, 16, sp)			# kernel entry point
 	PTR_LA	t0, 0f
 	jr	t0
 0:
+
+#ifdef CONFIG_XIP_KERNEL
+	/*
+	 * For XIP from flash, copy initialized data from end of text in flash
+	 * to _sdata though _edata into RAM so we can write to it.
+	 */
+	la      s0, _etext
+	/*addi	s0, -0x400*/
+	la      s1, _sdata
+	la      s2, _edata
+1:
+	lw      t0, (s0)
+	sw      t0, (s1)
+	addi    s0, 4
+	addi    s1, 4
+	bne     s1, s2, 1b
+	nop
+#endif
 
 	PTR_LA		t0, __bss_start		# clear .bss
 	LONG_S		zero, (t0)

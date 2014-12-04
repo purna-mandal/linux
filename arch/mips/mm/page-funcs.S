@@ -27,12 +27,19 @@
  * R4600 v2.0:				0x060 bytes
  * With prefetching, 16 word strides	0x120 bytes
  */
+#ifdef CONFIG_XIP_KERNEL
+FEXPORT(cpu_clear_page_function_name)
+1:	la      t0, __clear_page_start
+	j	t0
+	nop
+#else
 EXPORT(__clear_page_start)
 LEAF(cpu_clear_page_function_name)
-1:	j	1b		/* Dummy, will be replaced. */
-	.space 288
+1:      j       1b              /* Dummy, will be replaced. */
+        .space 288
 END(cpu_clear_page_function_name)
 EXPORT(__clear_page_end)
+#endif
 
 /*
  * Maximum sizes:
@@ -42,9 +49,16 @@ EXPORT(__clear_page_end)
  * R4600 v2.0:				0x07c bytes
  * With prefetching, 16 word strides	0x540 bytes
  */
+#ifdef CONFIG_XIP_KERNEL
+FEXPORT(cpu_copy_page_function_name)
+1:	la	t0, __copy_page_start		/* Dummy, will be replaced. */
+	j 	t0
+	nop
+#else
 EXPORT(__copy_page_start)
 LEAF(cpu_copy_page_function_name)
-1:	j	1b		/* Dummy, will be replaced. */
-	.space 1344
+1:      j       1b              /* Dummy, will be replaced. */
+        .space 1344
 END(cpu_copy_page_function_name)
 EXPORT(__copy_page_end)
+#endif

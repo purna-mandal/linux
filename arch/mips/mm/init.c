@@ -403,8 +403,12 @@ void free_init_pages(const char *what, unsigned long begin, unsigned long end)
 #ifdef CONFIG_BLK_DEV_INITRD
 void free_initrd_mem(unsigned long start, unsigned long end)
 {
+#ifndef CONFIG_XIP_KERNEL
 	free_reserved_area((void *)start, (void *)end, POISON_FREE_INITMEM,
 			   "initrd");
+#else
+	printk(KERN_INFO "XIP kernel not freeing initrd memory\n");
+#endif
 }
 #endif
 
@@ -413,6 +417,8 @@ void (*free_init_pages_eva)(void *begin, void *end) = NULL;
 void __init_refok free_initmem(void)
 {
 	prom_free_prom_memory();
+
+#ifndef CONFIG_XIP_KERNEL
 	/*
 	 * Let the platform define a specific function to free the
 	 * init section since EVA may have used any possible mapping
@@ -422,6 +428,9 @@ void __init_refok free_initmem(void)
 		free_init_pages_eva((void *)&__init_begin, (void *)&__init_end);
 	else
 		free_initmem_default(POISON_FREE_INITMEM);
+#else
+	printk(KERN_INFO "XIP kernel not freeing init memory\n");
+#endif
 }
 
 #ifndef CONFIG_MIPS_PGD_C0_CONTEXT
