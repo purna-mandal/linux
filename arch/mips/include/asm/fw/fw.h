@@ -20,10 +20,17 @@ typedef struct {
 	unsigned long base;	/* Within KSEG0 */
 	unsigned int size;	/* bytes */
 	enum fw_memtypes type;	/* fw_memtypes */
+#ifdef CONFIG_MIPS_PIC32MZ
+	int valid;
+#endif
 } fw_memblock_t;
 
 /* Maximum number of memory block descriptors. */
+#ifdef CONFIG_MIPS_PIC32MZ
+#define FW_MAX_MEMBLOCKS       4
+#else
 #define FW_MAX_MEMBLOCKS	32
+#endif
 
 extern int fw_argc;
 extern int *_fw_argv;

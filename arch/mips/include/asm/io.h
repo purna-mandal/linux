@@ -122,6 +122,10 @@ static inline void set_io_port_base(unsigned long base)
  */
 static inline unsigned long virt_to_phys(volatile const void *address)
 {
+#ifdef CONFIG_PIC32MZ_UPPER_MEMORY
+	if ((unsigned long)address >= CAC_BASE_UPPER)
+		return (unsigned long)address - CAC_BASE_UPPER + UPPERMEM_START;
+#endif
 	return __pa(address);
 }
 
@@ -139,6 +143,10 @@ static inline unsigned long virt_to_phys(volatile const void *address)
  */
 static inline void * phys_to_virt(unsigned long address)
 {
+#ifdef CONFIG_PIC32MZ_UPPER_MEMORY
+	if (address >= UPPERMEM_START)
+		return (void *)(address + CAC_BASE_UPPER - UPPERMEM_START);
+#endif
 	return (void *)(address + PAGE_OFFSET - PHYS_OFFSET);
 }
 

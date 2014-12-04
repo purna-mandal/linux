@@ -93,6 +93,10 @@ extern asmlinkage void handle_mcheck(void);
 extern asmlinkage void handle_reserved(void);
 extern void tlb_do_page_fault_0(void);
 
+#ifdef CONFIG_PIC32MZ_UPPER_MEMORY
+extern void __cpuinit pic32mz_tlb_init(void);
+#endif
+
 void (*board_be_init)(void);
 int (*board_be_handler)(struct pt_regs *regs, int is_fixup);
 void (*board_nmi_handler_setup)(void);
@@ -2074,7 +2078,13 @@ void per_cpu_trap_init(bool is_boot_cpu)
 		/* Boot CPU's cache setup in setup_arch(). */
 		if (!is_boot_cpu)
 			cpu_cache_init();
+
+#ifdef CONFIG_PIC32MZ_UPPER_MEMORY
+		pic32mz_tlb_init();
+#else
 		tlb_init();
+#endif
+
 	TLBMISS_HANDLER_SETUP();
 }
 
@@ -2131,6 +2141,13 @@ void __init trap_init(void)
 		return; /* Already done */
 #endif
 
+#ifdef CONFIG_PIC32MZ_UPPER_MEMORY
+	/*
+	 * When we use upper memory, we can't allow ebase to end up there.  So,
+	 * force to lower memory explicitly.
+	 */
+	ebase = CKSEG0;
+#else
 	if (cpu_has_veic || cpu_has_vint) {
 		unsigned long size = 0x200 + VECTORSPACING*64;
 		ebase = (unsigned long)
@@ -2145,6 +2162,7 @@ void __init trap_init(void)
 		if (cpu_has_mips_r2_r6)
 			ebase += (read_c0_ebase() & 0x3ffff000);
 	}
+#endif
 
 	if (cpu_has_mmips) {
 		unsigned int config3 = read_c0_config3();

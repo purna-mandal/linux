@@ -8,6 +8,19 @@
 #ifndef _ASM_PIC32_SPACES_H
 #define _ASM_PIC32_SPACES_H
 
+#ifdef CONFIG_PIC32MZ_UPPER_MEMORY
+
+#define CAC_BASE_UPPER          _AC(0xc0000000, UL)
+#define UNCAC_BASE_UPPER        _AC(0xe0000000, UL)
+#define KSEG0_SIZE              _AC(0x20000000, UL)
+#define KSEG1_SIZE              _AC(0x20000000, UL)
+#define MAP_BASE                _AC(0xe0000000, UL)
+#define PIC32_MAX_UPPER_MB      _AC(8, UL)
+#define UPPERMEM_START          _AC(0x20000000, UL)
+#define HIGHMEM_START           (UPPERMEM_START + (PIC32_MAX_UPPER_MB << 20))
+
+#endif
+
 #include <asm/mach-generic/spaces.h>
 
 #endif /* __ASM_PIC32_SPACES_H */

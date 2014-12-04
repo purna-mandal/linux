@@ -170,11 +170,35 @@ typedef struct { unsigned long pgprot; } pgprot_t;
     unsigned long __x = (unsigned long)(x);				\
     __x < CKSEG0 ? XPHYSADDR(__x) : CPHYSADDR(__x);			\
 })
+#elif defined(CONFIG_PIC32MZ_UPPER_MEMORY)
+#define __pa(addr)							\
+({									\
+	unsigned long __addr = (unsigned long)(addr);			\
+	if (__addr < CAC_BASE_UPPER)					\
+		__addr = __addr - PAGE_OFFSET + PHYS_OFFSET;		\
+	else								\
+		__addr = __addr - CAC_BASE_UPPER + UPPERMEM_START;	\
+	__addr;								\
+})
 #else
 #define __pa(x)								\
-    ((unsigned long)(x) - PAGE_OFFSET + PHYS_OFFSET)
+	((unsigned long)(x) - PAGE_OFFSET + PHYS_OFFSET)
 #endif
+#if defined(CONFIG_PIC32MZ_UPPER_MEMORY)
+#define __va(addr)							\
+({									\
+	unsigned long __addr = (unsigned long)(addr);			\
+	if (__addr < UPPERMEM_START)					\
+		__addr = __addr + PAGE_OFFSET - PHYS_OFFSET;		\
+	else								\
+		__addr = __addr + CAC_BASE_UPPER - UPPERMEM_START;	\
+	(void *)__addr;                                                 \
+})
+#else
+
 #define __va(x)		((void *)((unsigned long)(x) + PAGE_OFFSET - PHYS_OFFSET))
+#endif
+
 #include <asm/io.h>
 
 /*

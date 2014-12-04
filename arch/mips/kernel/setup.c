@@ -45,6 +45,10 @@ EXPORT_SYMBOL(cpu_data);
 struct screen_info screen_info;
 #endif
 
+#ifdef CONFIG_MIPS_PIC32MZ
+extern void __init pic32mz_free_bootmem(unsigned long addr, unsigned long size);
+#endif
+
 /*
  * Despite it's name this variable is even if we don't have PCI
  */
@@ -453,8 +457,15 @@ static void __init bootmem_init(void)
 		size = end - start;
 
 		/* Register lowmem ranges */
+#ifdef CONFIG_MIPS_PIC32MZ
+		/* carve out space for bmem */
+		pic32mz_free_bootmem(PFN_PHYS(start), size << PAGE_SHIFT);
+#else
 		free_bootmem(PFN_PHYS(start), size << PAGE_SHIFT);
+#endif
+#ifndef CONFIG_MIPS_PIC32MZ
 		memory_present(0, start, end);
+#endif
 	}
 
 	/*
@@ -466,6 +477,22 @@ static void __init bootmem_init(void)
 	 * Reserve initrd memory if needed.
 	 */
 	finalize_initrd();
+
+#if defined(CONFIG_SPARSEMEM) && defined(CONFIG_MIPS_PIC32MZ)
+	/* call memory present for all the ram */
+	for (i = 0; i < boot_mem_map.nr_map; i++) {
+		unsigned long start, end;
+
+		if (boot_mem_map.map[i].type != BOOT_MEM_RAM)
+			continue;
+
+		start = PFN_UP(boot_mem_map.map[i].addr);
+		end = PFN_DOWN(boot_mem_map.map[i].addr
+				+ boot_mem_map.map[i].size);
+
+		memory_present(0, start, end);
+	}
+#endif
 }
 
 #endif	/* CONFIG_SGI_IP27 */

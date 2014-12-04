@@ -8,6 +8,7 @@
  * Author: chris@mips.com
  *
  * Copyright (C) 2004, 06 Ralf Baechle <ralf@linux-mips.org>
+ * Copyright (C) 2014 Joshua Henderson <joshua.henderson@microchip.com>
  */
 #include <linux/interrupt.h>
 #include <linux/kernel.h>
