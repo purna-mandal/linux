@@ -100,3 +100,9 @@ $(obj)/uImage.lzo: $(obj)/vmlinux.bin.lzo FORCE
 $(obj)/uImage: $(obj)/uImage.$(suffix-y)
 	@ln -sf $(notdir $<) $@
 	@echo '  Image $@ is ready'
+
+targets += vmlinux.strip
+quiet_cmd_bin = STRIP $@
+	cmd_bin = $(STRIP) -s -R .comment $(VMLINUX) -o $@
+$(obj)/vmlinux.strip: $(VMLINUX) FORCE
+	$(call if_changed,bin)
