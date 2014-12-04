@@ -910,6 +910,15 @@ config SERIAL_SGI_L1_CONSOLE
 		controller serial port as your console (you want this!),
 		say Y.  Otherwise, say N.
 
+config SERIAL_PIC32_CONSOLE
+	bool "PIC32 serial console support"
+	depends on PIC32
+	select SERIAL_CORE
+	select SERIAL_CORE_CONSOLE
+	default y
+	help
+		If you have a PIC32, here's a simple serial console.
+
 config SERIAL_MPC52xx
 	tristate "Freescale MPC52xx/MPC512x family PSC serial support"
 	depends on PPC_MPC52xx || PPC_MPC512x
