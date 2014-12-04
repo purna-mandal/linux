@@ -8,10 +8,11 @@
 # Copyright (C) 2008 Wind River Systems, Inc.
 #   written by Ralf Baechle <ralf@linux-mips.org>
 #
-obj-$(CONFIG_MACH_PIC32) += common/
-obj-$(CONFIG_MIPS_PIC32MZ) += pic32mz_sk/
+obj-y			:= pic32-init.o pic32-memory.o pic32-setup.o \
+				pic32-time.o pic32-clk.o \
+				pic32-ebi.o pic32-prefetch.o
 
-obj-y += dts/
+obj-$(CONFIG_EARLY_PRINTK)	+= pic32-console.o
 
-$(obj)/%.dtb: $(obj)/%.dts
-	$(call if_changed,dtc)
+CFLAGS_pic32-setup.o = -I$(src)/../../../../scripts/dtc/libfdt
+
