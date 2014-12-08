@@ -16,6 +16,7 @@ obj-$(CONFIG_EARLY_PRINTK)	+= pic32-console.o
 obj-$(CONFIG_RTC_DRV_PIC32) += pic32-platform-rtc.o
 obj-$(CONFIG_SPI_GPIO) += pic32-platform-spi.o
 obj-$(CONFIG_SPI_GPIO_PIC32MZ) += pic32-platform-spi.o
+obj-$(CONFIG_MIPS_PIC32_ETHER) += pic32-platform-eth.o
 
 CFLAGS_pic32-setup.o = -I$(src)/../../../../scripts/dtc/libfdt
 
