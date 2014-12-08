@@ -13,6 +13,7 @@ obj-y			:= pic32-init.o pic32-memory.o pic32-setup.o \
 				pic32-ebi.o pic32-prefetch.o
 
 obj-$(CONFIG_EARLY_PRINTK)	+= pic32-console.o
+obj-$(CONFIG_RTC_DRV_PIC32) += pic32-platform-rtc.o
 
 CFLAGS_pic32-setup.o = -I$(src)/../../../../scripts/dtc/libfdt
 
