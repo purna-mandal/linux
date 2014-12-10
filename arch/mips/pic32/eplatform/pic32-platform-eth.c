@@ -35,7 +35,7 @@ static struct resource eth_resources[] = {
 	},
 };
 
-static struct platform_device pic32_eth_device __initdata = {
+static struct platform_device pic32_eth_device = {
 	.name		= "pic32-ether",
 	.id		= -1,
 	.dev		= {
@@ -99,7 +99,7 @@ void __init pic32_add_device_eth(struct pic32ether_platform_data *data)
 	iounmap(port_base);
 }
 
-static struct pic32ether_platform_data eth_data __initdata = {
+static struct pic32ether_platform_data eth_data = {
 	.is_rmii	= 1,
 	.phy_mask	= 0xfffffff0,
 };
