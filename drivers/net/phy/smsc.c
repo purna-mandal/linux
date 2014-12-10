@@ -253,8 +253,13 @@ static struct phy_driver smsc_phy_driver[] = {
 	.phy_id_mask	= 0xfffffff0,
 	.name		= "SMSC LAN8740",
 
+#ifdef CONFIG_MIPS_PIC32_EPLATFORM
+	.features	= (SUPPORTED_10baseT_Half | PHY_DEFAULT_FEATURES | SUPPORTED_Pause
+				| SUPPORTED_Asym_Pause),
+#else
 	.features	= (PHY_BASIC_FEATURES | SUPPORTED_Pause
 				| SUPPORTED_Asym_Pause),
+#endif
 	.flags		= PHY_HAS_INTERRUPT | PHY_HAS_MAGICANEG,
 
 	/* basic functions */
