@@ -20,6 +20,7 @@ obj-$(CONFIG_MIPS_PIC32_ETHER) += pic32-platform-eth.o
 obj-$(CONFIG_I2C_PIC32) += pic32-platform-i2c.o
 obj-$(CONFIG_DMA_PIC32) += pic32-platform-dma.o
 obj-$(CONFIG_HW_RANDOM_PIC32) += pic32-platform-rng.o
+obj-$(CONFIG_PIC32_WDT) += pic32-platform-wdt.o
 
 CFLAGS_pic32-setup.o = -I$(src)/../../../../scripts/dtc/libfdt
 
