@@ -4,4 +4,5 @@
 #
 
 obj-$(CONFIG_MIPS_PIC32MZ) := pic32mz.dtb.o
+obj-$(CONFIG_MIPS_PIC32_EPLATFORM) := eplatform.dtb.o
 

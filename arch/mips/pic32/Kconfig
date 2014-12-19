@@ -31,6 +31,31 @@ config MIPS_PIC32MZ
 	  A starter kit and Plan B development board combo that adds additional
 	  SRAM over the EBI interface.
 
+config MIPS_PIC32_EPLATFORM
+	bool "PIC32 ePlatform"
+	select PIC32
+	select BOOT_ELF32
+	select BOOT_RAW
+	select CEVT_R4K
+	select CSRC_R4K
+	select DMA_NONCOHERENT
+	select IRQ_CPU
+	select SYS_HAS_CPU_MIPS32_R2
+	select SYS_HAS_CPU_NEVADA
+	select SYS_HAS_EARLY_PRINTK
+	select SYS_SUPPORTS_32BIT_KERNEL
+	select SYS_SUPPORTS_LITTLE_ENDIAN
+	select ARCH_REQUIRE_GPIOLIB
+	select HAVE_MACH_CLKDEV
+	select CLKDEV_LOOKUP
+	select LIBFDT
+	select USE_OF
+	help
+	  Microchip PIC32 ePlatform.
+
+	  An in-house simulation platform for development of future generations
+	  of PIC32 platforms.
+
 endchoice
 
 config PIC32

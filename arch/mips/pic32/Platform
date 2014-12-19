@@ -5,3 +5,11 @@ platform-$(CONFIG_MIPS_PIC32MZ)	+= pic32/
 cflags-$(CONFIG_MIPS_PIC32MZ)	+= -I$(srctree)/arch/mips/include/asm/mach-pic32
 load-$(CONFIG_MIPS_PIC32MZ)    += $(CONFIG_XIP_PHYS_ADDR)
 all-$(CONFIG_MIPS_PIC32MZ)	:= $(COMPRESSION_FNAME).bin
+
+#
+# PIC32 ePlatform
+#
+platform-$(CONFIG_MIPS_PIC32_EPLATFORM)	+= pic32/
+cflags-$(CONFIG_MIPS_PIC32_EPLATFORM)	+= -I$(srctree)/arch/mips/include/asm/mach-pic32
+load-$(CONFIG_MIPS_PIC32_EPLATFORM)    += 0xffffffff88000000
+all-$(CONFIG_MIPS_PIC32_EPLATFORM)	:= $(COMPRESSION_FNAME).bin
