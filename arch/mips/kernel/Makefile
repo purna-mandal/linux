@@ -2,7 +2,13 @@
 # Makefile for the Linux/MIPS kernel.
 #
 
-extra-y		:= head.o vmlinux.lds
+extra-y		:= head.o
+
+ifdef CONFIG_XIP_KERNEL
+extra-y		+= vmlinux-xip.lds
+else
+extra-y		+= vmlinux.lds
+endif
 
 obj-y		+= cpu-probe.o branch.o elf.o entry.o genex.o idle.o irq.o \
 		   process.o prom.o ptrace.o reset.o setup.o signal.o \
@@ -126,4 +132,8 @@ CFLAGS_branch.o			= $(CFLAGS_DSP)
 CFLAGS_ptrace.o			= $(CFLAGS_DSP)
 endif
 
+ifdef CONFIG_XIP_KERNEL
+CPPFLAGS_vmlinux-xip.lds	:= $(KBUILD_CFLAGS)
+else
 CPPFLAGS_vmlinux.lds		:= $(KBUILD_CFLAGS)
+endif
