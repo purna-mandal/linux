@@ -22,9 +22,11 @@ config MIPS_PIC32MZ
 	select PIC32MZ_UPPER_MEMORY
 	select ARCH_REQUIRE_GPIOLIB
 	select HAVE_MACH_CLKDEV
+	select HAVE_MACH
+	select COMMON_CLK
 	select CLKDEV_LOOKUP
-#	select LIBFDT
-#	select USE_OF
+	select LIBFDT
+	select USE_OF
 	help
 	  Microchip PIC32MZ Starter Kit.
 

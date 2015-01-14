@@ -39,6 +39,7 @@
 #define PIC32_BASE_PREFETCH	0xbf8e0000
 #define PIC32_BASE_EBI		0xbf8e1000
 #define PIC32_BASE_RNG		0xbf8e6000
+#define PIC32_BASE_DEVCFG2	0xbfc4ff44
 
 #define BIT_REG_MASK(bit, reg, mask)		\
 	do {					\
