@@ -20,6 +20,9 @@
 #include <linux/time.h>
 #include <linux/timex.h>
 #include <linux/mc146818rtc.h>
+#include <linux/clkdev.h>
+#include <linux/clk.h>
+#include <linux/clk-provider.h>
 
 #include <asm/mipsregs.h>
 #include <asm/mipsmtregs.h>
@@ -121,21 +124,20 @@ u32 pic32_get_pbclk(int bus)
 	return clk_freq / pbdiv;
 }
 
-void __init pic32_clk_init(void)
+void __init plat_time_init(void)
 {
-	unsigned long cpu_rate;
-	unsigned long uart_rate;
+	struct clk *clk;
 
-	cpu_rate = pic32_get_cpuclk();
-	uart_rate = pic32_get_pbclk(2);
+	of_clk_init(NULL);
+	clk = clk_get_sys("cpu_clk", NULL);
+	if (IS_ERR(clk)) {
+		clk = clk_get_sys("pb7_clk", NULL);
+		if (IS_ERR(clk))
+			panic("unable to get CPU clock, err=%ld", PTR_ERR(clk));
+	}
 
-	pic32_clk_add("cpu", cpu_rate);
-	pic32_clk_add("pic32-uart", uart_rate);
-	pic32_clk_add("pic32-rtc", cpu_rate);
-	pic32_clk_add("pic32-ether", pic32_get_pbclk(5));
-	pic32_clk_add("pic32-i2c.0", uart_rate);
-	pic32_clk_add("pic32-i2c.1", uart_rate);
-	pic32_clk_add("pic32-i2c.2", uart_rate);
-	pic32_clk_add("pic32-i2c.3", uart_rate);
-	pic32_clk_add("pic32-i2c.4", uart_rate);
+	clk_prepare_enable(clk);
+	pr_info("CPU Clock: %ldMHz\n", clk_get_rate(clk) / 1000000);
+	mips_hpt_frequency = clk_get_rate(clk) / 2;
+	clocksource_of_init();
 }
