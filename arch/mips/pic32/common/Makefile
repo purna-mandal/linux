@@ -10,4 +10,5 @@
 #
 obj-y = pic32-cmdline.o pic32-reset.o pic32-int.o pic32-gpio.o
 obj-y += pic32-pbtimer.o
+obj-y += pic32-ocmp.o
 
