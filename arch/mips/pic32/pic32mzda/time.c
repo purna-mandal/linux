@@ -19,6 +19,7 @@
 #include <linux/of_irq.h>
 
 #include <asm/time.h>
+#include <asm/mach-pic32/pbtimer.h>
 
 #include "pic32mzda.h"
 
@@ -64,5 +65,6 @@ void __init plat_time_init(void)
 	pr_info("CPU Clock: %ldMHz\n", rate / 1000000);
 	mips_hpt_frequency = rate / 2;
 
+	of_pic32_pb_timer_init();
 	clocksource_probe();
 }
