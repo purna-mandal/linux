@@ -20,6 +20,7 @@
 
 #include <asm/time.h>
 #include <asm/mach-pic32/pbtimer.h>
+#include <asm/mach-pic32/ocmp.h>
 
 #include "pic32mzda.h"
 
@@ -66,5 +67,6 @@ void __init plat_time_init(void)
 	mips_hpt_frequency = rate / 2;
 
 	of_pic32_pb_timer_init();
+	of_pic32_oc_init();
 	clocksource_probe();
 }

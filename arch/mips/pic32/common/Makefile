@@ -3,4 +3,5 @@
 # Copyright (C) 2015 Microchip Technology, Inc.  All rights reserved.
 #
 obj-y = reset.o irq.o \
-	pbtimer.o
+	pbtimer.o \
+	ocmp.o
