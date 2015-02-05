@@ -17,6 +17,7 @@
 #include <linux/pfn.h>
 #include <linux/string.h>
 #include <linux/export.h>
+#include <linux/sizes.h>
 
 #include <asm/page.h>
 #include <asm/pgalloc.h>
@@ -114,18 +115,18 @@ struct tlb_entry {
 #define ENTRYLO_UNCACHED(paddr)	(((paddr) >> 6) | (0x07) | (0x02 << 3))
 
 static struct tlb_entry wired_mappings[] = {
-{
-	.entrylo0		= ENTRYLO_UNCACHED(UPPERMEM_START),
-	.entrylo1		= ENTRYLO_UNCACHED(UPPERMEM_START),
-	.entryhi		= CAC_BASE_UPPER,
-	.pagemask		= PM_16M,
-},
-{
-	.entrylo0		= ENTRYLO_UNCACHED(UPPERMEM_START),
-	.entrylo1		= ENTRYLO_UNCACHED(UPPERMEM_START),
-	.entryhi		= UNCAC_BASE_UPPER,
-	.pagemask		= PM_16M,
-},
+	{
+		.entrylo0		= ENTRYLO_UNCACHED(UPPERMEM_START),
+		.entrylo1		= ENTRYLO_UNCACHED(UPPERMEM_START + SZ_4M),
+		.entryhi		= CAC_BASE_UPPER,
+		.pagemask		= PM_8M,
+	},
+	{
+		.entrylo0		= ENTRYLO_UNCACHED(UPPERMEM_START),
+		.entrylo1		= ENTRYLO_UNCACHED(UPPERMEM_START + SZ_4M),
+		.entryhi		= UNCAC_BASE_UPPER,
+		.pagemask		= PM_8M,
+	},
 };
 
 /*

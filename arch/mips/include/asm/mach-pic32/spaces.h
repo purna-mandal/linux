@@ -14,7 +14,7 @@
 #define UNCAC_BASE_UPPER        _AC(0xe0000000, UL)
 #define KSEG0_SIZE              _AC(0x20000000, UL)
 #define KSEG1_SIZE              _AC(0x20000000, UL)
-#define MAP_BASE                _AC(0xe0000000, UL)
+#define MAP_BASE                _AC(0xe0800000, UL)
 #define PIC32_MAX_UPPER_MB      _AC(8, UL)
 #define UPPERMEM_START          _AC(0x20000000, UL)
 #define HIGHMEM_START           (UPPERMEM_START + (PIC32_MAX_UPPER_MB << 20))
