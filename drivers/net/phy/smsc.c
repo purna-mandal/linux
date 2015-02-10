@@ -253,8 +253,11 @@ static struct phy_driver smsc_phy_driver[] = {
 	.phy_id_mask	= 0xfffffff0,
 	.name		= "SMSC LAN8740",
 
+/* EPLATFORM has an issue with 100Mb that needs to be resolved.  For now, limit
+ * to 10Mb.
+ */
 #ifdef CONFIG_MIPS_PIC32_EPLATFORM
-	.features	= (SUPPORTED_10baseT_Half | PHY_DEFAULT_FEATURES | SUPPORTED_Pause
+	.features	= (PHY_10BT_FEATURES | PHY_DEFAULT_FEATURES | SUPPORTED_Pause
 				| SUPPORTED_Asym_Pause),
 #else
 	.features	= (PHY_BASIC_FEATURES | SUPPORTED_Pause
