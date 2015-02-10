@@ -73,7 +73,7 @@ static int pic32mz_gpio_get(struct gpio_chip *chip, unsigned gpio)
 }
 
 static int pic32mz_gpio_set_direction(struct gpio_chip *chip,
-				      unsigned gpio, int dir)
+				unsigned gpio, int dir, int value)
 {
 	u32 reg;
 	u32 mask;
@@ -95,18 +95,21 @@ static int pic32mz_gpio_set_direction(struct gpio_chip *chip,
 
 	spin_unlock_irqrestore(&pic32mz_gpio_lock, flags);
 
+	if (!dir)
+		pic32mz_gpio_set(chip, gpio, value);
+
 	return 0;
 }
 
 static int pic32mz_gpio_direction_input(struct gpio_chip *chip, unsigned gpio)
 {
-	return pic32mz_gpio_set_direction(chip, gpio, DIR_IN);
+	return pic32mz_gpio_set_direction(chip, gpio, DIR_IN, 0);
 }
 
 static int pic32mz_gpio_direction_output(struct gpio_chip *chip,
 					 unsigned gpio, int value)
 {
-	return pic32mz_gpio_set_direction(chip, gpio, DIR_OUT);
+	return pic32mz_gpio_set_direction(chip, gpio, DIR_OUT, value);
 }
 
 static struct gpio_chip pic32mz_gpio_chip = {
