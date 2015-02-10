@@ -6,7 +6,6 @@ choice
 config MIPS_PIC32MZ
 	bool "PIC32MZ Starter Kit"
 	select PIC32
-	select XIP_KERNEL
 	select BOOT_ELF32
 	select BOOT_RAW
 	select CEVT_R4K
@@ -19,7 +18,6 @@ config MIPS_PIC32MZ
 	select SYS_SUPPORTS_32BIT_KERNEL
 	select SYS_SUPPORTS_LITTLE_ENDIAN
 	select ARCH_SPARSEMEM_ENABLE
-	select PIC32MZ_UPPER_MEMORY
 	select ARCH_REQUIRE_GPIOLIB
 	select HAVE_MACH_CLKDEV
 	select HAVE_MACH
@@ -67,6 +65,20 @@ config PIC32
 	bool
 
 config PIC32MZ_UPPER_MEMORY
-	bool
+	bool "Enable PIC32MZ Upper Memory Support"
+	depends on MIPS_PIC32MZ
+	help
+	  PIC32MZ support for running XIP with more available SRAM over EBI in
+	  KSEG2/KSEG3.
+
+config PIC32MZ_ZBOOT
+	bool "Enable PIC32MZ ZBOOT"
+	depends on !PIC32MZ_UPPER_MEMORY && MIPS_PIC32MZ
+	select SYS_SUPPORTS_ZBOOT
+	select CONFIG_MAPPED_KERNEL
+	help
+	  PIC32MZ support for zboot which provides a decompressor to run XIP
+	  from internal flash and run the kernel from mapped memory in
+	  KSEG2/KSEG3.
 
 endif # MACH_PIC32

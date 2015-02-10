@@ -3,7 +3,9 @@
 #
 platform-$(CONFIG_MIPS_PIC32MZ)	+= pic32/
 cflags-$(CONFIG_MIPS_PIC32MZ)	+= -I$(srctree)/arch/mips/include/asm/mach-pic32
+ifdef CONFIG_XIP_KERNEL
 load-$(CONFIG_MIPS_PIC32MZ)    += $(CONFIG_XIP_PHYS_ADDR)
+endif
 all-$(CONFIG_MIPS_PIC32MZ)	:= $(COMPRESSION_FNAME).bin
 
 #

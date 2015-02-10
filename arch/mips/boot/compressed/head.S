@@ -14,16 +14,37 @@
 
 #include <asm/asm.h>
 #include <asm/regdef.h>
+#include <kernel-entry-init.h>
 
 	.set noreorder
 	.cprestore
 	LEAF(start)
 start:
+#ifdef CONFIG_MIPS_PIC32MZ
+	kernel_entry_setup			# cpu specific setup
+#endif
+
 	/* Save boot rom start args */
 	move	s0, a0
 	move	s1, a1
 	move	s2, a2
 	move	s3, a3
+
+#ifdef CONFIG_MIPS_PIC32MZ
+	/*
+	 * For XIP from flash, copy initialized data from end of text in flash
+	 * to _sdata though _edata into RAM so we can write to it.
+	 */
+	PTR_LA  a0, _etext
+	PTR_LA  a1, _sdata
+	PTR_LA  a2, _fdata
+4:
+	lw      t0, (a0)
+	sw      t0, (a1)
+	addi    a1, 4
+	bne     a1, a2, 4b
+	addi    a0, 4
+#endif
 
 	/* Clear BSS */
 	PTR_LA	a0, _edata

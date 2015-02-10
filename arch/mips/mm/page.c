@@ -680,3 +680,9 @@ void copy_page(void *to, void *from)
 }
 
 #endif /* CONFIG_SIBYTE_DMA_PAGEOPS */
+
+#ifdef CONFIG_MAPPED_KERNEL
+/* Initialized so it is not clobbered when .bss is zeroed.  */
+unsigned long phys_to_kernel_offset = 1;
+unsigned long kernel_image_end = 1;
+#endif

@@ -18,7 +18,18 @@
 #define PIC32_MAX_UPPER_MB      _AC(8, UL)
 #define UPPERMEM_START          _AC(0x20000000, UL)
 #define HIGHMEM_START           (UPPERMEM_START + (PIC32_MAX_UPPER_MB << 20))
+#endif
 
+#if defined(CONFIG_SYS_SUPPORTS_ZBOOT) && defined(CONFIG_MIPS_PIC32MZ)
+#define CAC_BASE_UPPER          CKSEG2
+#define UNCAC_BASE_UPPER        CKSEG3
+#define MAP_BASE                (CKSEG3 + 0x00800000)
+#define UPPERMEM_START          0x20000000
+#define HIGHMEM_START		(~0UL)
+#define UNCAC_BASE		CKSEG3
+#define IO_BASE			CKSEG3
+#define PAGE_OFFSET		CKSEG2
+#define PHYS_OFFSET		UPPERMEM_START
 #endif
 
 #ifdef CONFIG_MIPS_PIC32_EPLATFORM

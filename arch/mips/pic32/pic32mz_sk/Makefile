@@ -8,9 +8,15 @@
 # Copyright (C) 2008 Wind River Systems, Inc.
 #   written by Ralf Baechle <ralf@linux-mips.org>
 #
-obj-y			:= pic32-init.o pic32-memory.o pic32-setup.o \
+obj-y			:= pic32-init.o pic32-setup.o \
 				pic32-ebi.o pic32-prefetch.o \
 				pic32-time.o early_pinctrl.o
+
+ifdef CONFIG_SYS_SUPPORTS_ZBOOT
+obj-y			+= pic32-memory-zboot.o
+else
+obj-y			+= pic32-memory.o
+endif
 
 obj-$(CONFIG_EARLY_PRINTK)	+= pic32-console.o
 obj-$(CONFIG_RTC_DRV_PIC32) += pic32-platform-rtc.o

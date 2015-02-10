@@ -45,7 +45,7 @@ EXPORT_SYMBOL(cpu_data);
 struct screen_info screen_info;
 #endif
 
-#ifdef CONFIG_MIPS_PIC32MZ
+#if defined(CONFIG_XIP_KERNEL) && defined(CONFIG_MIPS_PIC32MZ)
 extern void __init pic32mz_free_bootmem(unsigned long addr, unsigned long size);
 #endif
 
@@ -457,13 +457,13 @@ static void __init bootmem_init(void)
 		size = end - start;
 
 		/* Register lowmem ranges */
-#ifdef CONFIG_MIPS_PIC32MZ
+#if defined(CONFIG_XIP_KERNEL) && defined(CONFIG_MIPS_PIC32MZ)
 		/* carve out space for bmem */
 		pic32mz_free_bootmem(PFN_PHYS(start), size << PAGE_SHIFT);
 #else
 		free_bootmem(PFN_PHYS(start), size << PAGE_SHIFT);
 #endif
-#ifndef CONFIG_MIPS_PIC32MZ
+#ifndef CONFIG_XIP_KERNEL
 		memory_present(0, start, end);
 #endif
 	}

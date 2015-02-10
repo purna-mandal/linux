@@ -13,7 +13,11 @@
 #
 
 # set the default size of the mallocing area for decompressing
+ifdef CONFIG_MIPS_PIC32MZ
+BOOT_HEAP_SIZE := 0x70000
+else
 BOOT_HEAP_SIZE := 0x400000
+endif
 
 # Disable Function Tracer
 KBUILD_CFLAGS := $(shell echo $(KBUILD_CFLAGS) | sed -e "s/-pg//")
@@ -27,14 +31,24 @@ KBUILD_AFLAGS := $(LINUXINCLUDE) $(KBUILD_AFLAGS) -D__ASSEMBLY__ \
 	-DBOOT_HEAP_SIZE=$(BOOT_HEAP_SIZE) \
 	-DKERNEL_ENTRY=$(VMLINUX_ENTRY_ADDRESS)
 
-targets := head.o decompress.o string.o dbg.o uart-16550.o uart-alchemy.o
+KBUILD_CFLAGS += -mlong-calls
+KBUILD_AFLAGS += -mlong-calls
+
+targets := head.o decompress.o decompress-pic32.o string.o dbg.o uart-16550.o uart-alchemy.o uart-pic32.o
 
 # decompressor objects (linked with vmlinuz)
-vmlinuzobjs-y := $(obj)/head.o $(obj)/decompress.o $(obj)/string.o $(obj)/dbg.o
+vmlinuzobjs-y := $(obj)/head.o $(obj)/string.o $(obj)/dbg.o
+
+ifndef CONFIG_PIC32
+vmlinuzobjs-y			   += $(obj)/decompress.o
+else
+vmlinuzobjs-y			   += $(obj)/decompress-pic32.o
+endif
 
 ifdef CONFIG_DEBUG_ZBOOT
 vmlinuzobjs-$(CONFIG_SYS_SUPPORTS_ZBOOT_UART16550) += $(obj)/uart-16550.o
 vmlinuzobjs-$(CONFIG_MIPS_ALCHEMY)		   += $(obj)/uart-alchemy.o
+vmlinuzobjs-$(CONFIG_PIC32)			   += $(obj)/uart-pic32.o
 endif
 
 ifdef CONFIG_KERNEL_XZ
@@ -69,8 +83,12 @@ hostprogs-y := calc_vmlinuz_load_addr
 ifeq ($(CONFIG_MACH_JZ4740),y)
 VMLINUZ_LOAD_ADDRESS := 0x80600000
 else
+ifdef CONFIG_MIPS_PIC32MZ
+VMLINUZ_LOAD_ADDRESS := 0x9d000000
+else
 VMLINUZ_LOAD_ADDRESS = $(shell $(obj)/calc_vmlinuz_load_addr \
 		$(obj)/vmlinux.bin $(VMLINUX_LOAD_ADDRESS))
+endif
 endif
 
 vmlinuzobjs-y += $(obj)/piggy.o
@@ -79,9 +97,16 @@ quiet_cmd_zld = LD	$@
       cmd_zld = $(LD) $(LDFLAGS) -Ttext $(VMLINUZ_LOAD_ADDRESS) -T $< $(vmlinuzobjs-y) -o $@
 quiet_cmd_strip = STRIP	  $@
       cmd_strip = $(STRIP) -s $@
+
+ifndef CONFIG_MIPS_PIC32MZ
 vmlinuz: $(src)/ld.script $(vmlinuzobjs-y) $(obj)/calc_vmlinuz_load_addr
 	$(call cmd,zld)
 	$(call cmd,strip)
+else
+vmlinuz: $(src)/ld-pic32.script $(vmlinuzobjs-y) $(obj)/calc_vmlinuz_load_addr
+	$(call cmd,zld)
+	$(call cmd,strip)
+endif
 
 #
 # Some DECstations need all possible sections of an ECOFF executable

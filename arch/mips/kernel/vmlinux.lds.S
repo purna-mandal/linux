@@ -18,12 +18,21 @@
 #undef mips
 #define mips mips
 OUTPUT_ARCH(mips)
+#ifdef PHYSADDR
+ENTRY(phys_entry)
+#define AT_LOCATION AT(PHYSADDR)
+#else
 ENTRY(kernel_entry)
+#define AT_LOCATION
+#endif
 #ifndef CONFIG_XIP_KERNEL
 PHDRS {
-	text PT_LOAD FLAGS(7);	/* RWX */
+	text PT_LOAD AT_LOCATION FLAGS(7);      /* RWX */
 	note PT_NOTE FLAGS(4);	/* R__ */
 }
+#endif
+#ifdef PHYSADDR
+phys_entry = kernel_entry - VMLINUX_LOAD_ADDRESS + PHYSADDR;
 #endif
 
 #ifdef CONFIG_32BIT

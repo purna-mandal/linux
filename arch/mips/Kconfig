@@ -2197,6 +2197,22 @@ config SB1_PASS_2_1_WORKAROUNDS
 	depends on CPU_SB1 && CPU_SB1_PASS_2
 	default y
 
+config MAPPED_KERNEL
+       bool "Mapped kernel support"
+       depends on MACH_PIC32
+       help
+         Enable compiling and loading the Linux kernel compiled to
+         run in the KSEG2/CKSEG2. Wired TLB entries are used to map
+         the available DRAM into either XKSEG or KSEG2.
+
+config PHYS_LOAD_ADDRESS
+       hex "Physical load address"
+       depends on MAPPED_KERNEL
+       default ffffffff9d000000
+       help
+         The physical load address reflected as the program header
+         physical address in the kernel ELF image.
+
 
 config ARCH_PHYS_ADDR_T_64BIT
        bool

@@ -2079,7 +2079,7 @@ void per_cpu_trap_init(bool is_boot_cpu)
 		if (!is_boot_cpu)
 			cpu_cache_init();
 
-#ifdef CONFIG_PIC32MZ_UPPER_MEMORY
+#if defined(CONFIG_PIC32MZ_UPPER_MEMORY) && !defined(CONFIG_MAPPED_KERNEL)
 		pic32mz_tlb_init();
 #else
 		tlb_init();
