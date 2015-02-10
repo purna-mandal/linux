@@ -128,7 +128,7 @@ static struct at24_platform_data at24_plat = {
 	.flags = AT24_FLAG_ADDR16,
 };
 
-static struct i2c_board_info pic32_i2c_board_info[] = {
+static struct i2c_board_info pic32_i2c_board_info0[] = {
 	{
 		/* External RTC */
 		I2C_BOARD_INFO("mcp7940", 0x6F)
@@ -142,16 +142,25 @@ static struct i2c_board_info pic32_i2c_board_info[] = {
 		/* Accelerometer */
 		I2C_BOARD_INFO("bma150", 0x38),
 	},
+	{
+		/* Audio Codec */
+                I2C_BOARD_INFO("wm8731", 0x1a)
+	},
 };
 
+static struct i2c_board_info pic32_i2c_board_info1[] = {
+};
 
 static int __init pic32mz_add_i2c(void)
 {
 	platform_add_devices(pic32_i2c_devices,
 			ARRAY_SIZE(pic32_i2c_devices));
 
-	i2c_register_board_info(0, pic32_i2c_board_info,
-				ARRAY_SIZE(pic32_i2c_board_info));
+	i2c_register_board_info(0, pic32_i2c_board_info0,
+				ARRAY_SIZE(pic32_i2c_board_info0));
+
+	i2c_register_board_info(1, pic32_i2c_board_info1,
+				ARRAY_SIZE(pic32_i2c_board_info1));
 
 	return 0;
 }
