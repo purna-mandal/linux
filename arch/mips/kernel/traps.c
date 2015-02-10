@@ -2141,7 +2141,7 @@ void __init trap_init(void)
 		return; /* Already done */
 #endif
 
-#ifdef CONFIG_PIC32MZ_UPPER_MEMORY
+#ifdef CONFIG_MIPS_PIC32MZ
 	/*
 	 * When we use upper memory, we can't allow ebase to end up there.  So,
 	 * force to lower memory explicitly.
