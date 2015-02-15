@@ -142,10 +142,18 @@ static struct i2c_board_info pic32_i2c_board_info0[] = {
 		/* Accelerometer */
 		I2C_BOARD_INFO("bma150", 0x38),
 	},
+#if defined(CONFIG_SND_SOC_WM8731)
 	{
 		/* Audio Codec */
                 I2C_BOARD_INFO("wm8731", 0x1a)
 	},
+#endif
+#if defined(CONFIG_SND_SOC_AK4953)
+	{
+		/* Audio Codec */
+		I2C_BOARD_INFO("ak4953a", 0x13),
+	},
+#endif
 };
 
 static struct i2c_board_info pic32_i2c_board_info1[] = {
