@@ -102,7 +102,7 @@ void __init setup_ebi_sram(void)
 	iounmap(ebi_base);
 }
 
-static void write_pattern(u32 p, u32 sram_size)
+static __init void write_pattern(u32 p, u32 sram_size)
 {
 	volatile u32* addr = (u32 *)KSEG2;
 	u32 loop;
@@ -116,7 +116,7 @@ static void write_pattern(u32 p, u32 sram_size)
 	pr_cont("finished\n");
 }
 
-static void read_pattern(u32 p, u32 sram_size)
+static __init void read_pattern(u32 p, u32 sram_size)
 {
 	volatile u32* addr = (u32 *)KSEG2;
 	u32 loop;
@@ -135,7 +135,7 @@ static void read_pattern(u32 p, u32 sram_size)
 	pr_cont("success\n");
 }
 
-void run_ebi_sram_test(u32 sram_size)
+void __init run_ebi_sram_test(u32 sram_size)
 {
 	volatile u32* addr;
 	u32 loop;
