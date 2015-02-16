@@ -1,5 +1,5 @@
 /*
- * Joshua Henderson, joshua.henderson@microchip.com
+ * Joshua Henderson, <joshua.henderson@microchip.com>
  * Copyright (C) 2014 Microchip Technology Inc.  All rights reserved.
  *
  *  This program is free software; you can distribute it and/or modify it
