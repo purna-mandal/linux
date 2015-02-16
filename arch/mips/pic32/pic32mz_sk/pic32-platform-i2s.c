@@ -109,25 +109,33 @@ static struct platform_device pic32_i2s_device3 = {
 	.num_resources	= ARRAY_SIZE(i2s_resource3),
 };
 
-static struct platform_device pic32_pcm_device = {
-	.name = "pic32-pcm-audio",
-	.id = 0,
-	.num_resources = 0,
-};
-
+#ifdef CONFIG_SND_PIC32_SOC_CODEC_PROTO
 static struct platform_device snd_proto_device = {
 	.name = "snd-pic32-proto",
 	.id = 0,
 	.num_resources = 0,
 };
+#endif
+
+#ifdef CONFIG_SND_PIC32_SOC_CODEC_AK4953A
+static struct platform_device snd_ak4953a_device = {
+	.name = "snd-pic32-ak4953a",
+	.id = 0,
+	.num_resources = 0,
+};
+#endif
 
 static struct platform_device *pic32_i2s_devices[] __initdata = {
 	&pic32_i2s_device0,
 	&pic32_i2s_device1,
 	&pic32_i2s_device2,
 	&pic32_i2s_device3,
-	&pic32_pcm_device,
+#ifdef CONFIG_SND_PIC32_SOC_CODEC_PROTO
 	&snd_proto_device,
+#endif
+#ifdef CONFIG_SND_PIC32_SOC_CODEC_AK4953A
+	&snd_ak4953a_device,
+#endif
 };
 
 #define SDI1R 0x9C

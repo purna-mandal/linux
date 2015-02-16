@@ -12,12 +12,15 @@
  *  for more details.
  */
 #include <linux/init.h>
+#include <linux/delay.h>
 #include <linux/platform_device.h>
 #include <asm/mach-pic32/pic32.h>
 #include <asm/mach-pic32/pic32int.h>
 #include <linux/i2c.h>
 #include <linux/platform_data/at24.h>
 #include <linux/bma150.h>
+#include <linux/gpio.h>
+#include <asm/mach-pic32/pic32-pps.h>
 
 static struct resource i2c_resource0[] = {
 	{
@@ -151,7 +154,7 @@ static struct i2c_board_info pic32_i2c_board_info0[] = {
 #if defined(CONFIG_SND_SOC_AK4953)
 	{
 		/* Audio Codec */
-		I2C_BOARD_INFO("ak4953a", 0x13),
+		I2C_BOARD_INFO("ak4953a", 0x12),
 	},
 #endif
 };
@@ -169,6 +172,23 @@ static int __init pic32mz_add_i2c(void)
 
 	i2c_register_board_info(1, pic32_i2c_board_info1,
 				ARRAY_SIZE(pic32_i2c_board_info1));
+
+	/* SDA2 - RA3/J1-82 */
+	/* SCL2 - RA2/J1-112 */
+
+	/* REFCLK - RD15/J1-96 */
+	gpio_direction_output(111,0);
+	pic32_pps_output(OUT_FUNC_REFCLKO1, OUT_RPD15);
+
+	/* SS1 - RB15/J1-90 */
+	gpio_direction_output(47,0);
+	pic32_pps_output(OUT_FUNC_SS1, OUT_RPB15);
+
+	/* Audio PDN - RH3/J1-64 */
+	gpio_direction_output(227, 0);
+	udelay(10000);
+	gpio_set_value(227, 1);
+	udelay(10000);
 
 	return 0;
 }
