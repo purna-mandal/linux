@@ -23,3 +23,14 @@ config SND_PIC32_SOC_CODEC_PROTO
 
 	  For more information, see
 	  <http://www.mikroe.com/add-on-boards/audio-voice/audio-codec-proto/>
+
+config SND_PIC32_SOC_CODEC_AK4953A
+	tristate "Support for Audio Codec AK4953A"
+	depends on SND_PIC32_SOC && I2C
+	select SND_PIC32_SOC_I2S
+	select SND_SOC_AK4953
+	help
+	  Say Y or M if you want to add support for Audio Codec AK4953A on a
+	  Microchip PIC32.
+
+	  This supports connecting the AK4953A codec in master or slave mode.
