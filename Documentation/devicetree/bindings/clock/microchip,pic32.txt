@@ -1,13 +1,14 @@
 Binding for a Clock hardware block found on
 certain Microchip PIC32 MCU devices.
 
-Microchip clocks node can contain pll, diviser or multiplexer nodes.
+Microchip SoC clocks-node consists of few oscillators, PLL, multiplexer
+and few divider nodes.
 
 We will find only the base address of the clock tree, this base
-address is common for some of the subnodes. If no address is specified
-for any of subnode base address of the clock tree will be treated as
-its base. Each of subnodes follow the same common clock binding with
-some additional optional properties.
+address is common for some of the subnodes, not all. If no address is
+specified for any of subnode base address of the clock tree will be
+treated as its base. Each of subnodes follow the same common clock
+binding with some additional optional properties.
 
 	clocks_node {
 		reg = <>;
@@ -143,7 +144,7 @@ Example:
 			clock-frequency= <32000>;
 		};
 
-		rtcc_clk: clk_rtcc {
+		RTCCCLK: clk_rtcc {
 			reg = <>;
 			#clock-cells = <0>;
 			compatible = "microchip,pic32-rtccclk";
@@ -161,5 +162,5 @@ uart2: serial@<> {
 	compatible = "microchip,pic32-uart";
 	reg = <>;
 	interrupts = <>;
-	clocks = <&CLK_PB2DIV 1>;
+	clocks = <&PB2DIV>;
 }

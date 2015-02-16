@@ -244,6 +244,21 @@ out_err:
 }
 EXPORT_SYMBOL(pic32_of_clk_get_parent_indices);
 
+static int pic32_of_clk_add_aliases(struct device_node *np,
+		struct clk *clk)
+{
+	const char *alias_name;
+	int index;
+	int count = of_property_count_strings(np, "clock-output-names");
+	for (index = 1; index < count; index++) {
+		if (of_property_read_string_index(np, "clock-output-names",
+						  index, &alias_name) < 0)
+			break;
+		clk_register_clkdev(clk, NULL, alias_name);
+	}
+	return 0;
+}
+
 static void __uart_baud_set_rate(unsigned long sclk_rate)
 {
 #ifdef __CLK_DEBUG
@@ -1540,6 +1555,9 @@ static void __init of_periph_clk_setup(struct device_node *np)
 
 	of_clk_src_register_clkdevs(np, clk);
 
+	/* add clk aliases, if available */
+	pic32_of_clk_add_aliases(np, clk);
+
 	return;
 
 err_map:
@@ -1615,6 +1633,10 @@ static void __init of_refo_clk_setup(struct device_node *np)
 	}
 
 	of_clk_src_register_clkdevs(np, clk);
+
+	/* add clk aliases, if available */
+	pic32_of_clk_add_aliases(np, clk);
+
 	goto err_parent;
 
 err_map:
