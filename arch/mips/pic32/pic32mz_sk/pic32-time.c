@@ -23,6 +23,7 @@
 #include <linux/clkdev.h>
 #include <linux/clk.h>
 #include <linux/clk-provider.h>
+#include <linux/irq.h>
 
 #include <asm/mipsregs.h>
 #include <asm/mipsmtregs.h>

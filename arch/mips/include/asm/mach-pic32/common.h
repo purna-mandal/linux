@@ -8,6 +8,8 @@
 #ifndef PIC32_COMMON_H
 #define PIC32_COMMON_H
 
+extern struct irq_domain *evic_irq_domain;
+
 u32 pic32_get_pbclk(int bus);
 void pic32_clk_init(void);
 u32 pic32_get_cpuclk(void);
