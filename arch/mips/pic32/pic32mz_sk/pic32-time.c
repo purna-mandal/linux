@@ -39,6 +39,7 @@
 #include <asm/mach-pic32/pbtimer.h>
 
 #include <asm/prom.h>
+#include <dt-bindings/interrupt-controller/microchip,pic32mz-evic.h>
 
 #define ICLK_MASK   0x00000080
 #define PLLDIV_MASK 0x00000007
@@ -127,6 +128,15 @@ u32 pic32_get_pbclk(int bus)
 	iounmap(osc_base);
 
 	return clk_freq / pbdiv;
+}
+
+unsigned int get_c0_compare_int(void)
+{
+	int virq;
+
+	virq = irq_create_mapping(evic_irq_domain, CORE_TIMER_INTERRUPT);
+	irq_set_irq_type(virq, IRQ_TYPE_EDGE_RISING);
+	return virq;
 }
 
 void __init plat_time_init(void)
