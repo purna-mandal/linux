@@ -119,13 +119,13 @@ static struct tlb_entry wired_mappings[] = {
 		.entrylo0		= ENTRYLO_UNCACHED(UPPERMEM_START),
 		.entrylo1		= ENTRYLO_UNCACHED(UPPERMEM_START + SZ_4M),
 		.entryhi		= CAC_BASE_UPPER,
-		.pagemask		= PM_8M,
+		.pagemask		= PM_4M,
 	},
 	{
 		.entrylo0		= ENTRYLO_UNCACHED(UPPERMEM_START),
 		.entrylo1		= ENTRYLO_UNCACHED(UPPERMEM_START + SZ_4M),
 		.entryhi		= UNCAC_BASE_UPPER,
-		.pagemask		= PM_8M,
+		.pagemask		= PM_4M,
 	},
 };
 
