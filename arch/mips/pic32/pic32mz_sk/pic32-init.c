@@ -51,16 +51,43 @@ char *prom_getenv(char *envname)
 	return NULL;
 }
 
+char __init fw_early_console_get_port_from_archcmdline(void)
+{
+	char *arch_cmdline = fw_getcmdline();
+	char *s;
+	char port = -1;
+
+	if (*arch_cmdline == '\0')
+		goto _out;
+
+	s = strstr(arch_cmdline, "earlyprintk=");
+	if (s != NULL) {
+		s = strstr(s, "ttyS");
+		if (s != NULL)
+			s += 4;
+		else
+			goto _out;
+
+		port = (*s) - '0';
+	}
+
+_out:
+	return port;
+}
+
 void __init prom_init(void)
 {
+	char port;
 	prom_argc = fw_arg0;
 	_prom_argv = (int *) fw_arg1;
 	_prom_envp = (int *) fw_arg2;
 
 	fw_init_cmdline();
 
+	port = fw_early_console_get_port_from_archcmdline();
 #ifdef CONFIG_EARLY_PRINTK
-	fw_init_early_console(CONSOLE_PORT);
+	if (port != -1)
+		fw_init_early_console(port);
 #endif
 
 	fw_meminit();
