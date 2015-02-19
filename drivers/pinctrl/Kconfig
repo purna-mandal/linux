@@ -207,6 +207,20 @@ config PINCTRL_ZYNQ
 	help
 	  This selectes the pinctrl driver for Xilinx Zynq.
 
+config PINCTRL_PIC32
+	bool "Enable PIC32 pinctrl core"
+	depends on PIC32
+	select PINMUX
+	select GENERIC_PINCONF
+	select GPIOLIB_IRQCHIP
+	select GENERIC_IRQ_CHIP
+
+config PINCTRL_PIC32MZ
+	bool "Enable PIC32MZ pinctrl"
+	depends on MIPS_PIC32MZ
+	depends on PINCTRL_PIC32
+	depends on USE_OF
+
 source "drivers/pinctrl/berlin/Kconfig"
 source "drivers/pinctrl/freescale/Kconfig"
 source "drivers/pinctrl/intel/Kconfig"

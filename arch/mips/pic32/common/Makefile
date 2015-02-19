@@ -8,7 +8,7 @@
 # Copyright (C) 2008 Wind River Systems, Inc.
 #   written by Ralf Baechle <ralf@linux-mips.org>
 #
-obj-y = pic32-cmdline.o pic32-reset.o pic32-int.o pic32-gpio.o
+obj-y = pic32-cmdline.o pic32-reset.o pic32-int.o
 obj-y += pic32-pbtimer.o
 obj-y += pic32-ocmp.o
 

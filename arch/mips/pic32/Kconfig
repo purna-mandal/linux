@@ -27,6 +27,8 @@ config MIPS_PIC32MZ
 	select CLKDEV_LOOKUP
 	select LIBFDT
 	select USE_OF
+	select PINCTRL
+	select PINCTRL_PIC32MZ
 	help
 	  Microchip PIC32MZ Starter Kit.
 
