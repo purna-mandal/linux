@@ -1,0 +1,26 @@
+* Microchip Universal Synchronous Asynchronous Receiver/Transmitter (USART)
+
+Required properties:
+- compatible: Should be "microchip,pic32-usart"
+- reg: Should contain registers location and length
+- interrupts: Should contain interrupt
+- pinctrl: Should contain pinctrol for TX/RX/RTS/CTS
+- gpios: Should contain gpio pins for CTS/RTS
+
+Example:
+	usart0: serial@bf822000 {
+		compatible = "microchip,pic32-usart";
+		reg = <0xbf822000 0x50>;
+		interrupts = <UART1_FAULT DEFAULT_INT_PRI IRQ_TYPE_NONE>,
+			     <UART1_RECEIVE_DONE DEFAULT_INT_PRI IRQ_TYPE_NONE>,
+			     <UART1_TRANSFER_DONE DEFAULT_INT_PRI IRQ_TYPE_NONE>;
+		pinctrl-names = "default";
+		pinctrl-0 = <
+			&pinctrl_uart1
+			&pinctrl_uart1_cts
+			&pinctrl_uart1_rts>;
+		/* CTS/RTS */
+		cts-gpios = <&pioB 15 0>;
+		rts-gpios = <&pioD 1 0>;
+	};
+

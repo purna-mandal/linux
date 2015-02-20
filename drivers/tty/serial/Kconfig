@@ -917,7 +917,15 @@ config SERIAL_PIC32_CONSOLE
 	select SERIAL_CORE_CONSOLE
 	default y
 	help
-		If you have a PIC32, here's a simple serial console.
+		If you have a PIC32, this driver enables the serial console.
+		You want this! Say Y.  Otherwise, say N.
+
+config SERIAL_PIC32
+	bool "PIC32 serial support"
+	depends on SERIAL_PIC32_CONSOLE
+	help
+		If you have a PIC32, this driver supports the serial ports.
+		Say Y to use serial ports, otherwise say N.
 
 config SERIAL_MPC52xx
 	tristate "Freescale MPC52xx/MPC512x family PSC serial support"
