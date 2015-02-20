@@ -281,10 +281,11 @@ EXPORT_SYMBOL(pic32_oc_request_by_cap);
 
 struct pic32_ocmp *pic32_oc_request_by_node(struct device_node *np)
 {
+	const char *prop = "microchip,ocmp";
 	int rc;
 	struct of_phandle_args spec;
 
-	rc = of_parse_phandle_with_args(np, "mchp,ocmp", "#oc-cells", 0, &spec);
+	rc = of_parse_phandle_with_args(np, prop, "#oc-cells", 0, &spec);
 	if (rc)
 		return ERR_PTR(rc);
 
@@ -516,13 +517,13 @@ static int of_oc_setup_one(struct device_node *np, const void *data)
 	/* disable OC */
 	oc_disable(oc);
 
-	if (of_find_property(np, "mchp,oc-32bit", NULL))
+	if (of_find_property(np, "microchip,oc-32bit", NULL))
 		oc->capability |= PIC32_OC_32BIT;
 
-	if (of_find_property(np, "mchp,oc-pwm", NULL))
+	if (of_find_property(np, "microchip,oc-pwm", NULL))
 		oc->capability |= PIC32_OC_PWM;
 
-	if (of_find_property(np, "mchp,oc-adc", NULL))
+	if (of_find_property(np, "microchip,oc-adc", NULL))
 		oc->capability |= PIC32_OC_TRIG_ADC;
 
 	/* install interrupt */
@@ -538,7 +539,7 @@ out_oc:
 }
 
 static const struct of_device_id pic32_oc_match[] = {
-	{ .compatible = "mchp,pic32-ocmp",},
+	{ .compatible = "microchip,pic32-ocmp",},
 	{},
 };
 
