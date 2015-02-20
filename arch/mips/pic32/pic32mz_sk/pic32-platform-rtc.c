@@ -12,6 +12,7 @@
  *  for more details.
  */
 #include <linux/init.h>
+#include <linux/of.h>
 #include <linux/platform_device.h>
 #include <asm/mach-pic32/pic32.h>
 #include <asm/mach-pic32/pic32int.h>
@@ -37,6 +38,9 @@ static struct platform_device pic32_rtc_device = {
 
 static int __init pic32mz_add_rtc(void)
 {
+	if (of_have_populated_dt())
+		return 0;
+
 	platform_device_register(&pic32_rtc_device);
 
 	return 0;
