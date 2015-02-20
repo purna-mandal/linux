@@ -508,7 +508,7 @@ struct pic32_pb_timer *pic32_pb_timer_request_by_node(struct device_node *np)
 	int ret;
 	struct of_phandle_args spec;
 
-	ret = of_parse_phandle_with_args(np, "mchp,timer",
+	ret = of_parse_phandle_with_args(np, "microchip,timer",
 		"#timer-cells", 0, &spec);
 	if (ret)
 		return ERR_PTR(ret);
@@ -658,7 +658,7 @@ static unsigned long pb_timer_determine_clk_rate_from_timeout(
 
 	}
 
-	pr_info("pic32-timer: best-idx %d, target_timeout %llu, timeout %llu\n",
+	pr_debug("pic32-timer: best-idx %d, target_timeout %llu, timeout %llu\n",
 		best_idx, timeout_nsec, best_timeout);
 
 	if (unlikely(best_delta == -1)) {
@@ -879,22 +879,22 @@ static int of_pb_timer_setup(struct device_node *np, const void *data)
 
 	dbg_timer("np %s\n", np->name);
 
-	if (of_find_property(np, "mchp,timer-typeA", NULL))
+	if (of_find_property(np, "microchip,timer-typeA", NULL))
 		timer->capability |= PIC32_TIMER_CLASS_A;
 
-	if (of_find_property(np, "mchp,timer-async", NULL))
+	if (of_find_property(np, "microchip,timer-async", NULL))
 		timer->capability |= PIC32_TIMER_ASYNC;
 
-	if (of_find_property(np, "mchp,timer-32bit", NULL))
+	if (of_find_property(np, "microchip,timer-32bit", NULL))
 		timer->capability |= PIC32_TIMER_32BIT;
 
-	if (of_find_property(np, "mchp,timer-gated", NULL))
+	if (of_find_property(np, "microchip,timer-gated", NULL))
 		timer->capability |= PIC32_TIMER_GATED;
 
-	if (of_find_property(np, "mchp,timer-adc", NULL))
+	if (of_find_property(np, "microchip,timer-adc", NULL))
 		timer->capability |= PIC32_TIMER_TRIG_ADC;
 
-	if (of_find_property(np, "mchp,timer-oneshot", NULL))
+	if (of_find_property(np, "microchip,timer-oneshot", NULL))
 		timer->capability |= PIC32_TIMER_ONESHOT;
 
 	if (timer_cap_32bit(timer))
@@ -946,10 +946,10 @@ static const struct pbtimer_platform_data pic32_data[] = {
 };
 
 static const struct of_device_id pic32_timer_match[] = {
-	{ .compatible = "mchp,pic32-timer", .data = &pic32_data[0], },
-	{ .compatible = "mchp,pic32-timerA", .data = &pic32_data[1], },
-	{ .compatible = "mchp,pic32-timer-adc", .data = &pic32_data[2],},
-	{ .compatible = "mchp,pic32-timer32", .data = &pic32_data[3],},
+	{ .compatible = "microchip,pic32-timer", .data = &pic32_data[0], },
+	{ .compatible = "microchip,pic32-timerA", .data = &pic32_data[1], },
+	{ .compatible = "microchip,pic32-timer-adc", .data = &pic32_data[2],},
+	{ .compatible = "microchip,pic32-timer32", .data = &pic32_data[3],},
 	{},
 };
 #endif
