@@ -10,7 +10,8 @@
 #
 obj-y			:= pic32-init.o pic32-setup.o \
 				pic32-ebi.o pic32-prefetch.o \
-				pic32-time.o early_pinctrl.o
+				pic32-time.o early_pinctrl.o \
+				pic32-platform-devices.o
 
 ifdef CONFIG_SYS_SUPPORTS_ZBOOT
 obj-y			+= pic32-memory-zboot.o
@@ -19,15 +20,9 @@ obj-y			+= pic32-memory.o
 endif
 
 obj-$(CONFIG_EARLY_PRINTK)	+= pic32-console.o
-obj-$(CONFIG_RTC_DRV_PIC32) += pic32-platform-rtc.o
 obj-$(CONFIG_SPI_GPIO) += pic32-platform-spi.o
 obj-$(CONFIG_SPI_GPIO_PIC32MZ) += pic32-platform-spi.o
 obj-$(CONFIG_MIPS_PIC32_ETHER) += pic32-platform-eth.o
-obj-$(CONFIG_I2C_PIC32) += pic32-platform-i2c.o
-obj-$(CONFIG_DMA_PIC32) += pic32-platform-dma.o
-obj-$(CONFIG_HW_RANDOM_PIC32) += pic32-platform-rng.o
-obj-$(CONFIG_PIC32_WDT) += pic32-platform-wdt.o
-obj-$(CONFIG_SND_PIC32_SOC_I2S) += pic32-platform-i2s.o
 
 CFLAGS_pic32-setup.o = -I$(src)/../../../../scripts/dtc/libfdt
 
