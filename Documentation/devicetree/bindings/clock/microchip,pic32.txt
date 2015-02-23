@@ -52,6 +52,11 @@ Optional properties (for subnodes):
 	the mux clock node.
 
 - microchip,ignore-unused : ignore gate request even if the gated clock is unused.
+- microchip,status-bit-mask: bitmask for status check. This will be used to confirm
+   particular operation by clock sub-node is completed. It is dependent sub-node.
+- microchip,bit-mask: enable mask, similar to microchip,status-bit-mask.
+- microchip,slew-step: enable frequency slewing(stepping) during rate change;
+   applicable only to sys-clock subnode.
 
 Example:
 
@@ -61,10 +66,13 @@ Example:
 		interrupts = <fscm-irq>;
 
 		SYS_PLL: spll_clk {
+			reg = </* PLLCON-Register */
+			       /* PLL-Status-Register */ >
 			#clock-cells = <0>;
 			compatible = "microchip,pic32-syspll";
 			clocks = <&POSC>;
 			clock-output-names = "pic32-spll";
+			microchip,status-bit-mask=<>; /* SLOCK/SPLLRDY bitmask */
 		};
 
 		FRCDIV: frcdiv_clk {
@@ -74,6 +82,21 @@ Example:
 			clock-output-names = "pic32-frcdiv";
 		};
 
+		/* Sys clock mux with postdiv & slew; available in Darlington or later devices */
+		SCLKDA: sys_clk {
+			#clock-cells = <0>;
+			compatible = "microchip,pic32-sysclk-v2";
+			clocks = <&FRCDIV>,
+				 <&SPLL>, /* SYS PLL */
+				 <&POSC>, /* POSC */
+				 <&SOSC>,
+				 <&LPRC>,
+				 <&FRCDIV>;
+			microchip,clock-indices = <0>, <1>, <2>,<4>,<5>,<7>;
+			clock-output-names = "pic32-sclk";
+		};
+
+		/* sys clock with only mux */
 		SCLK: sys_clk {
 			#clock-cells = <0>;
 			compatible = "microchip,pic32-sysclk";
@@ -90,23 +113,27 @@ Example:
 		UPLL: CLK_UPLL {
 			#clock-cells = <0>;
 			compatible = "microchip,pic32-usbpll";
-
 			clocks = <&POSC>;
-
 			clock-output-names = "pic32-usb";
+		};
+
+		/* DDR Ctrl & DDR PHY PLL: available in Darlington SoC */
+		MPLL: CLK_MPLL {
+			#clock-cells = <0>;
+			compatible = "microchip,pic32-mpll";
+			reg = <0xbf800100 0x04>; /* CFGMPLL */
+			clocks = <&POSC>;
+			clock-output-names = "pic32-mpll";
+			status = "disabled";
 		};
 
 		PB1DIV: CLK_PB1DIV {
 			reg = <0xfee62000 0xb48>;
-
 			#clock-cells = <1>;
 			compatible = "microchip,pic32-pbclk";
-
 			clocks = <&SYS>;
-
 			clock-output-names = "pic32-pb1div","pic32-osc2out";
 		};
-
 
 		PB2DIV: CLK_PB2DIV {
 			reg = <0xfee62000 0xb48>;
@@ -120,27 +147,19 @@ Example:
 			reg = <0xfee62000 0xb48>;
 			#clock-cells = <1>;
 			compatible = "microchip,pic32-refoclk";
-			clocks = <&SPLL>,
-				 <&PB1DIV 6>, /* SYS PLL */
-				 <&POSC>, /* POSC */
-				 <&FRC>,
-				 <&LPRC>,
-				 <&SOSC>,
-				 <>,
-				 <&SYS>,
-				 <&REFI>, /* Reference Input */
-				 <&BFRC>;
-
+			clocks = <&SPLL>, <&PB1DIV>, <&POSC>, /* POSC */ <&FRC>, <&LPRC>,
+				 <&SOSC>, <&SYS>, <&REFI>, /* Reference Input */ <&BFRC>;
 			clock-output-names = "pic32-ref1osc";
 		};
 
 		SOSC: clk_sosc {
-			reg = <>;
+			reg = </* enable-register */
+			       /* status-register */>
 			#clock-cells = <0>;
 			compatible = "microchip,pic32-sosc";
 			clock-output-names = "sosc_clk";
-			microchip,bit-shift = <9>;
-			microchip,bit-width = <2>;
+			microchip,bitmask = <0x2>;
+			microchip,status-bitmask = <0x400000>;
 			clock-frequency= <32000>;
 		};
 
