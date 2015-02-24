@@ -926,7 +926,7 @@ CONFIG_HAVE_ARCH_KGDB=y
 # CONFIG_KGDB is not set
 CONFIG_EARLY_PRINTK=y
 CONFIG_CMDLINE_BOOL=y
-CONFIG_CMDLINE="loglevel=10 root=/dev/nfs nfsroot=192.168.100.1:/nfsroot,tcp,vers=3 ip=dhcp init=linuxrc rootwait ro"
+CONFIG_CMDLINE="loglevel=10 root=/dev/nfs nfsroot=192.168.100.1:/nfsroot,tcp,vers=3 ip=dhcp init=linuxrc rootwait ro earlyprintk=ttyS1,115200n8r console=ttyS1,115200n8"
 CONFIG_CMDLINE_OVERRIDE=y
 # CONFIG_RUNTIME_DEBUG is not set
 

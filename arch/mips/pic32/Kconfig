@@ -29,6 +29,7 @@ config MIPS_PIC32MZ
 	select USE_OF
 	select PINCTRL
 	select PINCTRL_PIC32MZ
+	select SERIAL_PIC32
 	help
 	  Microchip PIC32MZ Starter Kit.
 
