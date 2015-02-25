@@ -33,7 +33,7 @@
 #include <asm/mach-pic32/common.h>
 #include <asm/mach-pic32/ocmp.h>
 #include <asm/mach-pic32/pbtimer.h>
-
+#include <asm/mach-pic32/pic32.h>
 
 struct pic32_pb_timer;
 

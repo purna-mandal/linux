@@ -2,21 +2,6 @@
 #define __PIC32_OCMP_H__
 #include <linux/types.h>
 #include <linux/init.h>
-#include <linux/sched.h>
-#include <linux/clkdev.h>
-#include <linux/list.h>
-#include <linux/of.h>
-#include <linux/of_address.h>
-#include <linux/of_device.h>
-#include <linux/of_irq.h>
-#include <linux/irq.h>
-#include <linux/mutex.h>
-#include <linux/spinlock.h>
-#include <linux/interrupt.h>
-
-#include <asm/mips-boards/generic.h>
-#include <asm/mach-pic32/common.h>
-#include <asm/mach-pic32/pic32.h>
 
 /* OC Modes */
 enum {
