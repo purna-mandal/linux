@@ -24,5 +24,8 @@ obj-$(CONFIG_SPI_GPIO) += pic32-platform-spi.o
 obj-$(CONFIG_SPI_GPIO_PIC32MZ) += pic32-platform-spi.o
 obj-$(CONFIG_MIPS_PIC32_ETHER) += pic32-platform-eth.o
 
+obj-y += pic32-clk-test.o
+CFLAGS_pic32-clk-test.o := -w
+
 CFLAGS_pic32-setup.o = -I$(src)/../../../../scripts/dtc/libfdt
 
