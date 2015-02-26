@@ -29,7 +29,6 @@
 #include <linux/serial.h>
 #include <linux/serial_core.h>
 #include <uapi/linux/serial_core.h>
-#include <asm/mach-pic32/common.h> /* pic32_get_pbclk */
 
 #include <linux/io.h>
 
@@ -701,7 +700,6 @@ static int __init pic32_console_init(void)
 	return 0;
 }
 console_initcall(pic32_console_init);
-
 #else
 #define PIC32_SCONSOLE NULL
 #endif
@@ -796,7 +794,11 @@ static int pic32_uart_probe(struct platform_device *pdev)
 	port->flags	= UPF_BOOT_AUTOCONF;
 	port->dev	= &pdev->dev;
 	port->fifosize	= PIC32_UART_TX_FIFO_DEPTH;
+#ifdef CONFIG_MIPS_PIC32_EPLATFORM
+	port->uartclk	= 25000000;
+#else
 	port->uartclk	= clk_get_rate(sport->clk);
+#endif
 	port->line	= uart_idx;
 
 	ret = uart_add_one_port(&pic32_uart_driver, port);

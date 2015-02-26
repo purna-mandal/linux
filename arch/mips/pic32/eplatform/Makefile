@@ -9,7 +9,8 @@
 #   written by Ralf Baechle <ralf@linux-mips.org>
 #
 obj-y			:= pic32-init.o pic32-setup.o pic32-time.o \
-				pic32-clk.o pic32-platform.o
+				pic32-time.o early_pinctrl.o \
+				pic32-platform.o
 
 obj-$(CONFIG_MIPS_PIC32_ETHER) += pic32-platform-eth.o
 

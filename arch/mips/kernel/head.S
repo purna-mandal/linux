@@ -97,7 +97,7 @@ FEXPORT(__kernel_entry)
 
 NESTED(kernel_entry, 16, sp)			# kernel entry point
 
-#if !defined(CONFIG_SYS_SUPPORTS_ZBOOT) && defined(CONFIG_MIPS_PIC32MZ)
+#if !defined(CONFIG_SYS_SUPPORTS_ZBOOT) && !defined(CONFIG_MIPS_PIC32MZ)
 	kernel_entry_setup			# cpu specific setup
 #endif
 

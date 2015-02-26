@@ -25,6 +25,9 @@
 #define UART_LOOPBACK         (1<<6)
 #define DEFAULT_BAUDRATE      115200
 
+#define REG_RPD3R	0x01CC
+#define REG_U1RXR	0x0068
+
 static void __iomem *uart_base;
 static char console_port;
 

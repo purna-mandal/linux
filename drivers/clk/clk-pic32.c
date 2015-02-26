@@ -694,10 +694,10 @@ static long roclk_determine_rate(struct clk_hw *hw, unsigned long rate,
 				unsigned long *best_parent_rate_p,
 				struct clk_hw **best_parent_p)
 {
+#ifndef CONFIG_MIPS_PIC32_EPLATFORM
 	struct clk *clk = hw->clk, *parent_clk, *best_parent_clk = NULL;
 	unsigned int i, delta, best_delta = -1;
 	unsigned long parent_rate, best_parent_rate, best = 0, nearest_rate;
-
 	/* find a parent which can generate nearest clkrate >= rate */
 	for (i = 0; i < __clk_get_num_parents(clk); i++) {
 
@@ -744,6 +744,9 @@ static long roclk_determine_rate(struct clk_hw *hw, unsigned long rate,
 		(*best_parent_p)->clk = best_parent_clk;
 
 	return best;
+#else
+	return 25000000;
+#endif
 }
 
 static int roclk_set_rate_and_parent(struct clk_hw *hw,

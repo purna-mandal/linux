@@ -138,7 +138,11 @@ int __init pic32_earlyprintk_setup(void)
 	struct pic32_sport *sport = pic32_early_console.data;
 	struct uart_port *port;
 	struct pic32_console_opt *opt;
+#ifdef CONFIG_MIPS_PIC32_EPLATFORM
+	u32 pbclk = 25000000;
+#else
 	u32 pbclk = pic32_get_pbclk(2);
+#endif
 	u32 baud = 0;
 	int ret = 0;
 

@@ -50,9 +50,14 @@ config MIPS_PIC32_EPLATFORM
 	select SYS_SUPPORTS_LITTLE_ENDIAN
 	select ARCH_REQUIRE_GPIOLIB
 	select HAVE_MACH_CLKDEV
+	select HAVE_MACH
+	select COMMON_CLK
 	select CLKDEV_LOOKUP
 	select LIBFDT
 	select USE_OF
+	select PINCTRL
+	select PINCTRL_PIC32MZ
+	select SERIAL_PIC32
 	help
 	  Microchip PIC32 ePlatform.
 

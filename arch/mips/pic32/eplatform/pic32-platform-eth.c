@@ -13,48 +13,13 @@
  */
 #include <linux/init.h>
 #include <linux/platform_device.h>
-#include <linux/platform_data/pic32ether.h>
-#include <linux/dma-mapping.h>
-#include <linux/sizes.h>
 #include <asm/mach-pic32/pic32.h>
-#include <asm/mach-pic32/pic32int.h>
 
-static u64 eth_dmamask = DMA_BIT_MASK(32);
-static struct pic32ether_platform_data eth_data;
-
-static struct resource eth_resources[] = {
-	[0] = {
-		.start	= PIC32_BASE_ETHER,
-		.end	= PIC32_BASE_ETHER + SZ_4K - 1,
-		.flags	= IORESOURCE_MEM,
-	},
-	[1] = {
-		.start	= ETHERNET_INTERRUPT,
-		.end	= ETHERNET_INTERRUPT,
-		.flags	= IORESOURCE_IRQ,
-	},
-};
-
-static struct platform_device pic32_eth_device = {
-	.name		= "pic32-ether",
-	.id		= -1,
-	.dev		= {
-				.dma_mask		= &eth_dmamask,
-				.coherent_dma_mask	= DMA_BIT_MASK(32),
-				.platform_data		= &eth_data,
-	},
-	.resource	= eth_resources,
-	.num_resources	= ARRAY_SIZE(eth_resources),
-};
-
-void __init pic32_add_device_eth(struct pic32ether_platform_data *data)
+static int __init pic32mz_add_eth(void)
 {
 	void __iomem *port_base = ioremap(PIC32_BASE_PORT, 0xA00);
 
 	BUG_ON(!port_base);
-
-	if (!data)
-		return;
 
 	/*
 	 * PORT D pin configuration settings
@@ -93,20 +58,7 @@ void __init pic32_add_device_eth(struct pic32ether_platform_data *data)
 	__raw_writel(0x0300, port_base + PIC32_CLR(TRISx(8))); /* output */
 	__raw_writel(0x0802, port_base + PIC32_SET(TRISx(8))); /* input */
 
-	eth_data = *data;
-	platform_device_register(&pic32_eth_device);
-
 	iounmap(port_base);
-}
-
-static struct pic32ether_platform_data eth_data = {
-	.is_rmii	= 1,
-	.phy_mask	= 0xfffffff0,
-};
-
-static int __init pic32mz_add_eth(void)
-{
-	pic32_add_device_eth(&eth_data);
 
 	return 0;
 }

@@ -372,8 +372,11 @@ static u32 pic32ether_mdc_clk_div(struct pic32ether *bp)
 	unsigned long pclk_hz;
 
 	/* Find a div that puts the clock no higher than 2.5MHz */
-
+#ifdef CONFIG_MIPS_PIC32_EPLATFORM
+	pclk_hz = 25000000;
+#else
 	pclk_hz = clk_get_rate(bp->pclk);
+#endif
 
 	if (pclk_hz <= MHZ(10))
 		config = CLKSEL_DIV4;
@@ -1483,6 +1486,7 @@ static int __init pic32ether_probe(struct platform_device *pdev)
 	spin_lock_init(&bp->lock);
 	INIT_WORK(&bp->tx_error_task, pic32ether_tx_error_task);
 
+#ifndef CONFIG_MIPS_PIC32_EPLATFORM
 	bp->pclk = devm_clk_get(&pdev->dev, "eth_clk");
 	if (IS_ERR(bp->pclk)) {
 		err = PTR_ERR(bp->pclk);
@@ -1495,6 +1499,7 @@ static int __init pic32ether_probe(struct platform_device *pdev)
 		dev_err(&pdev->dev, "failed to enable eth_clk (%u)\n", err);
 		goto err_out_free_dev;
 	}
+#endif
 
 	bp->regs = devm_ioremap(&pdev->dev, regs->start, resource_size(regs));
 	if (!bp->regs) {
@@ -1562,7 +1567,9 @@ static int __init pic32ether_probe(struct platform_device *pdev)
 err_out_unregister_netdev:
 	unregister_netdev(dev);
 err_out_disable_clocks:
+#ifndef CONFIG_MIPS_PIC32_EPLATFORM
 	clk_disable_unprepare(bp->pclk);
+#endif
 err_out_free_dev:
 	free_netdev(dev);
 err_out:
@@ -1584,7 +1591,9 @@ static int __exit pic32ether_remove(struct platform_device *pdev)
 		kfree(bp->mii_bus->irq);
 		mdiobus_free(bp->mii_bus);
 		unregister_netdev(dev);
+#ifndef CONFIG_MIPS_PIC32_EPLATFORM
 		clk_disable_unprepare(bp->pclk);
+#endif
 		free_netdev(dev);
 	}
 
