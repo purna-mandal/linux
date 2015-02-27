@@ -110,6 +110,13 @@ config USB_MUSB_JZ4740
 	depends on USB_MUSB_GADGET
 	depends on USB_OTG_BLACKLIST_HUB
 
+config USB_MUSB_PIC32
+	tristate "Microchip platforms"
+	depends on MIPS_PIC32MZ
+	help
+	  MUSB glue code for PIC32 devices
+endchoice
+
 config USB_MUSB_AM335X_CHILD
 	tristate
 
