@@ -16,9 +16,15 @@
 #define K0_MASK		0x07
 #define CACHE_MODE	0x03
 
+#ifdef CONFIG_MIPS_PIC32_EPLATFORM
+#define INDEX_BASE 0x8800
+#else
+#define INDEX_BASE 0x8000
+#endif
+
 	.macro	kernel_entry_setup
 	move a2, zero
-	lui a2, 0x8800 /* Get a KSeg0 address for cache ops */
+	lui a2, INDEX_BASE /* Get a KSeg0 address for cache ops */
 
 	/* Clear TagLo register */
 	mtc0 zero, C0_TAGLO /* write C0_ITagLo */
@@ -39,7 +45,7 @@ next_icache_tag:
 
 done_icache:
 	move a2, zero
-	lui a2, 0x8800 /* Get a KSeg0 address for cache ops */
+	lui a2, INDEX_BASE /* Get a KSeg0 address for cache ops */
 
 	/* Clear TagLo register */
 	mtc0 zero, C0_TAGLO /* write C0_TagLo */

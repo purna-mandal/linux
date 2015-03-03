@@ -34,7 +34,7 @@ KBUILD_AFLAGS := $(LINUXINCLUDE) $(KBUILD_AFLAGS) -D__ASSEMBLY__ \
 KBUILD_CFLAGS += -mlong-calls
 KBUILD_AFLAGS += -mlong-calls
 
-targets := head.o decompress.o decompress-pic32.o string.o dbg.o uart-16550.o uart-alchemy.o uart-pic32.o
+targets := head.o cache.o decompress.o decompress-pic32.o string.o dbg.o uart-16550.o uart-alchemy.o uart-pic32.o
 
 # decompressor objects (linked with vmlinuz)
 vmlinuzobjs-y := $(obj)/head.o $(obj)/string.o $(obj)/dbg.o
@@ -42,7 +42,7 @@ vmlinuzobjs-y := $(obj)/head.o $(obj)/string.o $(obj)/dbg.o
 ifndef CONFIG_PIC32
 vmlinuzobjs-y			   += $(obj)/decompress.o
 else
-vmlinuzobjs-y			   += $(obj)/decompress-pic32.o
+vmlinuzobjs-y			   += $(obj)/decompress-pic32.o $(obj)/cache.o
 endif
 
 ifdef CONFIG_DEBUG_ZBOOT

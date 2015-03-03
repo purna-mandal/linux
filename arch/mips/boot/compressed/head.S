@@ -14,21 +14,32 @@
 
 #include <asm/asm.h>
 #include <asm/regdef.h>
-#include <kernel-entry-init.h>
+#include <asm/mipsregs.h>
+
+#ifndef CONFIG_SYS_MIPS_CACHE_MODE
+#define CONFIG_SYS_MIPS_CACHE_MODE 0x03
+#endif
 
 	.set noreorder
 	.cprestore
 	LEAF(start)
 start:
-#ifdef CONFIG_MIPS_PIC32MZ
-	kernel_entry_setup			# cpu specific setup
-#endif
-
 	/* Save boot rom start args */
 	move	s0, a0
 	move	s1, a1
 	move	s2, a2
 	move	s3, a3
+
+#ifdef CONFIG_MIPS_PIC32MZ
+	/* Initialize caches... */
+	la      t9, mips_cache_reset
+	jalr    t9
+	nop
+
+	/* ... and enable them */
+	li      t0, CONFIG_SYS_MIPS_CACHE_MODE
+	mtc0    t0, CP0_CONFIG
+#endif
 
 #ifdef CONFIG_MIPS_PIC32MZ
 	/*
