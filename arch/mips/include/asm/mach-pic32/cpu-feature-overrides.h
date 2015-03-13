@@ -19,7 +19,7 @@
 #define cpu_scache_line_size()          0
 
 #define cpu_has_vint			1
-#define cpu_has_veic			1
+#define cpu_has_veic			0
 #define cpu_has_4k_cache		1
 #define cpu_has_dc_aliases		1
 #define cpu_has_ic_fills_f_dc		0
