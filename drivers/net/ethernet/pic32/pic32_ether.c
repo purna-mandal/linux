@@ -41,11 +41,29 @@
 
 #include "pic32_ether.h"
 
+#if defined(CONFIG_PIC32MZ_PLANB) || defined(CONFIG_PIC32MZ_PLANC)
+/*
+ * PLAN B/C boards have slow SRAM. The ethernet controller can't DMA to or from
+ * this memory. This enabled a hack, at a major performance cost, to move DMA
+ * buffers into KSEG1. The reason this is a huge performance hit is because the
+ * net core allocates tx sk buffers from system RAM and doesn't use
+ * dma_alloc_coherent() which can be device specific. This means it happens here
+ * and then the tx data is memcpy'd to that memory.
+ */
+#define USE_KSEG1_DMA_MEM
+
+#ifdef USE_KSEG1_DMA_MEM
+static unsigned char *tx_data;
+static dma_addr_t tx_mapping;
+#endif
+
+#endif
+
 #define MAC_RX_BUFFER_SIZE	128
-#define RX_RING_SIZE	128 /* must be power of 2 */
+#define RX_RING_SIZE	512 /* must be power of 2 */
 #define RX_RING_BYTES	(sizeof(struct pic32ether_dma_desc) * RX_RING_SIZE)
 
-#define TX_RING_SIZE	64 /* must be power of 2 */
+#define TX_RING_SIZE	128 /* must be power of 2 */
 #define TX_RING_BYTES	(sizeof(struct pic32ether_dma_desc) * TX_RING_SIZE)
 
 /* level of occupied TX descriptors under which we wake up TX process */
@@ -546,8 +564,10 @@ static void pic32ether_tx_error_task(struct work_struct *work)
 			desc->ctrl = MAC_BIT(NPV);
 		}
 
+#ifndef USE_KSEG1_DMA_MEM
 		dma_unmap_single(&bp->pdev->dev, tx_skb->mapping, skb->len,
 				DMA_TO_DEVICE);
+#endif
 
 		tx_skb->skb = NULL;
 		dev_kfree_skb(skb);
@@ -593,8 +613,11 @@ static void pic32ether_tx_interrupt(struct pic32ether *bp)
 
 		netdev_vdbg(bp->dev, "skb %u (data %p) TX complete\n",
 			pic32ether_tx_ring_wrap(tail), skb->data);
+
+#ifndef USE_KSEG1_DMA_MEM
 		dma_unmap_single(&bp->pdev->dev, tx_skb->mapping, skb->len,
 				DMA_TO_DEVICE);
+#endif
 		bp->stats.tx_packets++;
 		bp->stats.tx_bytes += skb->len;
 		tx_skb->skb = NULL;
@@ -855,6 +878,9 @@ static int pic32ether_start_xmit(struct sk_buff *skb, struct net_device *dev)
 	struct pic32ether_tx_skb *tx_skb;
 	u32 ctrl;
 	unsigned long flags;
+#ifdef USE_KSEG1_DMA_MEM
+	unsigned char *data;
+#endif
 
 	netdev_vdbg(bp->dev,
 		   "start_xmit: len %u head %p data %p tail %p end %p\n",
@@ -881,19 +907,41 @@ static int pic32ether_start_xmit(struct sk_buff *skb, struct net_device *dev)
 
 	entry = pic32ether_tx_ring_wrap(bp->tx_head);
 	netdev_vdbg(bp->dev, "Allocated ring entry %u\n", entry);
+
+#ifdef USE_KSEG1_DMA_MEM
+	if (!tx_data) {
+		tx_data = dma_alloc_coherent(&bp->pdev->dev, len,
+					&tx_mapping, GFP_KERNEL);
+		if (!tx_data)
+			goto unlock;
+	}
+
+	data = tx_data;
+	mapping = tx_mapping;
+
+	/* look away while this happens */
+	skb_copy_from_linear_data(skb, data, len);
+#else
 	mapping = dma_map_single(&bp->pdev->dev, skb->data,
 				len, DMA_TO_DEVICE);
 	if (dma_mapping_error(&bp->pdev->dev, mapping)) {
 		dev_kfree_skb_any(skb);
 		goto unlock;
 	}
+#endif
 
 	bp->tx_head++;
 	tx_skb = &bp->tx_skb[entry];
 	tx_skb->skb = skb;
 	tx_skb->mapping = mapping;
+#ifdef USE_KSEG1_DMA_MEM
+	tx_skb->virt = data;
+	netdev_vdbg(bp->dev, "Mapped skb data %p to DMA addr %08lx\n",
+		   data, (unsigned long)mapping);
+#else
 	netdev_vdbg(bp->dev, "Mapped skb data %p to DMA addr %08lx\n",
 		   skb->data, (unsigned long)mapping);
+#endif
 
 	ctrl = MAC_BF(BCOUNT, len);
 	ctrl |= MAC_BIT(EOWN);
@@ -1390,6 +1438,9 @@ static int __init pic32ether_probe(struct platform_device *pdev)
 	int err = -ENXIO;
 	const char *mac;
 	struct pinctrl *pinctrl;
+#ifdef USE_KSEG1_DMA_MEM
+	u32 base_addr = 0x1000; /* try to be somewhere above ebase vectors */
+#endif
 
 	regs = platform_get_resource(pdev, IORESOURCE_MEM, 0);
 	if (!regs) {
@@ -1405,6 +1456,18 @@ static int __init pic32ether_probe(struct platform_device *pdev)
 
 		dev_warn(&pdev->dev, "No pinctrl provided\n");
 	}
+
+#ifdef USE_KSEG1_DMA_MEM
+	if (dma_declare_coherent_memory(&pdev->dev, (dma_addr_t)base_addr,
+						(dma_addr_t)base_addr,
+						SZ_512K - base_addr,
+						DMA_MEMORY_MAP |
+						DMA_MEMORY_EXCLUSIVE) == 0) {
+                dev_err(&pdev->dev, "Failed to declare coherent memory for\n"
+			"ethernet controller device\n");
+                goto err_out;
+        }
+#endif
 
 	err = -ENOMEM;
 	dev = alloc_etherdev(sizeof(*bp));

@@ -254,6 +254,7 @@ struct pic32ether_dma_desc {
 struct pic32ether_tx_skb {
 	struct sk_buff		*skb;
 	dma_addr_t		mapping;
+	void			*virt;
 };
 
 struct pic32ether {
