@@ -45,7 +45,11 @@ fw_memblock_t * __init fw_getmdesc(int eva)
 
 		mdesc[1].type = BOOT_MEM_RAM;
 		mdesc[1].base = UPPERMEM_START;
+#if defined(CONFIG_PIC32MZ_PLANC)
+		mdesc[1].size = SZ_16M;
+#else
 		mdesc[1].size = SZ_8M;
+#endif
 		mdesc[1].valid = 1;
 
 		init = 1;

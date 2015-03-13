@@ -96,6 +96,14 @@ void error(char *x)
 
 #define ioremap_fake(offset, size) ((void __iomem *)(unsigned long)offset)
 
+#ifdef CONFIG_PIC32MZ_PLANC
+#define CHIP_SIZE SZ_4M
+#define MEMSIZE 7 /* 4MB */
+#else
+#define CHIP_SIZE SZ_2M
+#define MEMSIZE 6 /* 2MB */
+#endif
+
 static void ebi_setup(void)
 {
 	void __iomem *ebi_base = ioremap_fake(PIC32_BASE_EBI, 0x1000);
@@ -125,38 +133,38 @@ static void ebi_setup(void)
 	/*
 	 * Connect CS0/CS1/CS2/CS3 to physical address
 	 */
-	__raw_writel(0x20000000, ebi_base + EBICS0);
-	__raw_writel(0x20200000, ebi_base + EBICS1);
-	__raw_writel(0x20400000, ebi_base + EBICS2);
-	__raw_writel(0x20600000, ebi_base + EBICS3);
+	__raw_writel(0x20000000 + (CHIP_SIZE * 0), ebi_base + EBICS0);
+	__raw_writel(0x20000000 + (CHIP_SIZE * 1), ebi_base + EBICS1);
+	__raw_writel(0x20000000 + (CHIP_SIZE * 2), ebi_base + EBICS2);
+	__raw_writel(0x20000000 + (CHIP_SIZE * 3), ebi_base + EBICS3);
 
 	/*
-	 * Memory size is set as 2 MB
+	 * Memory size is set as 2/4 MB
 	 * Memory type is set as SRAM
 	 * Uses timing numbers in EBISMT0
 	 */
-	__raw_writel(0x00000026, ebi_base + EBIMSK0);
-	__raw_writel(0x00000026, ebi_base + EBIMSK1);
-	__raw_writel(0x00000026, ebi_base + EBIMSK2);
-	__raw_writel(0x00000026, ebi_base + EBIMSK3);
+	__raw_writel(1 << 5 | MEMSIZE, ebi_base + EBIMSK0);
+	__raw_writel(1 << 5 | MEMSIZE, ebi_base + EBIMSK1);
+	__raw_writel(1 << 5 | MEMSIZE, ebi_base + EBIMSK2);
+	__raw_writel(1 << 5 | MEMSIZE, ebi_base + EBIMSK3);
 
 	/*
 	 * Configure EBISMT0
-	 * ISSI device has read cycles time of 6 ns
-	 * ISSI device has address setup time of 0ns
-	 * ISSI device has address/data hold time of 2.5 ns
-	 * ISSI device has Write Cycle Time of 6 ns
-	 * Bus turnaround time is 0 ns
+	 * ISSI device has read cycles time
+	 * ISSI device has address setup time
+	 * ISSI device has address/data hold time
+	 * ISSI device has Write Cycle Time
+	 * Bus turnaround time
 	 * No page mode
 	 * No page size
 	 * No RDY pin
 	 */
-#define USE_UNSAFE_BUT_FAST_EBI
-#ifdef USE_UNSAFE_BUT_FAST_EBI
-	__raw_writel(0x2 | 0x1 << 6 | 1 << 8 | 0x1 << 10, ebi_base + EBISMT0);
+#if defined(CONFIG_PIC32MZ_PLANB)
+	__raw_writel(1 << 10 | 1 << 8 | 1 << 6 | 2, ebi_base + EBISMT0);
 #else
-	__raw_writel(0x6 | 0x2 << 6 | 1 << 8 | 0x6 << 10, ebi_base + EBISMT0);
+	__raw_writel(2 << 10 | 1 << 8 | 1 << 6 | 7, ebi_base + EBISMT0);
 #endif
+
 	/*
 	 * Keep default data width to 16-bits
 	 */
@@ -174,7 +182,10 @@ struct tlb_entry {
 #define ENTRYLO_CACHED(paddr)	(((paddr) >> 6) | (0x07) | (0x03 << 3))
 #define ENTRYLO_UNCACHED(paddr)	(((paddr) >> 6) | (0x07) | (0x02 << 3))
 
+#define SZ_12M (SZ_8M + SZ_4M)
+
 static struct tlb_entry wired_mappings[] = {
+
 	{
 		.entrylo0	= ENTRYLO_CACHED(UPPERMEM_START),
 		.entrylo1	= ENTRYLO_CACHED(UPPERMEM_START + SZ_4M),
@@ -187,6 +198,20 @@ static struct tlb_entry wired_mappings[] = {
 		.entryhi	= UNCAC_BASE_UPPER,
 		.pagemask	= PM_4M,
 	},
+#ifdef CONFIG_PIC32MZ_PLANC
+	{
+		.entrylo0	= ENTRYLO_CACHED(UPPERMEM_START + SZ_8M),
+		.entrylo1	= ENTRYLO_CACHED(UPPERMEM_START + SZ_12M),
+		.entryhi	= CAC_BASE_UPPER + SZ_8M,
+		.pagemask	= PM_4M,
+	},
+	{
+		.entrylo0	= ENTRYLO_UNCACHED(UPPERMEM_START + SZ_8M),
+		.entrylo1	= ENTRYLO_UNCACHED(UPPERMEM_START + SZ_12M),
+		.entryhi	= UNCAC_BASE_UPPER + SZ_8M,
+		.pagemask	= PM_4M,
+	},
+#endif
 };
 
 /*

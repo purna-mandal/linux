@@ -8,8 +8,9 @@
 #ifndef _ASM_PIC32_SPACES_H
 #define _ASM_PIC32_SPACES_H
 
-#ifdef CONFIG_PIC32MZ_UPPER_MEMORY
+#include <linux/sizes.h>
 
+#ifdef CONFIG_PIC32MZ_UPPER_MEMORY
 #define CAC_BASE_UPPER          _AC(0xc0000000, UL)
 #define UNCAC_BASE_UPPER        _AC(0xe0000000, UL)
 #define KSEG0_SIZE              _AC(0x20000000, UL)
@@ -23,7 +24,7 @@
 #if defined(CONFIG_SYS_SUPPORTS_ZBOOT) && defined(CONFIG_MIPS_PIC32MZ)
 #define CAC_BASE_UPPER          CKSEG2
 #define UNCAC_BASE_UPPER        CKSEG3
-#define MAP_BASE                (CKSEG3 + 0x00800000)
+#define MAP_BASE                (CKSEG3 + SZ_16M)
 #define UPPERMEM_START          0x20000000
 #define HIGHMEM_START		(~0UL)
 #define UNCAC_BASE		CKSEG3

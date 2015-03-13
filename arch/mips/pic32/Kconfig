@@ -81,4 +81,20 @@ config PIC32MZ_ZBOOT
 	  from internal flash and run the kernel from mapped memory in
 	  KSEG2/KSEG3.
 
+choice
+	prompt "PIC32MZ Daughter Card Type"
+	depends on PIC32MZ_ZBOOT
+
+config PIC32MZ_PLANB
+	bool "PIC32MZ With Plan B Board"
+	help
+	  PIC32MZ With Plan B Board
+
+config PIC32MZ_PLANC
+	bool "PIC32MZ With Plan C Board"
+	help
+	  PIC32MZ With Plan C Board
+
+endchoice
+
 endif # MACH_PIC32
