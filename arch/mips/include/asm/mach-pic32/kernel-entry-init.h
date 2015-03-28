@@ -23,6 +23,9 @@
 #endif
 
 	.macro	kernel_entry_setup
+
+#ifndef CONFIG_SYS_SUPPORTS_ZBOOT
+
 	move a2, zero
 	lui a2, INDEX_BASE /* Get a KSeg0 address for cache ops */
 
@@ -68,6 +71,7 @@ done_dcache:
 	xori v0, K0_MASK
 	ori v0, CACHE_MODE
 	mtc0 v0, C0_CONFIG
+#endif /* CONFIG_SYS_SUPPORTS_ZBOOT */
 	.endm
 
 /*
