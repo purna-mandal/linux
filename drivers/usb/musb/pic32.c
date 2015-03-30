@@ -352,25 +352,25 @@ static int pic32_musb_init(struct musb *musb)
 	musb->isr = pic32_musb_interrupt;
 
 	/* Request other interrupts*/
+	irq_set_status_flags(glue->oc_irq, IRQ_NOAUTOEN);
 	ret = devm_request_irq(dev, glue->oc_irq, pic32_over_current, 0,
 			dev_name(dev), dev);
 	if (ret) {
 		dev_err(dev, "failed to request irq: %d\n", ret);
 		return ret;
 	}
-	disable_irq(glue->oc_irq);
 
 	switch (musb->port_mode) {
 	case MUSB_PORT_MODE_DUAL_ROLE:
 
 		glue->usb_id_irq = irq_create_of_mapping(&glue->usb_id_oirq);
+		irq_set_status_flags(glue->usb_id_irq, IRQ_NOAUTOEN);
 		ret = devm_request_irq(dev, glue->usb_id_irq,
 				pic32_usb_id_change, 0, dev_name(dev), dev);
 		if (ret) {
 			dev_err(dev, "failed to request irq: %d\n", ret);
 			return ret;
 		}
-		disable_irq(glue->usb_id_irq);
 		break;
 
 	case MUSB_PORT_MODE_HOST:
