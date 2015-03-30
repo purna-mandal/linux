@@ -10,8 +10,7 @@
 #
 obj-y			:= pic32-init.o pic32-setup.o \
 				pic32-ebi.o pic32-prefetch.o \
-				pic32-time.o early_pinctrl.o \
-				pic32-platform-devices.o
+				pic32-time.o early_pinctrl.o
 
 ifdef CONFIG_SYS_SUPPORTS_ZBOOT
 obj-y			+= pic32-memory-zboot.o
