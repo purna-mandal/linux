@@ -217,7 +217,7 @@ config PINCTRL_PIC32
 
 config PINCTRL_PIC32MZ
 	bool "Enable PIC32MZ pinctrl"
-	depends on MIPS_PIC32MZ
+	depends on MIPS_PIC32MZ || MIPS_PIC32_EPLATFORM
 	depends on PINCTRL_PIC32
 	depends on USE_OF
 
