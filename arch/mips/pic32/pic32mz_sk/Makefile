@@ -19,8 +19,6 @@ obj-y			+= pic32-memory.o
 endif
 
 obj-$(CONFIG_EARLY_PRINTK)	+= pic32-console.o
-obj-$(CONFIG_SPI_GPIO) += pic32-platform-spi.o
-obj-$(CONFIG_SPI_GPIO_PIC32MZ) += pic32-platform-spi.o
 
 obj-y += pic32-clk-test.o
 CFLAGS_pic32-clk-test.o := -w
