@@ -190,32 +190,20 @@ static irqreturn_t pic32_musb_interrupt(int irq, void *hci)
 	unsigned long flags;
 	irqreturn_t ret = IRQ_NONE;
 
-	u16 epintr_rx, epintr_tx;
-	u8 usbintr;
-
 	spin_lock_irqsave(&musb->lock, flags);
 
 	/* Get endpoint interrupts */
-	epintr_rx = musb_readw(reg_base, MUSB_INTRRX);
-	epintr_tx = musb_readw(reg_base, MUSB_INTRTX);
-
-	if (epintr_rx)
-		musb->int_rx = epintr_rx & PIC32_RX_EP_MASK;
-
-	if (epintr_tx)
-		musb->int_tx = epintr_tx & PIC32_TX_EP_MASK;
+	musb->int_rx = musb_readw(reg_base, MUSB_INTRRX) & PIC32_RX_EP_MASK;
+	musb->int_tx = musb_readw(reg_base, MUSB_INTRTX) & PIC32_TX_EP_MASK;
 
 	/* Get usb core interrupts */
-	usbintr = musb_readb(reg_base, MUSB_INTRUSB);
-	if (!usbintr && !(epintr_rx || epintr_tx)) {
+	musb->int_usb = musb_readb(reg_base, MUSB_INTRUSB);
+	if (!musb->int_usb && !(musb->int_rx || musb->int_tx)) {
 		dev_info(dev, "Got USB spurious interrupt !\n");
 		goto eoi;
 	}
 
-	if (usbintr)
-		musb->int_usb = usbintr;
-
-	if (is_host_active(musb) && usbintr & MUSB_INTR_BABBLE)
+	if (is_host_active(musb) && musb->int_usb & MUSB_INTR_BABBLE)
 		pr_info("CAUTION: musb: Babble Interrupt Occurred\n");
 
 	/* Use ID change IRQ to switch appropriately between halves of the OTG
