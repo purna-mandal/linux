@@ -102,7 +102,7 @@ $(obj)/uImage: $(obj)/uImage.$(suffix-y)
 	@echo '  Image $@ is ready'
 
 targets += vmlinux.strip
-quiet_cmd_bin = STRIP $@
-	cmd_bin = $(STRIP) -s -R .comment $(VMLINUX) -o $@
+quiet_cmd_strip = STRIP $@
+	cmd_strip = $(STRIP) -s -R .comment $(VMLINUX) -o $@
 $(obj)/vmlinux.strip: $(VMLINUX) FORCE
-	$(call if_changed,bin)
+	$(call if_changed,strip)
