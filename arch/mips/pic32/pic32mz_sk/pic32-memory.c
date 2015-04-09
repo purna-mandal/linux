@@ -42,8 +42,6 @@
 #include <asm/hazards.h>
 #include <asm/cpu-features.h>
 
-#define EBI_SRAM_SIZE (PIC32_MAX_UPPER_MB << 20)
-
 static fw_memblock_t mdesc[FW_MAX_MEMBLOCKS];
 
 /* determined physical memory size, not overridden by command line args  */
@@ -51,55 +49,62 @@ unsigned long physical_memsize = 0L;
 
 fw_memblock_t * __init fw_getmdesc(int eva)
 {
-	static int init;
+	static int init_done;
+	char *memsize_str;
+	unsigned int memsize;
+	char *ptr;
+	char cmdline[COMMAND_LINE_SIZE];
 
-	if (!init) {
-		char *memsize_str;
-		unsigned int memsize;
-		char *ptr;
-		char cmdline[COMMAND_LINE_SIZE];
+	if (init_done)
+		goto out;
 
-		/* otherwise look in the environment */
-		memsize_str = fw_getenv("memsize");
-		if (!memsize_str) {
-			printk(KERN_WARNING
-			       "memsize not set in boot prom, set to default (512K)\n");
-			physical_memsize = 0x00080000;
-		} else {
-			physical_memsize = simple_strtol(memsize_str, NULL, 0);
-		}
-
-		/* Check the command line for a memsize directive that overrides
-		   the physical/default amount */
-		strcpy(cmdline, arcs_cmdline);
-		ptr = strstr(cmdline, "memsize=");
-		if (ptr && (ptr != cmdline) && (*(ptr - 1) != ' '))
-			ptr = strstr(ptr, " memsize=");
-		if (ptr)
-			memsize = memparse(ptr + 8, &ptr);
-		else
-			memsize = physical_memsize;
-
-		memset(mdesc, 0, sizeof(mdesc));
-
-		mdesc[0].type = BOOT_MEM_RESERVED;
-		mdesc[0].base = 0x00000000;
-		mdesc[0].size = PFN_ALIGN(__bss_stop - KSEG0);
-		mdesc[0].valid = 1;
-
-		mdesc[1].type = BOOT_MEM_RAM;
-		mdesc[1].base = PFN_ALIGN(__bss_stop - KSEG0);
-		mdesc[1].size = memsize - mdesc[1].base;
-		mdesc[1].valid = 1;
-
-		mdesc[2].type = BOOT_MEM_RAM;
-		mdesc[2].base = UPPERMEM_START;
-		mdesc[2].size = EBI_SRAM_SIZE;
-		mdesc[2].valid = 1;
-
-		init = 1;
+	/* otherwise look in the environment */
+	memsize_str = fw_getenv("memsize");
+	if (!memsize_str) {
+		pr_warn("memsize not set in boot prom, set to default (512K)\n");
+		physical_memsize = 0x00080000;
+	} else {
+		physical_memsize = kstrtol(memsize_str, 0, 0);
 	}
 
+	/* Check the command line for a memsize directive
+	 * that might override the physical/default amount.
+	 */
+	strcpy(cmdline, arcs_cmdline);
+	ptr = strstr(cmdline, "memsize=");
+	if (ptr && (ptr != cmdline) && (*(ptr - 1) != ' '))
+		ptr = strstr(ptr, " memsize=");
+	if (ptr)
+		memsize = memparse(ptr + 8, &ptr);
+	else
+		memsize = physical_memsize;
+
+
+	memset(mdesc, 0, sizeof(mdesc));
+
+	/* on-chip SRAM (code segment) */
+	mdesc[0].type = BOOT_MEM_RESERVED;
+	mdesc[0].base = 0x00000000;
+	mdesc[0].size = PFN_ALIGN(__bss_stop - KSEG0);
+	mdesc[0].valid = 1;
+
+	/* on-chip SRAM */
+	mdesc[1].type = BOOT_MEM_RAM;
+	mdesc[1].base = PFN_ALIGN(__bss_stop - KSEG0);
+	mdesc[1].size = memsize - mdesc[1].base;
+	mdesc[1].valid = 1;
+
+	/* EBI SRAM */
+	mdesc[2].type = BOOT_MEM_RAM;
+	mdesc[2].base = UPPERMEM_START;
+	mdesc[2].size = SZ_8M;
+#ifdef CONFIG_PIC32MZ_PLANC
+	mdesc[2].size = SZ_16M;
+#endif
+	mdesc[2].valid = 1;
+
+	init_done = 1;
+out:
 	return &mdesc[0];
 }
 
@@ -111,22 +116,38 @@ struct tlb_entry {
 };
 
 /* (PFN << 6) | GLOBAL | VALID | DIRTY | cacheability */
-#define ENTRYLO_CACHED(paddr)	(((paddr) >> 6) | (0x07) | (0x03 << 3))
-#define ENTRYLO_UNCACHED(paddr)	(((paddr) >> 6) | (0x07) | (0x02 << 3))
+#define ENTRYLO_CAC(pa) (((pa) >> 6)|0x07|(CONF_CM_CACHABLE_NONCOHERENT << 3))
+#define ENTRYLO_UNC(pa) (((pa) >> 6)|0x07|(CONF_CM_UNCACHED << 3))
 
 static struct tlb_entry wired_mappings[] = {
 	{
-		.entrylo0		= ENTRYLO_UNCACHED(UPPERMEM_START),
-		.entrylo1		= ENTRYLO_UNCACHED(UPPERMEM_START + SZ_4M),
-		.entryhi		= CAC_BASE_UPPER,
-		.pagemask		= PM_4M,
+		.entrylo0	= ENTRYLO_CAC(UPPERMEM_START),
+		.entrylo1	= ENTRYLO_CAC(UPPERMEM_START + SZ_4M),
+		.entryhi	= CAC_BASE_UPPER,
+		.pagemask	= PM_4M,
 	},
 	{
-		.entrylo0		= ENTRYLO_UNCACHED(UPPERMEM_START),
-		.entrylo1		= ENTRYLO_UNCACHED(UPPERMEM_START + SZ_4M),
-		.entryhi		= UNCAC_BASE_UPPER,
-		.pagemask		= PM_4M,
+		.entrylo0	= ENTRYLO_UNC(UPPERMEM_START),
+		.entrylo1	= ENTRYLO_UNC(UPPERMEM_START + SZ_4M),
+		.entryhi	= UNCAC_BASE_UPPER,
+		.pagemask	= PM_4M,
 	},
+#ifdef CONFIG_PIC32MZ_PLANC
+#define SZ_12M	0x00C00000
+	{
+		.entrylo0	= ENTRYLO_CAC(UPPERMEM_START + SZ_8M),
+		.entrylo1	= ENTRYLO_CAC(UPPERMEM_START + SZ_12M),
+		.entryhi	= CAC_BASE_UPPER + SZ_8M,
+		.pagemask	= PM_4M,
+	},
+	{
+		.entrylo0	= ENTRYLO_UNC(UPPERMEM_START + SZ_8M),
+		.entrylo1	= ENTRYLO_UNC(UPPERMEM_START + SZ_12M),
+		.entryhi	= UNCAC_BASE_UPPER + SZ_8M,
+		.pagemask	= PM_4M,
+	},
+#undef SZ_12M
+#endif
 };
 
 /*
@@ -191,29 +212,30 @@ extern void run_ebi_sram_test(u32 sram_size);
 
 void __init fw_meminit(void)
 {
+	int i;
 	fw_memblock_t *p;
 
 	setup_prefetch();
 
 	setup_ebi_sram();
-
-	p = fw_getmdesc(0);
-
 	pic32mz_upper_tlb_setup();
 
 #ifdef EBI_SRAM_TEST
 	run_ebi_sram_test(EBI_SRAM_SIZE);
 #endif
 
-	while (p->size) {
+	p = fw_getmdesc(0);
+	for (i = 0; i < FW_MAX_MEMBLOCKS; i++, p++) {
 		unsigned long type, base, size;
+
+		if (!p->valid)
+			continue;
 
 		type = p->type;
 		base = p->base;
 		size = p->size;
 
 		add_memory_region(base, size, type);
-		p++;
 	}
 }
 
@@ -325,7 +347,7 @@ out:
 	return ret;
 }
 
-static int __initdata bmem_defaults_set;
+static int bmem_defaults_set __initdata;
 
 static void __init pic32mz_set_default_bmem(void)
 {
@@ -343,6 +365,7 @@ static void __init pic32mz_set_default_bmem(void)
  */
 void __init pic32mz_free_bootmem(unsigned long addr, unsigned long size)
 {
+	int i;
 	if (!bmem_defaults_set) {
 		pic32mz_set_default_bmem();
 		bmem_defaults_set = 1;
@@ -357,10 +380,12 @@ void __init pic32mz_free_bootmem(unsigned long addr, unsigned long size)
 		 * Find the first bmem region (if any) that fits entirely
 		 * within the current bootmem address range.
 		 */
-		while (p->size) {
+		for (i = 0; i < FW_MAX_MEMBLOCKS; i++, p++) {
+			if (!p->valid)
+				continue;
+
 			if ((p->base >= addr) &&
-			    ((p->base + p->size) <=
-			     (addr + size))) {
+			    ((p->base + p->size) <= (addr + size))) {
 				if (!r || (r->base > p->base))
 					r = p;
 			}
@@ -375,7 +400,7 @@ void __init pic32mz_free_bootmem(unsigned long addr, unsigned long size)
 		 */
 		if (r && r == &mdesc[0]) {
 			if (addr == r->base) {
-				printk(KERN_INFO "%s: adding %u MB "
+				pr_info("%s: adding %u MB "
 				       "RESERVED region at %lu MB "
 				       "(0x%08x@0x%08lx)\n",
 				       "bmem",
@@ -391,7 +416,7 @@ void __init pic32mz_free_bootmem(unsigned long addr, unsigned long size)
 		}
 		BUG_ON(chunksize > size);
 
-		printk(KERN_INFO "bmem: adding %lu MB LINUX region at %lu MB "
+		pr_info("bmem: adding %lu MB LINUX region at %lu MB "
 		       "(0x%08lx@0x%08lx)\n", chunksize >> 20, addr >> 20,
 		       chunksize, addr);
 		free_bootmem(addr, chunksize);
