@@ -187,7 +187,7 @@ static int pic32_test_refoclk(int idx)
 	clk_enable(roclk);
 	old_rate = clk_get_rate(roclk);
 	for (i = 0; i < ARRAY_SIZE(refoclk_rate_table); i++) {
-		//msleep(1000);
+		msleep(1000);
 		old_rate = clk_get_rate(roclk);
 		new_rate = refoclk_rate_table[i].rate;
 		if (new_rate == 0)
