@@ -32,14 +32,22 @@
 #define EBISMT3		0xA0
 #define EBISMCON	0xA4
 
+#define EBI_SRAM	0x20 /* memory type */
+
 void __init setup_ebi_sram(void)
 {
 	void __iomem *ebi_base = ioremap(PIC32_BASE_EBI, 0x1000);
 	void __iomem *config_base = ioremap(PIC32_BASE_CONFIG, 0x400);
+	int mem_sz = SZ_4M;
+	int mem_sz_mask = 6;
 
 	BUG_ON(!config_base);
 	BUG_ON(!ebi_base);
 
+#ifdef CONFIG_PIC32MZ_PLANC
+	mem_sz = SZ_8M;
+	mem_sz_mask = 7;
+#endif
 	/*
 	 * Enable address lines [0:23]
 	 * Controls access of pins shared with PMP
@@ -62,19 +70,19 @@ void __init setup_ebi_sram(void)
 	 * Connect CS0/CS1/CS2/CS3 to physical address
 	 */
 	__raw_writel(0x20000000, ebi_base + EBICS0);
-	__raw_writel(0x20200000, ebi_base + EBICS1);
-	__raw_writel(0x20400000, ebi_base + EBICS2);
-	__raw_writel(0x20600000, ebi_base + EBICS3);
+	__raw_writel(0x20000000 + (mem_sz * 1), ebi_base + EBICS1);
+	__raw_writel(0x20000000 + (mem_sz * 2), ebi_base + EBICS2);
+	__raw_writel(0x20000000 + (mem_sz * 3), ebi_base + EBICS3);
 
 	/*
 	 * Memory size is set as 2 MB
 	 * Memory type is set as SRAM
 	 * Uses timing numbers in EBISMT0
 	 */
-	__raw_writel(0x00000026, ebi_base + EBIMSK0);
-	__raw_writel(0x00000026, ebi_base + EBIMSK1);
-	__raw_writel(0x00000026, ebi_base + EBIMSK2);
-	__raw_writel(0x00000026, ebi_base + EBIMSK3);
+	__raw_writel(EBI_SRAM|mem_sz_mask, ebi_base + EBIMSK0);
+	__raw_writel(EBI_SRAM|mem_sz_mask, ebi_base + EBIMSK1);
+	__raw_writel(EBI_SRAM|mem_sz_mask, ebi_base + EBIMSK2);
+	__raw_writel(EBI_SRAM|mem_sz_mask, ebi_base + EBIMSK3);
 
 	/*
 	 * Configure EBISMT0
@@ -87,11 +95,10 @@ void __init setup_ebi_sram(void)
 	 * No page size
 	 * No RDY pin
 	 */
-#define USE_UNSAFE_BUT_FAST_EBI
-#ifdef USE_UNSAFE_BUT_FAST_EBI
-	__raw_writel(2 | 1 << 6 | 1 << 8 | 1 << 10, ebi_base + EBISMT0);
+#ifdef CONFIG_PIC32MZ_PLANB
+	__raw_writel(2|(1 << 6)|(1 << 8)|(1 << 10), ebi_base + EBISMT0);
 #else
-	__raw_writel(0x6 | 0x2 << 6 | 1 << 8 | 0x6 << 10, ebi_base + EBISMT0);
+	__raw_writel(7|(1 << 6)|(1 << 8)|(2 << 10), ebi_base + EBISMT0);
 #endif
 	/*
 	 * Keep default data width to 16-bits
@@ -104,27 +111,26 @@ void __init setup_ebi_sram(void)
 
 static __init void write_pattern(u32 p, u32 sram_size)
 {
-	volatile u32* addr = (u32 *)KSEG2;
+	u32 *addr = (u32 *)KSEG2;
 	u32 loop;
 
 	pr_info("EBI SRAM write test pattern 0x%x ...", p);
 
-	for (loop = 0; loop < sram_size/4; loop++) {
+	for (loop = 0; loop < sram_size / 4; loop++)
 		*addr++ = p;
-	}
 
 	pr_cont("finished\n");
 }
 
 static __init void read_pattern(u32 p, u32 sram_size)
 {
-	volatile u32* addr = (u32 *)KSEG2;
+	u32 *addr = (u32 *)KSEG2;
 	u32 loop;
 	u32 val;
 
-	pr_info("EBI SRAM read test pattern 0x%x ...",p);
+	pr_info("EBI SRAM read test pattern 0x%x ...", p);
 
-	for (loop=0 ; loop < sram_size/4; loop++) {
+	for (loop = 0; loop < sram_size / 4; loop++) {
 		val = *addr++;
 		if (val != p) {
 			pr_cont("pattern 0x%x failed at 0x%x\n",
@@ -137,7 +143,7 @@ static __init void read_pattern(u32 p, u32 sram_size)
 
 void __init run_ebi_sram_test(u32 sram_size)
 {
-	volatile u32* addr;
+	u32 *addr;
 	u32 loop;
 	u32 val;
 	u32 count = 0;
@@ -153,16 +159,15 @@ void __init run_ebi_sram_test(u32 sram_size)
 	count = 0;
 	addr = (u32 *)KSEG2;
 
-	for (loop=0; loop < sram_size/4; loop++) {
+	for (loop = 0; loop < sram_size / 4; loop++)
 		*addr++ = count++;
-	}
 
 	pr_cont("finished\n");
 	pr_info("EBI SRAM read test running...");
 
 	count = 0;
 	addr = (u32 *)KSEG2;
-	for (loop = 0 ; loop < sram_size/4; loop++) {
+	for (loop = 0 ; loop < sram_size / 4; loop++) {
 		val = *addr++;
 		if (val != count) {
 			pr_cont("failed at 0x%x: 0x%x != 0x%x\n",

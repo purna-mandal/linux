@@ -88,7 +88,7 @@ config PIC32MZ_ZBOOT
 
 choice
 	prompt "PIC32MZ Daughter Card Type"
-	depends on PIC32MZ_ZBOOT
+	depends on PIC32MZ_ZBOOT || PIC32MZ_UPPER_MEMORY
 
 config PIC32MZ_PLANB
 	bool "PIC32MZ With Plan B Board"
