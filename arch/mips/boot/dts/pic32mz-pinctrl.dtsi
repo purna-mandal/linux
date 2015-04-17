@@ -124,6 +124,16 @@
 			};
 		};
 
+		leds {
+
+			user_leds_s0: user_leds_s0 {
+				pic32,single-pins = <
+                                PORT_H 0 PIC32_PIN_CONF_DG_OUT
+                                PORT_H 1 PIC32_PIN_CONF_DG_OUT
+				PORT_H 2 PIC32_PIN_CONF_DG_OUT>;
+			};
+		};
+
 		uart1 {
 			/* uart1: pin groups */
 			pinctrl_uart1: uart1-0 {
