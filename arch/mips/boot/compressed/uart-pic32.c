@@ -10,6 +10,8 @@
 #include <asm/mach-pic32/pic32.h>
 #include <asm/mach-pic32/common.h>
 
+#include "pic32-pps.h"
+
 #define UART_ENABLE           (1<<15)
 #define UART_ENABLE_RX        (1<<12)
 #define UART_ENABLE_TX        (1<<10)
@@ -31,14 +33,9 @@ static void __init setup_early_console(char port)
 {
 	/* TODO: hard coded */
 	u32 pbclk = 100000000 /* = pic32_get_pbclk(2); */;
-	void __iomem *pps_base = ioremap_fake(PIC32_BASE_PPS, 0x400);
-	void __iomem *port_base = ioremap_fake(PIC32_BASE_PORT, 0xa00);
 
-	/* PPS for U2 RX/TX */
-	__raw_writel(0x4000, port_base + PIC32_CLR(ANSELx(1)));
-	__raw_writel(0x0040, port_base + PIC32_CLR(ANSELx(6)));
-	__raw_writel(0x02, pps_base + REG_RPB14R);
-	__raw_writel(0x01, pps_base + REG_U2RXR);
+	pic32_pps_input(IN_FUNC_U2RX, IN_RPB0);
+	pic32_pps_output(OUT_FUNC_U2TX, OUT_RPD0);
 
 	__raw_writel(0, uart_base + UxMODE(port));
 	__raw_writel(((pbclk / DEFAULT_BAUDRATE) / 16) - 1,
