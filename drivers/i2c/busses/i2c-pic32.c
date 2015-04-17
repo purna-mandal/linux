@@ -154,7 +154,11 @@ static inline void pic32_i2c_tx(struct pic32_i2c *id)
 
 static inline void pic32_i2c_stop(struct pic32_i2c *id)
 {
+	u32 timeout = 1000;
 	pic32_i2c_writereg(I2CCON_PEN, PIC32_SET(I2CCON));
+
+	while ((pic32_i2c_readreg(I2CCON) & I2CCON_PEN) && --timeout)
+		cpu_relax();
 }
 
 static irqreturn_t pic32_i2c_isr(int irq, void *ptr)
@@ -304,7 +308,6 @@ static int pic32_i2c_master_xfer(struct i2c_adapter *adap, struct i2c_msg *msgs,
 {
 	int ret, i;
 	struct pic32_i2c *id = adap->algo_data;
-	u32 delay_ms;
 
 	/* Retry if not idle */
 	if (pic32_i2c_readreg(I2CCON) & I2CCON_ON)
@@ -361,16 +364,7 @@ static int pic32_i2c_master_xfer(struct i2c_adapter *adap, struct i2c_msg *msgs,
 
 xfer_send_stop:
 
-	/* errata: there is a problem where the stop bit (PEN) does not release
-	 * the SDA line. So, the workaround is to send the stop bit, induce a
-	 * little delay that is 2X BRG, and then disable the peripheral to bring
-	 * SDA high.
-	 */
-
 	pic32_i2c_stop(id);
-
-	delay_ms = pic32_i2c_readreg(I2CBRG) * 1000000UL / id->bus_rate * 2UL;
-	udelay(delay_ms);
 
 	pic32_i2c_disable(id);
 
