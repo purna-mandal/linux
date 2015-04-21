@@ -102,7 +102,7 @@
 		#define CONFIG_HOSTAPD_MLME	1
 	#endif
 	#define CONFIG_FIND_BEST_CHANNEL	1
-	//#define CONFIG_NO_WIRELESS_HANDLERS	1
+	#define CONFIG_NO_WIRELESS_HANDLERS	1
 #endif
 
 //	Added by Albert 20110314
