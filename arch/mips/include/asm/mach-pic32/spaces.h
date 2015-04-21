@@ -13,7 +13,7 @@
 #ifdef CONFIG_MIPS_PIC32MZ
 #define CAC_BASE_UPPER          CKSEG2
 #define UNCAC_BASE_UPPER        CKSEG3
-#define MAP_BASE                (CKSEG3 + SZ_16M)
+#define MAP_BASE                (CKSEG3 + SZ_128M)
 #define UPPERMEM_START          0x20000000
 #define HIGHMEM_START		(~0UL)
 #define UNCAC_BASE		CKSEG3
