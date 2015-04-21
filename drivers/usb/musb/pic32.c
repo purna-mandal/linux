@@ -29,8 +29,6 @@
 
 #include <linux/platform_device.h>
 #include <linux/dma-mapping.h>
-#include <linux/usb/usb_phy_gen_xceiv.h>
-#include <linux/platform_data/usb-omap.h>
 
 #include <linux/usb/of.h>
 #include <linux/gpio.h>
@@ -113,10 +111,10 @@ static void otg_timer(unsigned long _musb)
 	 */
 	devctl = musb_readb(mregs, MUSB_DEVCTL);
 	dev_dbg(dev, "Poll devctl %02x (%s)\n", devctl,
-			usb_otg_state_string(musb->xceiv->state));
+			usb_otg_state_string(musb->xceiv->otg->state));
 
 	spin_lock_irqsave(&musb->lock, flags);
-	switch (musb->xceiv->state) {
+	switch (musb->xceiv->otg->state) {
 	case OTG_STATE_A_WAIT_BCON:
 		musb_writeb(musb->mregs, MUSB_DEVCTL, 0);
 		skip_session = 1;
@@ -125,10 +123,10 @@ static void otg_timer(unsigned long _musb)
 	case OTG_STATE_A_IDLE:
 	case OTG_STATE_B_IDLE:
 		if (devctl & MUSB_DEVCTL_BDEVICE) {
-			musb->xceiv->state = OTG_STATE_B_IDLE;
+			musb->xceiv->otg->state = OTG_STATE_B_IDLE;
 			MUSB_DEV_MODE(musb);
 		} else {
-			musb->xceiv->state = OTG_STATE_A_IDLE;
+			musb->xceiv->otg->state = OTG_STATE_A_IDLE;
 			MUSB_HST_MODE(musb);
 		}
 		if (!(devctl & MUSB_DEVCTL_SESSION) && !skip_session)
@@ -136,7 +134,7 @@ static void otg_timer(unsigned long _musb)
 		mod_timer(&glue->timer, jiffies + POLL_SECONDS * HZ);
 		break;
 	case OTG_STATE_A_WAIT_VFALL:
-		musb->xceiv->state = OTG_STATE_A_WAIT_VRISE;
+		musb->xceiv->otg->state = OTG_STATE_A_WAIT_VRISE;
 		/*musb_writel(musb->ctrl_base, wrp->coreintr_set,
 			    MUSB_INTR_VBUSERROR << wrp->usb_shift); */
 		break;
@@ -156,9 +154,9 @@ static void pic32_musb_try_idle(struct musb *musb, unsigned long timeout)
 
 	/* Never idle if active, or when VBUS timeout is not set as host */
 	if (musb->is_active || (musb->a_wait_bcon == 0 &&
-				musb->xceiv->state == OTG_STATE_A_WAIT_BCON)) {
+				musb->xceiv->otg->state == OTG_STATE_A_WAIT_BCON)) {
 		dev_dbg(dev, "%s active, deleting timer\n",
-				usb_otg_state_string(musb->xceiv->state));
+				usb_otg_state_string(musb->xceiv->otg->state));
 		del_timer(&glue->timer);
 		glue->last_timer = jiffies;
 		return;
@@ -178,7 +176,7 @@ static void pic32_musb_try_idle(struct musb *musb, unsigned long timeout)
 	glue->last_timer = timeout;
 
 	dev_dbg(dev, "%s inactive, starting idle timer for %u ms\n",
-		usb_otg_state_string(musb->xceiv->state),
+		usb_otg_state_string(musb->xceiv->otg->state),
 			jiffies_to_msecs(timeout - jiffies));
 	mod_timer(&glue->timer, timeout);
 }
@@ -246,26 +244,26 @@ static irqreturn_t pic32_musb_interrupt(int irq, void *hci)
 			 * devctl.
 			 */
 			musb->int_usb &= ~MUSB_INTR_VBUSERROR;
-			musb->xceiv->state = OTG_STATE_A_WAIT_VFALL;
+			musb->xceiv->otg->state = OTG_STATE_A_WAIT_VFALL;
 			mod_timer(&glue->timer,
 					jiffies + POLL_SECONDS * HZ);
 			WARNING("VBUS error workaround (delay coming)\n");
 		} else if (usb_id == 0) {
 			MUSB_HST_MODE(musb);
 			musb->xceiv->otg->default_a = 1;
-			musb->xceiv->state = OTG_STATE_A_WAIT_VRISE;
+			musb->xceiv->otg->state = OTG_STATE_A_WAIT_VRISE;
 			del_timer(&glue->timer);
 		} else {
 			musb->is_active = 0;
 			MUSB_DEV_MODE(musb);
 			musb->xceiv->otg->default_a = 0;
-			musb->xceiv->state = OTG_STATE_B_IDLE;
+			musb->xceiv->otg->state = OTG_STATE_B_IDLE;
 		}
 
 		/* NOTE: this must complete power-on within 100 ms. */
 		dev_dbg(dev, "VBUS %s (%s)%s, devctl %02x\n",
 				usb_id ? "on" : "off",
-				usb_otg_state_string(musb->xceiv->state),
+				usb_otg_state_string(musb->xceiv->otg->state),
 				err ? " ERROR" : "",
 				devctl);
 		ret = IRQ_HANDLED;
@@ -282,7 +280,7 @@ static irqreturn_t pic32_musb_interrupt(int irq, void *hci)
 
 eoi:
 	/* Poll for ID change in OTG port mode */
-	if (musb->xceiv->state == OTG_STATE_B_IDLE &&
+	if (musb->xceiv->otg->state == OTG_STATE_B_IDLE &&
 			musb->port_mode == MUSB_PORT_MODE_DUAL_ROLE)
 		mod_timer(&glue->timer, jiffies + POLL_SECONDS * HZ);
 
@@ -431,7 +429,7 @@ static irqreturn_t pic32_usb_id_change(int irq, void *d)
 }
 
 /* We support only 32bit read operation */
-void musb_read_fifo(struct musb_hw_ep *hw_ep, u16 len, u8 *dst)
+void pic32_read_fifo(struct musb_hw_ep *hw_ep, u16 len, u8 *dst)
 {
 	void __iomem *fifo = hw_ep->fifo;
 	u32		val;
@@ -464,6 +462,7 @@ static const struct musb_platform_ops pic32_ops = {
 	.init		= pic32_musb_init,
 	.exit		= pic32_musb_exit,
 
+	.read_fifo	= pic32_read_fifo,
 	.enable		= pic32_musb_enable,
 	.disable	= pic32_musb_disable,
 
@@ -471,6 +470,8 @@ static const struct musb_platform_ops pic32_ops = {
 	.try_idle	= pic32_musb_try_idle,
 
 	.set_vbus	= pic32_musb_set_vbus,
+
+	.fifo_mode = 2,
 };
 
 /* static u64 musb_dmamask = DMA_BIT_MASK(32); TODO: use it with DMA */

@@ -115,7 +115,6 @@ config USB_MUSB_PIC32
 	depends on MIPS_PIC32MZ
 	help
 	  MUSB glue code for PIC32 devices
-endchoice
 
 config USB_MUSB_AM335X_CHILD
 	tristate
