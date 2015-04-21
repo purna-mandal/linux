@@ -1,0 +1,31 @@
+/*
+ * Device Tree Source for PIC32MZ Output Compare (OCMP) Module
+ *
+ * Copyright (C) 2014 Microchip Technology, Inc.
+ *               2014 Purna Chandra Mandal <purna.mandal@microchip.com>
+ *
+ * Licensed under GPLv2 or later.
+ */
+
+/ {
+	/* 32-bit time-base and 32-bit compare */
+	OCMP1:oc1 {
+		#oc-cells = <0>;
+		compatible = "microchip,pic32-ocmp";
+		reg = <0xbf844000 0x30>;
+		interrupts = <0>;
+		oc-id = <1>;
+		microchip,oc-32bit; /* class B, 32-bit combined timer; usable for ADC */
+		microchip,oc-adc;
+	};
+
+	/* 16-bit time-base, hence 16-bit count comparision */
+	OCMP2:oc2 {
+		#oc-cells = <0>;
+		compatible = "microchip,pic32-ocmp";
+		reg = <0xbf844040 0x30>;
+		interrupts = <0>;
+		oc-id = <2>;
+		microchip,oc-adc;
+	};
+};

@@ -1,0 +1,65 @@
+/*
+ * Device Tree Source for PIC32MZ General Purpose Periheral Timer
+ *
+ * Copyright (C) 2014 Microchip Technology, Inc.
+ *               2014 Purna Chandra Mandal <purna.mandal@microchip.com>
+ *
+ * Licensed under GPLv2 or later.
+ */
+
+/ {
+	/* 16-bit class-a timer */
+	PBTIMER1:pbtimer1 {
+		#timer-cells = <0>;
+		reg = <0xbf840000 0x30>;
+		compatible = "microchip,pic32-timerA";
+		interrupts = <4>;
+		clocks = <&PBCLK3>, <&SOSC>;
+		//microchip,clock-indices = <0>, <1>;
+		timer-id = <1>;
+		microchip,timer-class-A;  /* class A timer */
+	};
+
+	/* 32-bit class-b timer */
+	PBTIMER23:pbtimer23 {
+		#timer-cells = <0>;
+		compatible = "microchip,pic32-timer";
+		reg = <0xbf840200 0x400>;
+		interrupts = <9>;
+		clocks = <&PBCLK3>, <&TxCKI>;
+		timer-id = <2>;
+		microchip,timer-32bit;   /* class B, 32-bit combined timer */
+	};
+
+	/* 16-bit class-b timer */
+	PBTIMER4:pbtimer4 {
+		#timer-cells = <0>;
+		compatible = "microchip,pic32-timer";
+		reg = <0xbf840600 0x200>;
+		interrupts = <19>;
+		clocks = <&PBCLK3>, <&TxCKI>;
+		timer-id = <4>;
+	};
+
+	/* 16-bit class-b timer */
+	PBTIMER5:pbtimer5 {
+		#timer-cells = <0>;
+		compatible = "microchip,pic32-timer";
+		reg = <0xbf840800 0x200>;
+		interrupts = <24>;
+		clocks = <&PBCLK3>, <&TxCKI>;
+		timer-id = <5>;
+		microchip,timer-adc; /* can trigger ADC on match */
+	};
+
+	/* 32-bit class-b timer */
+	PBTIMER67:pbtimer67 {
+		#timer-cells = <0>;
+		compatible = "microchip,pic32-timer";
+		reg = <0xbf840A00 0x400>;
+		interrupts = <28>;
+		clocks = <&PBCLK3>, <&TxCKI>;
+		timer-id = <6>;
+		microchip,timer-32bit;
+	};
+};
