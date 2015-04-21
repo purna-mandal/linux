@@ -11,8 +11,3 @@
 obj-$(CONFIG_MACH_PIC32) += common/
 obj-$(CONFIG_MIPS_PIC32MZ) += pic32mz_sk/
 obj-$(CONFIG_MIPS_PIC32_EPLATFORM) += eplatform/
-
-obj-y += dts/
-
-$(obj)/%.dtb: $(obj)/%.dts
-	$(call if_changed,dtc)

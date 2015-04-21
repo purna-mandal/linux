@@ -157,7 +157,7 @@
 		dr_mode = "host";
 		mentor,multipoint = <1>;
 		mentor,num-eps = <8>;
-		mentor,ram-bits = <13>;
+		mentor,ram-bits = <11>;
 		mentor,power = <500>;
 		phys = <&usb1_phy>;
 		clocks = <&PBCLK5>;
