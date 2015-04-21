@@ -439,7 +439,7 @@ static struct dma_async_tx_descriptor *pic32_dma_prep_slave_sg(
 static struct dma_async_tx_descriptor *pic32_dma_prep_dma_cyclic(
 	struct dma_chan *dchan, dma_addr_t buf_addr, size_t buf_len,
 	size_t period_len, enum dma_transfer_direction direction,
-	unsigned long flags, void *context)
+	unsigned long flags)
 {
 	struct pic32_chan *chan = to_pic32_dma_chan(dchan);
 	struct pic32_desc *desc;
@@ -595,36 +595,6 @@ static int pic32_dma_resume(struct dma_chan *dchan)
 	return 0;
 }
 
-static int pic32_dma_control(struct dma_chan *dchan, enum dma_ctrl_cmd cmd,
-	unsigned long arg)
-{
-	int ret;
-	switch (cmd) {
-	case DMA_SLAVE_CONFIG:
-		ret = pic32_dma_slave_config(dchan,
-				(struct dma_slave_config *)arg);
-		break;
-
-	case DMA_TERMINATE_ALL:
-		ret = pic32_dma_terminate_all(dchan);
-		break;
-
-	case DMA_PAUSE:
-		ret = pic32_dma_pause(dchan);
-		break;
-
-	case DMA_RESUME:
-		ret = pic32_dma_resume(dchan);
-		break;
-
-	default:
-		ret = -ENOSYS;
-		break;
-	}
-
-	return ret;
-}
-
 #define PIC32_DMA_CHAN(n)		((n) * 0xC0)
 #define PIC32_DMA_CHANIO(base, n)	((base) + 0x60 + PIC32_DMA_CHAN(n))
 
@@ -674,21 +644,6 @@ static void pic32_dma_free(struct pic32_dma_dev *od)
 				BIT(DMA_SLAVE_BUSWIDTH_2_BYTES) |	\
 				BIT(DMA_SLAVE_BUSWIDTH_4_BYTES))
 
-static int pic32_dma_device_slave_caps(struct dma_chan *dchan,
-				struct dma_slave_caps *caps)
-{
-	caps->src_addr_widths = PIC32_DMA_BUSWIDTHS;
-	caps->dstn_addr_widths = PIC32_DMA_BUSWIDTHS;
-	caps->directions = BIT(DMA_MEM_TO_MEM) |
-		BIT(DMA_DEV_TO_MEM) |
-		BIT(DMA_MEM_TO_DEV);
-	caps->cmd_pause = true;
-	caps->cmd_terminate = true;
-	caps->residue_granularity = DMA_RESIDUE_GRANULARITY_BURST;
-
-	return 0;
-}
-
 static const struct of_device_id pic32_dma_dt_ids[] = {
 	{ .compatible = "microchip,pic32-dma" },
 	{ /* sentinel */ }
@@ -737,8 +692,18 @@ static int pic32_dma_probe(struct platform_device *pdev)
 	dd->device_prep_slave_sg = pic32_dma_prep_slave_sg;
 	dd->device_prep_dma_cyclic = pic32_dma_prep_dma_cyclic;
 	dd->device_prep_dma_memcpy = pic32_prep_dma_memcpy;
-	dd->device_slave_caps = pic32_dma_device_slave_caps;
-	dd->device_control = pic32_dma_control;
+	dd->device_config = pic32_dma_slave_config;
+	dd->device_terminate_all = pic32_dma_terminate_all;
+	dd->device_pause = pic32_dma_pause;
+	dd->device_resume = pic32_dma_resume;
+	dd->src_addr_widths = PIC32_DMA_BUSWIDTHS;
+	dd->dst_addr_widths = PIC32_DMA_BUSWIDTHS;
+	dd->directions = BIT(DMA_MEM_TO_MEM) |
+		BIT(DMA_DEV_TO_MEM) |
+		BIT(DMA_MEM_TO_DEV);
+	dd->residue_granularity = DMA_RESIDUE_GRANULARITY_BURST;
+
+
 	dd->chancnt = 0;
 	dd->dev = &pdev->dev;
 
