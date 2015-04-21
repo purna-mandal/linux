@@ -471,7 +471,7 @@ static unsigned int gpio_irq_startup(struct irq_data *d)
 	unsigned pin = d->hwirq;
 	int ret;
 
-	ret = gpio_lock_as_irq(&pic32_chip->chip, pin);
+	ret = gpiochip_lock_as_irq(&pic32_chip->chip, pin);
 	if (ret) {
 		dev_err(pic32_chip->chip.dev, "unable to lock pind %lu IRQ\n",
 			d->hwirq);
@@ -488,7 +488,7 @@ static void gpio_irq_shutdown(struct irq_data *d)
 	struct pic32_gpio_chip *pic32_chip = irq_data_get_irq_chip_data(d);
 	unsigned pin = d->hwirq;
 
-	gpio_unlock_as_irq(&pic32_chip->chip, pin);
+	gpiochip_unlock_as_irq(&pic32_chip->chip, pin);
 
 	dev_dbg(pic32_chip->chip.dev, "%s: irq unlock:%u\n", __func__, pin);
 }
@@ -1231,7 +1231,7 @@ static int pic32_pinmux_muxen(struct pic32_pinctrl_data *data,
 
 /* enable a certain pinmux function within a pin group and
  *   within a muxing function */
-static int pic32_pinmux_enable(struct pinctrl_dev *pctldev,
+static int pic32_pinmux_set_mux(struct pinctrl_dev *pctldev,
 			       unsigned selector, unsigned group)
 {
 	struct pic32_pinctrl_data *data = pinctrl_dev_get_drvdata(pctldev);
@@ -1250,26 +1250,6 @@ static int pic32_pinmux_enable(struct pinctrl_dev *pctldev,
 	}
 
 	return 0;
-}
-
-/* disable a certain pin group within a muxing function */
-static void pic32_pinmux_disable(struct pinctrl_dev *pctldev,
-				 unsigned selector, unsigned group)
-{
-	struct pic32_pinctrl_data *data = pinctrl_dev_get_drvdata(pctldev);
-	struct pin_group *grp = &data->groups[group];
-	unsigned ngpins = grp->ngpins;
-	struct gpins *gpins = data->groups[group].gpins;
-	int i;
-
-	dev_dbg(data->dev, "disable function %s for group %s\n",
-			data->functions[selector].name, grp->name);
-
-	for (i = 0; i < ngpins; i++) {
-		struct gpins *pins = &gpins[i];
-
-		pic32_pinmux_muxen(data, pins, false);
-	}
 }
 
 /* enable a pin to work in GPIO mode */
@@ -1331,8 +1311,7 @@ static const struct pinmux_ops pic32_pinmux_ops = {
 	.get_functions_count = pic32_pinmux_get_funcs_count,
 	.get_function_name = pic32_pinmux_get_func_name,
 	.get_function_groups = pic32_pinmux_get_func_groups,
-	.enable = pic32_pinmux_enable,
-	.disable = pic32_pinmux_disable,
+	.set_mux = pic32_pinmux_set_mux,
 	.gpio_request_enable = pic32_gpio_request_enable,
 	.gpio_disable_free = pic32_gpio_disable_free,
 };
