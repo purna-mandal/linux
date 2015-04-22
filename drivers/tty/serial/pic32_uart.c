@@ -615,8 +615,9 @@ static struct uart_ops pic32_uart_ops = {
 static void wait_for_xmitr(struct uart_port *port)
 {
 	struct pic32_sport *sport = to_pic32_sport(port);
+	u32 timeout = 1000;
 
-	while (!(pic32_uart_read(sport, PIC32_UART_STA) & PIC32_UART_STA_TRMT))
+	while ((!(pic32_uart_read(sport, PIC32_UART_STA) & PIC32_UART_STA_TRMT)) && --timeout)
 		cpu_relax();
 }
 
@@ -624,8 +625,9 @@ static void wait_for_xmitr(struct uart_port *port)
 static void pic32_console_putchar(struct uart_port *port, int ch)
 {
 	struct pic32_sport *sport = to_pic32_sport(port);
+	u32 timeout = 1000;
 
-	while (pic32_uart_read(sport, PIC32_UART_STA) & PIC32_UART_STA_UTXBF)
+	while ((pic32_uart_read(sport, PIC32_UART_STA) & PIC32_UART_STA_UTXBF) && --timeout)
 		cpu_relax();
 
 	pic32_uart_write(ch & 0xff, sport, PIC32_UART_TX);
