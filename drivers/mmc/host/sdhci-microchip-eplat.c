@@ -1,5 +1,5 @@
 /*
- * Support of SDHCI platform devices for Microchip ePlatform
+ * Support of SDHCI platform devices for Microchip ePlatform.
  *
  * Copyright (C) 2015 Microchip
  * Andrei Pistirica, Paul Thacker
@@ -10,7 +10,6 @@
  * License version 2. This program is licensed "as is" without any
  * warranty of any kind, whether express or implied.
  */
-
 
 #include <linux/clk.h>
 #include <linux/delay.h>
@@ -29,161 +28,159 @@
 #include <linux/io.h>
 #include "sdhci.h"
 
-#define MIN_FREQ 400000
+#define EPLAT_MMC_OCR (MMC_VDD_32_33 | MMC_VDD_33_34)
 
-#define PIC32_MMC_OCR ( MMC_VDD_32_33 | MMC_VDD_33_34 )
-
+#define DEV_NAME "eplat-sdhci"
 struct eplat_sdhci_pdata {
+	struct platform_device	*pdev;
 	struct clk *clk;
 };
 
-unsigned int eplat_sdhci_get_max_clock(struct sdhci_host *host) 
+unsigned int eplat_sdhci_get_max_clock(struct sdhci_host *host)
 {
-	return 25000000;
+	struct eplat_sdhci_pdata *sdhci_pdata = sdhci_priv(host);
+	unsigned int clk_rate = clk_get_rate(sdhci_pdata->clk);
+	struct platform_device *pdev = sdhci_pdata->pdev;
+
+	dev_dbg(&pdev->dev, "Sdhc max clock rate: %u\n", clk_rate);
+
+	/* EPLATFORM_SDHC_TODO: base clock when available */
+	clk_rate = 25000000;
+	return clk_rate;
 }
 
-unsigned int eplat_sdhci_get_min_clock(struct sdhci_host *host) 
+unsigned int eplat_sdhci_get_min_clock(struct sdhci_host *host)
 {
-	return 25000000;
+	struct eplat_sdhci_pdata *sdhci_pdata = sdhci_priv(host);
+	unsigned int clk_rate = clk_get_rate(sdhci_pdata->clk);
+	struct platform_device *pdev = sdhci_pdata->pdev;
+
+	dev_dbg(&pdev->dev, "Sdhc min clock rate: %u\n", clk_rate);
+
+	clk_rate = 25000000;
+	return clk_rate;
 }
 
 static const struct sdhci_ops eplat_sdhci_ops = {
+	/* EPLATFORM_SDHC_TODO: This should be removed - leave the sdhci
+	 * layer to do the job. */
 	.get_max_clock = eplat_sdhci_get_max_clock,
 	.get_min_clock = eplat_sdhci_get_min_clock,
 };
 
-#ifdef CONFIG_OF
-static int eplat_sdhci_probe_dt(struct platform_device *pdev,
-				struct eplat_sdhci_pdata *pdata)
+void eplat_sdhci_shared_bus(struct platform_device *pdev)
 {
+#define SDH_SHARED_BUS_CTRL		0x000000E0
+#define SDH_SHARED_BUS_NR_CLK_PINS_MASK	0x7
+#define SDH_SHARED_BUS_NR_IRQ_PINS_MASK	0x30
+#define SDH_SHARED_BUS_CLK_PINS		0x10
+#define SDH_SHARED_BUS_IRQ_PINS		0x14
+	struct sdhci_host *host = platform_get_drvdata(pdev);
+	u32 bus = readl(host->ioaddr + SDH_SHARED_BUS_CTRL);
+	u32 clk_pins = (bus & SDH_SHARED_BUS_NR_CLK_PINS_MASK) >> 0;
+	u32 irq_pins = (bus & SDH_SHARED_BUS_NR_IRQ_PINS_MASK) >> 4;
+
+	/* select first clock */
+	if (clk_pins & 0x1)
+		bus |= (0x1 << SDH_SHARED_BUS_CLK_PINS);
+
+	/* select first interrupt */
+	if (irq_pins & 0x1)
+		bus |= (0x1 << SDH_SHARED_BUS_IRQ_PINS);
+
+	writel(bus, host->ioaddr + SDH_SHARED_BUS_CTRL);
+}
+
+static int eplat_sdhci_probe_platform(struct platform_device *pdev,
+				      struct eplat_sdhci_pdata *pdata)
+{
+#define SDH_CAPS_SLOT_TYPE_MASK 0xC0000000
+#define SLOT_TYPE_REMOVABLE	0x0
+#define SLOT_TYPE_EMBEDDED	0x1
+#define SLOT_TYPE_SHARED_BUS	0x2
 	int ret = 0;
-#ifdef EPLATFORM_SDHC_TODO
-	struct sdhci_pdata *pdata = NULL;
-	struct device_node *np = pdev->dev.of_node;
-	int cd_gpio;
+	struct sdhci_host *host = platform_get_drvdata(pdev);
+	u32 caps_slot_type = (readl(host->ioaddr + SDHCI_CAPABILITIES) &
+					SDH_CAPS_SLOT_TYPE_MASK) >> 30;
 
-	cd_gpio = of_get_named_gpio(np, "cd-gpios", 0);
-	if (!gpio_is_valid(cd_gpio))
-		cd_gpio = -1;
+	/* EPLATFORM_SDHC_TODO: !If shared bus is used on Darlington, then
+	 * the bus width, irq and clock should be set via DT */
 
-	/* If pdata is required */
-	if (cd_gpio != -1) {
-		pdata = devm_kzalloc(&pdev->dev, sizeof(*pdata), GFP_KERNEL);
-		if (!pdata)
-			dev_err(&pdev->dev, "DT: kzalloc failed\n");
-		else
-			pdata->card_int_gpio = cd_gpio;
-	}
-	pdata = devm_kzalloc(&pdev->dev, sizeof(*pdata), GFP_KERNEL);
-#endif
+	/* Card slot connected on shared bus. */
+	if (caps_slot_type == SLOT_TYPE_SHARED_BUS)
+		eplat_sdhci_shared_bus(pdev);
 
 	return ret;
 }
-#else
-static int eplat_sdhci_probe_dt(struct platform_device *pdev,
-				struct eplat_sdhci_pdata *pdata)
-{
-	return -ENOSYS;
-}
-#endif
 
 int eplat_sdhci_probe(struct platform_device *pdev)
 {
+	struct device *dev = &pdev->dev;
 	struct sdhci_host *host;
 	struct resource *iomem;
-	struct eplat_sdhci_pdata *sdhci;
-	struct device *dev;
+	struct eplat_sdhci_pdata *sdhci_pdata;
+	/* unsigned int clk_rate = 0; */
 	int ret;
 
-	dev = pdev->dev.parent ? pdev->dev.parent : &pdev->dev;
-	host = sdhci_alloc_host(dev, sizeof(*sdhci));
+	host = sdhci_alloc_host(dev, sizeof(*sdhci_pdata));
 	if (IS_ERR(host)) {
 		ret = PTR_ERR(host);
-		dev_dbg(&pdev->dev, "cannot allocate memory for sdhci\n");
+		dev_err(&pdev->dev, "cannot allocate memory for sdhci\n");
 		goto err;
 	}
+	sdhci_pdata = sdhci_priv(host);
+	sdhci_pdata->pdev = pdev;
+	platform_set_drvdata(pdev, host);
 
 	iomem = platform_get_resource(pdev, IORESOURCE_MEM, 0);
 	host->ioaddr = devm_ioremap_resource(&pdev->dev, iomem);
 	if (IS_ERR(host->ioaddr)) {
 		ret = PTR_ERR(host->ioaddr);
-		dev_dbg(&pdev->dev, "unable to map iomem: %d\n", ret);
+		dev_err(&pdev->dev, "unable to map iomem: %d\n", ret);
 		goto err_host;
 	}
 
 	host->ops = &eplat_sdhci_ops;
 	host->irq = platform_get_irq(pdev, 0);
-#ifdef EPLATFORM_SDHC_TODO
-	host->quirks = SDHCI_QUIRK_BROKEN_CARD_DETECTION;
-#endif
+
 	host->quirks2 = SDHCI_QUIRK2_NO_1_8_V;
-	host->mmc->ocr_avail = PIC32_MMC_OCR;
+	host->mmc->ocr_avail = EPLAT_MMC_OCR;
 
-	sdhci = sdhci_priv(host);
-
-	dev->init_name = "eplat-sdhci";
-
-	/* clk enable */
-#ifdef EPLATFORM_SDHC_TODO
-	sdhci->clk = devm_clk_get(&pdev->dev, NULL);
-	if (IS_ERR(sdhci->clk)) {
-		ret = PTR_ERR(sdhci->clk);
-		dev_dbg(&pdev->dev, "Error getting clock\n");
+	/* SDH CLK enable */
+	sdhci_pdata->clk = devm_clk_get(&pdev->dev, NULL);
+	if (IS_ERR(sdhci_pdata->clk)) {
+		ret = PTR_ERR(sdhci_pdata->clk);
+		dev_err(&pdev->dev, "Error getting clock\n");
 		goto err_host;
 	}
 
-	ret = clk_prepare_enable(sdhci->clk);
+#if defined(EPLATFORM_SDHC_TODO)
+	/* Enable clock when available! */
+	ret = clk_prepare_enable(sdhci_pdata->clk);
 	if (ret) {
 		dev_dbg(&pdev->dev, "Error enabling clock\n");
 		goto err_host;
 	}
 
-	ret = clk_set_rate(sdhci->clk, 25000000);
-	if (ret)
-		dev_dbg(&pdev->dev, "Error setting desired clk, clk=%lu\n",
-				clk_get_rate(sdhci->clk));
+	clk_rate = clk_get_rate(sdhci_pdata->clk);
+	dev_dbg(&pdev->dev, "base clock at: %u\n", clk_rate);
 #endif
-	ret = eplat_sdhci_probe_dt(pdev, sdhci);
-	if (ret) {
-		dev_err(&pdev->dev, "failed to parse device tree!\n");
-		goto disable_clk;
-	}
 
-#ifdef EPLATFORM_SDHC_TODO
-	/*
-	 * It is optional to use GPIOs for sdhci card detection. If
-	 * sdhci->data is NULL, then use original sdhci lines otherwise
-	 * GPIO lines. We use the built-in GPIO support for this.
-	 */
-	if (sdhci->data && sdhci->data->card_int_gpio >= 0) {
-		ret = mmc_gpio_request_cd(host->mmc,
-					  sdhci->data->card_int_gpio, 0);
-		if (ret < 0) {
-			dev_dbg(&pdev->dev,
-				"failed to request card-detect gpio%d\n",
-				sdhci->data->card_int_gpio);
-			goto disable_clk;
-		}
+	ret = eplat_sdhci_probe_platform(pdev, sdhci_pdata);
+	if (ret) {
+		dev_err(&pdev->dev, "failed to probe platform!\n");
+		goto err_host;
 	}
-#endif
 
 	ret = sdhci_add_host(host);
 	if (ret) {
 		dev_dbg(&pdev->dev, "error adding host\n");
-		goto disable_clk;
-	} else {
-		printk("Successfully added sdhci host\n");
+		goto err_host;
 	}
 
-	/* EPLATFORM_SDHC_TODO: Why isn't this bit getting set in the stack? */
-	*(volatile unsigned int*)0xBF8EC0E0 |= 0x00010000;
-
-	platform_set_drvdata(pdev, host);
-
+	dev_info(&pdev->dev, "Successfully added sdhci host\n");
 	return 0;
 
-disable_clk:
-	clk_disable_unprepare(sdhci->clk);
 err_host:
 	sdhci_free_host(host);
 err:
@@ -194,7 +191,6 @@ err:
 static int eplat_sdhci_remove(struct platform_device *pdev)
 {
 	struct sdhci_host *host = platform_get_drvdata(pdev);
-	struct eplat_sdhci_pdata *sdhci = sdhci_priv(host);
 	int dead = 0;
 	u32 scratch;
 
@@ -203,7 +199,9 @@ static int eplat_sdhci_remove(struct platform_device *pdev)
 		dead = 1;
 
 	sdhci_remove_host(host, dead);
-	clk_disable_unprepare(sdhci->clk);
+#ifdef EPLATFORM_SDHC_TODO
+	clk_disable_unprepare(sdhci_pdata->clk);
+#endif
 	sdhci_free_host(host);
 
 	return 0;
@@ -212,18 +210,12 @@ static int eplat_sdhci_remove(struct platform_device *pdev)
 #ifdef CONFIG_PM_SLEEP
 static int eplat_sdhci_suspend(struct device *dev)
 {
-	int ret = 0;
+	struct sdhci_host *host = dev_get_drvdata(dev);
 
 #ifdef EPLATFORM_SDHC_TODO
-	struct sdhci_host *host = dev_get_drvdata(dev);
-	struct eplat_sdhci_pdata *sdhci = sdhci_priv(host);
-
-	ret = sdhci_suspend_host(host);
-	if (!ret)
-		clk_disable(sdhci->clk);
+	clk_disable(sdhci_pdata->clk);
 #endif
-
-	return ret;
+	return sdhci_suspend_host(host);
 }
 
 static int eplat_sdhci_resume(struct device *dev)
@@ -231,16 +223,8 @@ static int eplat_sdhci_resume(struct device *dev)
 	struct sdhci_host *host = dev_get_drvdata(dev);
 
 #ifdef EPLATFORM_SDHC_TODO
-	struct eplat_sdhci_pdata *sdhci = sdhci_priv(host);
-	int ret = 0;
-
-	ret = clk_enable(sdhci->clk);
-	if (ret) {
-		dev_dbg(dev, "Resume: Error enabling clock\n");
-		return ret;
-	}
+	clk_enable(sdhci_pdata->clk);
 #endif
-
 	return sdhci_resume_host(host);
 }
 #endif
@@ -255,7 +239,7 @@ MODULE_DEVICE_TABLE(of, eplat_sdhci_id_table);
 
 static struct platform_driver eplat_sdhci_driver = {
 	.driver = {
-		.name	= "eplat-sdhci",
+		.name	= DEV_NAME,
 		.owner	= THIS_MODULE,
 		.pm	= &sdhci_pm_ops,
 		.of_match_table = of_match_ptr(eplat_sdhci_id_table),
