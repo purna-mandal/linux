@@ -39,8 +39,6 @@ static int snd_pic32_ak4953a_hw_params(struct snd_pcm_substream *substream,
 		bfs = 32;
 		break;
 	default:
-		dev_err(substream->pcm->dev, "Unsupported PCM Format - %d\n",
-			params_format(params));
 		return -EINVAL;
 	}
 
@@ -70,12 +68,8 @@ static int snd_pic32_ak4953a_hw_params(struct snd_pcm_substream *substream,
 			rfs = 512;
 		break;
 	default:
-		dev_err(substream->pcm->dev, "Unsupported Rate - %d\n",
-			params_rate(params));
 		return -EINVAL;
 	}
-
-	dev_dbg(substream->pcm->dev, "rclk rfs %d\n", rfs);
 
 	rclk = params_rate(params) * rfs;
 
