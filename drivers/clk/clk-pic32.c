@@ -1023,9 +1023,7 @@ static int spll_clk_set_rate(struct clk_hw *hw, unsigned long rate,
 	BUG_ON(IS_ERR_OR_NULL(pic32_sys_clk));
 
 	/* get sysclk parent */
-	__clk_get(pic32_sys_clk);
 	sclk_parent = clk_get_parent(pic32_sys_clk);
-	__clk_put(pic32_sys_clk);
 
 	/* does sys_clk using spll_clk as parent ? */
 	if (unlikely(sclk_parent == hw->clk)) {
@@ -1770,10 +1768,6 @@ static void __init of_refo_clk_setup(struct device_node *np)
 
 		/* keep it enabled */
 		clk_enable(clk);
-
-		/* clk unprepare and put */
-		clk_unprepare(clk);
-		__clk_put(clk);
 	}
 
 	pic32_of_clk_register_clkdev(np, clk);

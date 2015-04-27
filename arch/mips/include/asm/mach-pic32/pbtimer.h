@@ -247,15 +247,11 @@ static inline struct clk *pic32_pb_timer_get_clk(struct pic32_pb_timer *timer)
 {
 	if (!timer)
 		return NULL;
-
-	__clk_get(timer->clk);
 	return timer->clk;
 }
 
 static inline void pic32_pb_timer_put_clk(struct pic32_pb_timer *timer)
 {
-	if (timer)
-		__clk_put(timer->clk);
 }
 
 struct pic32_pb_timer *pic32_pb_timer_request_specific(int id);
