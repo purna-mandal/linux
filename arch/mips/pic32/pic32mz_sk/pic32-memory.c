@@ -43,6 +43,7 @@
 #include <asm/cpu-features.h>
 
 static fw_memblock_t mdesc[FW_MAX_MEMBLOCKS];
+static char cmdline[COMMAND_LINE_SIZE];
 
 /* determined physical memory size, not overridden by command line args  */
 unsigned long physical_memsize = 0L;
@@ -53,7 +54,6 @@ fw_memblock_t * __init fw_getmdesc(int eva)
 	char *memsize_str;
 	unsigned int memsize;
 	char *ptr;
-	char cmdline[COMMAND_LINE_SIZE];
 
 	if (init_done)
 		goto out;
@@ -119,6 +119,7 @@ struct tlb_entry {
 #define ENTRYLO_CAC(pa) (((pa) >> 6)|0x07|(CONF_CM_CACHABLE_NONCOHERENT << 3))
 #define ENTRYLO_UNC(pa) (((pa) >> 6)|0x07|(CONF_CM_UNCACHED << 3))
 
+#ifdef CONFIG_PIC32MZ_UPPER_MEMORY
 static struct tlb_entry wired_mappings[] = {
 	{
 		.entrylo0	= ENTRYLO_CAC(UPPERMEM_START),
@@ -149,6 +150,7 @@ static struct tlb_entry wired_mappings[] = {
 #undef SZ_12M
 #endif
 };
+#endif
 
 /*
  * This function is used instead of add_wired_entry(), because it does not
