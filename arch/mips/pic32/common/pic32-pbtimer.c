@@ -447,16 +447,14 @@ static struct pic32_pb_timer *pb_timer_request(
 
 		mutex_lock(&timer->mutex);
 
-		/* ignore, if busy */
-		if (timer_is_busy(timer)) {
-			mutex_unlock(&timer->mutex);
-			continue;
-		}
-
 		found = match(timer, data);
 
 		/* a match found */
 		if (found) {
+
+			/* multi-client timer ? */
+			if (timer_is_busy(timer))
+				break;
 
 			/* lock timer */
 			__timer_lock(timer, flags);
