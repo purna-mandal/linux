@@ -139,13 +139,14 @@
 #define PP_OC6		73
 #define PP_OC7		74
 #define PP_OC8		75
-#define PP_C1OUT	76
-#define PP_C2OUT	77
-#define PP_C1TX		78
-#define PP_C2TX		79
-#define PP_SENTINEL	80
+#define PP_OC9		76
+#define PP_C1OUT	77
+#define PP_C2OUT	78
+#define PP_C1TX		79
+#define PP_C2TX		80
+#define PP_SENTINEL	81
 /* add above this line and update the PP_MAX accordingly */
-#define PP_MAX		81
+#define PP_MAX		82
 
 /* mux input: BUCKET A */
 #define PIC32_PP_IN_INT3	(PP(PP_INT3, BUCKET_A, DIR_IN))
