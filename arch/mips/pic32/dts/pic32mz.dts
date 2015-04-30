@@ -219,7 +219,7 @@
 		dr_mode = "host";
 		mentor,multipoint = <1>;
 		mentor,num-eps = <8>;
-		mentor,ram-bits = <11>;
+		mentor,ram-bits = <13>;
 		mentor,power = <500>;
 		phys = <&usb1_phy>;
 		clocks = <&PBCLK5>;
@@ -252,32 +252,5 @@
 		clock-frequency = <24000000>;
 		/*vcc-supply = <&hsusb1_vcc_regulator>;
 		reset-gpios = <&gpio1 7 GPIO_ACTIVE_LOW>;*/
-	};
-
-	leds {
-                pinctrl-names = "default";
-                pinctrl-0 = <&user_leds_s0>;
-
-                compatible = "gpio-leds";
-
-                led@1 {
-                        label = "pic32mz:red:heartbeat";
-                        gpios = <&pioH 0 GPIO_ACTIVE_HIGH>;
-                        linux,default-trigger = "heartbeat";
-                        default-state = "off";
-                };
-
-                led@2 {
-                        label = "pic32mz:yellow:led2";
-                        gpios = <&pioH 1 GPIO_ACTIVE_HIGH>;
-                        default-state = "off";
-                };
-
-                led@3 {
-                        label = "pic32mz:green:led3";
-                        gpios = <&pioH 2 GPIO_ACTIVE_HIGH>;
-                        default-state = "off";
-                };
-
 	};
 };

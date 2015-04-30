@@ -58,7 +58,7 @@
 				pic32,pins = <PIC32_RP_OUT_RPB7 PIC32_PP_OUT_OC5 PIC32_PIN_CONF_DG_OUT>;
 			};
 			pinctrl_oc8: ocmp8_pins {
-				pic32,pins = <PIC32_RP_OUT_RPG6 PIC32_PP_OUT_OC8 PIC32_PIN_CONF_DG_OUT>;
+				pic32,pins = <PIC32_RP_OUT_RPB0 PIC32_PP_OUT_OC8 PIC32_PIN_CONF_DG_OUT>;
 			};
 			pinctrl_oc9: ocmp9_pins {
 				pic32,pins = <PIC32_RP_OUT_RPB2 PIC32_PP_OUT_OC9 PIC32_PIN_CONF_DG_OUT>;
@@ -89,7 +89,7 @@
 		spi1 {
 			pinctrl_spi1: spi1_0 {
 				pic32,pins = <PIC32_RP_IN_RPG8 PIC32_PP_IN_SDI1 PIC32_PIN_CONF_DG_IN
-					PIC32_RP_OUT_RPB10 PIC32_PP_OUT_SDO1 PIC32_PIN_CONF_DG_OUT>;
+					PIC32_RP_OUT_RPA14 PIC32_PP_OUT_SDO1 PIC32_PIN_CONF_DG_OUT>;
 				pic32,single-pins = <PORT_D 4 PIC32_PIN_CONF_DG>; /* spi1_cs */
 			};
 		};
@@ -155,16 +155,6 @@
 			};
 		};
 
-		leds {
-
-			user_leds_s0: user_leds_s0 {
-				pic32,single-pins = <
-                                PORT_H 0 PIC32_PIN_CONF_DG_OUT
-                                PORT_H 1 PIC32_PIN_CONF_DG_OUT
-				PORT_H 2 PIC32_PIN_CONF_DG_OUT>;
-			};
-		};
-
 		uart1 {
 			/* uart1: pin groups */
 			pinctrl_uart1: uart1-0 {
@@ -187,8 +177,8 @@
 			/* uart2: pin groups */
 			pinctrl_uart2: uart2-0 {
 				pic32,pins =
-					<PIC32_RP_OUT_RPD0 PIC32_PP_OUT_U2TX PIC32_PIN_CONF_DG_OUT
-					 PIC32_RP_IN_RPB0 PIC32_PP_IN_U2RX PIC32_PIN_CONF_DG_IN>;
+					<PIC32_RP_OUT_RPB14 PIC32_PP_OUT_U2TX PIC32_PIN_CONF_DG_OUT
+					 PIC32_RP_IN_RPG6 PIC32_PP_IN_U2RX PIC32_PIN_CONF_DG_IN>;
 			};
 
 			pinctrl_uart2_cts: uart2_cts-0 {

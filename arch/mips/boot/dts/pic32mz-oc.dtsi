@@ -15,7 +15,7 @@
 		reg = <0xbf844000 0x30>;
 		interrupts = <0>;
 		oc-id = <1>;
-		microchip,oc-32bit; /* class B, 32-bit combined timer; usable for ADC */
+		microchip,oc-32bit;
 		microchip,oc-adc;
 	};
 
@@ -23,9 +23,80 @@
 	OCMP2:oc2 {
 		#oc-cells = <0>;
 		compatible = "microchip,pic32-ocmp";
-		reg = <0xbf844040 0x30>;
+		reg = <0xbf844200 0x30>;
 		interrupts = <0>;
 		oc-id = <2>;
 		microchip,oc-adc;
+		microchip,oc-32bit;
+	};
+
+	OCMP3:oc3 {
+		#oc-cells = <0>;
+		compatible = "microchip,pic32-ocmp";
+		reg = <0xbf844400 0x30>;
+		interrupts = <0>;
+		oc-id = <3>;
+		microchip,oc-adc;
+		microchip,oc-32bit;
+	};
+
+	OCMP4:oc4 {
+		#oc-cells = <0>;
+		compatible = "microchip,pic32-ocmp";
+		reg = <0xbf844600 0x30>;
+		interrupts = <0>;
+		oc-id = <4>;
+		microchip,oc-adc;
+		microchip,oc-32bit;
+	};
+
+	OCMP5:oc5 {
+		#oc-cells = <0>;
+		compatible = "microchip,pic32-ocmp";
+		reg = <0xbf844800 0x30>;
+		interrupts = <0>;
+		oc-id = <5>;
+		microchip,oc-adc;
+		microchip,oc-32bit;
+	};
+
+	OCMP6:oc6 {
+		#oc-cells = <0>;
+		compatible = "microchip,pic32-ocmp";
+		reg = <0xbf844A00 0x30>;
+		interrupts = <0>;
+		oc-id = <2>;
+		microchip,oc-adc;
+		microchip,oc-32bit;
+	};
+
+	OCMP7:oc7 {
+		#oc-cells = <0>;
+		compatible = "microchip,pic32-ocmp";
+		reg = <0xbf844C00 0x30>;
+		interrupts = <0>;
+		oc-id = <7>;
+		microchip,oc-adc;
+		microchip,oc-32bit;
+	};
+
+	OCMP8:oc8 {
+		#oc-cells = <0>;
+		compatible = "microchip,pic32-ocmp";
+		reg = <0xbf844E00 0x30>;
+		interrupts = <0>;
+		oc-id = <8>;
+		microchip,oc-adc;
+		microchip,oc-32bit;
+	};
+
+	OCMP9:oc9 {
+		#oc-cells = <0>;
+		compatible = "microchip,pic32-ocmp";
+		reg = <0xbf845000 0x30>;
+		interrupts = <0>;
+		oc-id = <9>;
+		microchip,oc-adc;
+		microchip,oc-32bit;
 	};
 };
