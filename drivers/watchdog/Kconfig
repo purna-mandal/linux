@@ -1275,7 +1275,6 @@ config PIC32_WDT
 	tristate "PIC32 hardware watchdog"
 	select WATCHDOG_CORE
 	depends on PIC32
-	select WATCHDOG_CORE
 	default y
 	help
 	  Watchdog driver for the built in watchdog hardware in a PIC32.
@@ -1288,6 +1287,7 @@ config PIC32_WDT
 
 config PIC32_DMT
 	tristate "PIC32 Deadman Timer"
+	select WATCHDOG_CORE
 	depends on PIC32
 	default y
 	help
