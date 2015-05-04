@@ -144,6 +144,7 @@ struct sqi_desc {
 #define SQI_BD_BUF_SIZE		SZ_256 /* 256-byte */
 #define SQI_BD_COUNT		(SZ_64K / SQI_BD_BUF_SIZE)
 #define SQI_BD_COUNT_MASK	(SQI_BD_COUNT - 1)
+#define SQI_MIN_LEN_DMA		32
 
 #define SQI_VERBOSE	0
 
@@ -476,13 +477,15 @@ static void sqi_desc_put(struct pic32_sqi *sqi, struct sqi_desc *bd)
 }
 
 static int sqi_desc_fill(struct sqi_desc *desc,
-	struct spi_transfer *xfer, int remaining, u32 xfer_bd_ctrl)
+	struct spi_transfer *xfer, int remaining,
+	u32 xfer_bd_ctrl, dma_addr_t dma_handle)
 {
 	struct hw_bd *bd;
 	int offset = xfer->len - remaining;
 
 	desc->xfer_len = min_t(u32, remaining, SQI_BD_BUF_SIZE);
 	desc->x = xfer;
+	desc->xfer_buf = 0;
 
 	/* Buffer Descriptor */
 	bd = desc->bd;
@@ -494,16 +497,19 @@ static int sqi_desc_fill(struct sqi_desc *desc,
 	/* BD STAT */
 	bd->bd_status = 0;
 
-	/* BD BUFFER ADDRESS: use pre-allocated dma buffer */
-	if (xfer->tx_buf) {
-		desc->xfer_buf = 0;
-		memcpy(desc->buf, xfer->tx_buf + offset, desc->xfer_len);
-	} else {
-		/* we will copy received data to desc->xfer_buf */
-		desc->xfer_buf = xfer->rx_buf + offset;
-	}
+	/* BD BUFFER ADDRESS: zero-copy or bounce-buffer ? */
+	if (!dma_handle) {
+		/* use pre-allocated dma buffer for bouncing */
+		if (xfer->tx_buf) {
+			desc->xfer_buf = (void *)xfer->tx_buf + offset;
+			memcpy(desc->buf, desc->xfer_buf, desc->xfer_len);
+		} else
+			desc->xfer_buf = xfer->rx_buf + offset;
 
-	bd->bd_addr = desc->buf_dma;
+		bd->bd_addr = desc->buf_dma;
+	} else {
+		bd->bd_addr = dma_handle + offset;
+	}
 #if 0
 	/* BD NEXTPTR: already initialized to next BD */
 	bd->bd_nextp = 0;
@@ -516,10 +522,12 @@ static int pic32_sqi_one_transfer(struct pic32_sqi *sqi,
 	struct spi_message *mesg, struct spi_transfer *xfer)
 {
 	struct sqi_desc *desc;
-	int remaining, xfer_len;
+	int remaining, ret;
 	u32 bd_ctrl;
 	u32 nbits;
+	dma_addr_t dma_buf;
 
+	dma_buf = xfer->rx_dma = xfer->tx_dma = 0;
 	/* BD CTRL: length */
 	bd_ctrl = 0;
 
@@ -530,10 +538,30 @@ static int pic32_sqi_one_transfer(struct pic32_sqi *sqi,
 	if (xfer->rx_buf) {
 		nbits = xfer->rx_nbits;
 		bd_ctrl |= BD_DATA_RECV;
-	} else {
-		nbits = xfer->tx_nbits;
+		if (xfer->len >= SQI_MIN_LEN_DMA) {
+			dma_buf = dma_map_single(&sqi->master->dev,
+						(void *)xfer->rx_buf,
+						xfer->len, DMA_TO_DEVICE);
+			if (dma_mapping_error(sqi->dev, dma_buf))
+				dma_buf = 0;
+
+			xfer->rx_dma = dma_buf;
+		}
+		goto mapping_done;
 	}
 
+	nbits = xfer->tx_nbits;
+	if (xfer->len >= SQI_MIN_LEN_DMA) {
+		dma_buf = dma_map_single(&sqi->master->dev,
+					(void *)xfer->tx_buf,
+					xfer->len, DMA_FROM_DEVICE);
+		if (dma_mapping_error(sqi->dev, dma_buf))
+			dma_buf = 0;
+
+		xfer->tx_dma = dma_buf;
+	}
+
+mapping_done:
 	if (nbits & SPI_NBITS_QUAD)
 		bd_ctrl |= BD_QUAD;
 	else if (nbits & SPI_NBITS_DUAL)
@@ -557,10 +585,10 @@ static int pic32_sqi_one_transfer(struct pic32_sqi *sqi,
 			break;
 
 		/* Fill descriptors */
-		xfer_len = sqi_desc_fill(desc, xfer, remaining, bd_ctrl);
+		ret = sqi_desc_fill(desc, xfer, remaining, bd_ctrl, dma_buf);
 
 		/* Update PTR */
-		remaining -= xfer_len;
+		remaining -= ret;
 	}
 
 	return 0;
@@ -627,14 +655,6 @@ static int pic32_sqi_one_message(struct spi_master *master,
 	/* debug */
 	list_for_each_entry_safe(desc, ndesc, &sqi->bd_list_used, list) {
 		bd = desc->bd;
-
-		if (bd->bd_nextp != ndesc->bd_dma) {
-			pr_info("bd %p: bd_ctrl %08x bd_next %08x(#### %08x)\n",
-				(void *)bd, bd->bd_ctrl,
-				bd->bd_nextp, ndesc->bd_dma);
-			bd->bd_nextp = ndesc->bd_dma;
-		}
-
 		pr_info("bd %p: bd_ctrl %08x bd_addr %08x bd_stat %08x bd_next %08x\n",
 			(void *)bd, bd->bd_ctrl,
 			bd->bd_addr, bd->bd_status, bd->bd_nextp);
@@ -712,7 +732,8 @@ static int pic32_sqi_one_message(struct spi_master *master,
 		/* skip transmit */
 		if (xfer->tx_buf)
 			continue;
-
+		if (!desc->xfer_buf)
+			continue;
 		memcpy(desc->xfer_buf, desc->buf, desc->xfer_len);
 	}
 
@@ -739,6 +760,16 @@ xfer_done:
 
 	/* disable chip */
 	sqi_disable_spi(sqi);
+
+	/* unmap dma memory, if there */
+	list_for_each_entry(xfer, &msg->transfers, transfer_list) {
+		if (xfer->tx_buf && xfer->tx_dma)
+			dma_unmap_single(&sqi->master->dev,
+				xfer->tx_dma, xfer->len, DMA_FROM_DEVICE);
+		else if (xfer->rx_dma)
+			dma_unmap_single(&sqi->master->dev,
+				xfer->rx_dma, xfer->len, DMA_TO_DEVICE);
+	}
 
 	/* release all used bds */
 	list_for_each_entry_safe_reverse(desc, ndesc, &sqi->bd_list_used, list)
