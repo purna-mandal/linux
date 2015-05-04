@@ -5,10 +5,11 @@ Required properties:
 - reg: Address and length of the register set for the device
 - interrupts: Should contain all three spi interrupts in sequence
               of <fault-irq>, <receive-irq>, <transmit-irq>.
+- interrupt-names: Should be "fault","rx","tx" in order.
 - cs-gpios:  Specifies the gpio pins to be used for chipselects.
-- clocks: phandles to input clocks. Maximum two possible clocks
-	  can be provided (pbxclk, refoxclk).
-- microchip,clock-indices: specify, 1 if clocks provides refclk phandle.
+- clocks: phandles of baud generation clocks. Maximum two possible clocks
+	  can be provided (&PBCLK2, &REFCLKO1).
+- clock-names: Should be "mck0"(for PBCLK2) ,"mck1"(for REFCLKO1).
 - pinctrl: specify correct pinctrl name & pinctrl group.
 
 Example:
@@ -20,11 +21,9 @@ spi1:spi@0xbf821000 {
         interrupts = <SPI1_FAULT DEFAULT_INT_PRI IRQ_TYPE_NONE>,
                      <SPI1_RECEIVE_DONE DEFAULT_INT_PRI IRQ_TYPE_NONE>,
                      <SPI1_TRANSFER_DONE DEFAULT_INT_PRI IRQ_TYPE_NONE>;
-        clocks = <&PBCLK2>;
-#if 0
-        clocks = <&REFCLKO1>;
-        microchip,clock-indices = <1>;
-#endif
+	interrupt-names = "fault","rx","tx";
+        clocks = <&PBCLK2>,<&REFCLKO1>;
+	clock-names = "ck0","ck1";
         pinctrl-names = "default";
         pinctrl-0 = <&pinctrl_spi1>;
         cs-gpios = <&pioD 4 0>;

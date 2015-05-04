@@ -765,9 +765,8 @@ static void pic32_spi_hw_init(struct pic32_spi *pic32s)
 static int pic32_spi_hw_probe(struct platform_device *pdev,
 			      struct pic32_spi *pic32s)
 {
-	int ret, clk_id = 0;
+	int ret, clk_id = SPI_CLKSRC_PBCLK;
 	struct resource *mem;
-	struct device_node *np;
 
 	mem = platform_get_resource(pdev, IORESOURCE_MEM, 0);
 	if (mem == NULL) {
@@ -782,44 +781,31 @@ static int pic32_spi_hw_probe(struct platform_device *pdev,
 	}
 
 	/* get irq resources: err-irq, rx-irq, tx-irq */
-	ret = platform_get_irq(pdev, 0);
-	if (ret < 0)
+	pic32s->fault_irq = platform_get_irq_byname(pdev, "fault");
+	if (pic32s->fault_irq < 0)
 		dev_err(&pdev->dev, "get fault-irq failed\n");
-	pic32s->fault_irq = ret;
 
-	ret = platform_get_irq(pdev, 1);
-	if (ret < 0)
+	pic32s->rx_irq = platform_get_irq_byname(pdev, "rx");
+	if (pic32s->rx_irq < 0)
 		dev_err(&pdev->dev, "get rx-irq failed\n");
-	pic32s->rx_irq = ret;
 
-	ret = platform_get_irq(pdev, 2);
-	if (ret < 0)
+	pic32s->tx_irq = platform_get_irq_byname(pdev, "tx");
+	if (pic32s->tx_irq < 0)
 		dev_err(&pdev->dev, "get tx-irq map failed\n");
-	pic32s->tx_irq = ret;
 
 	/* Basic HW init */
 	pic32_spi_hw_init(pic32s);
 
-	/* two possible clksrcs; pbxclk:0, m_clk:1 */
-	np = pdev->dev.of_node;
-	if (np) {
-		ret = of_clk_get_parent_count(np);
-		if ((ret < 1) || (ret > 2)) {
-			dev_err(&pdev->dev, "clk not specified.\n");
+	/* any one of the two clk sources is mandatory; pbxclk:0, m_clk:1 */
+	pic32s->clk = devm_clk_get(&pdev->dev, "mck0");
+	if (IS_ERR(pic32s->clk)) {
+		pic32s->clk = devm_clk_get(&pdev->dev, "mck1");
+		if (IS_ERR(pic32s->clk)) {
+			ret = PTR_ERR(pic32s->clk);
+			dev_err(&pdev->dev, "no clk ?\n");
 			goto err_unmap_mem;
 		}
-
-		/* get active clk */
-		of_property_read_u32(np, "microchip,clock-indices", &clk_id);
-		pic32s->clk = of_clk_get(np, clk_id);
-	} else {
-		pic32s->clk = devm_clk_get(&pdev->dev, NULL);
-	}
-
-	if (IS_ERR(pic32s->clk)) {
-		ret = PTR_ERR(pic32s->clk);
-		dev_err(&pdev->dev, "clk get failed\n");
-		goto err_unmap_mem;
+		clk_id = SPI_CLKSRC_MCLK;
 	}
 
 	clk_prepare_enable(pic32s->clk);
