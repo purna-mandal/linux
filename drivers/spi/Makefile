@@ -91,3 +91,4 @@ obj-$(CONFIG_SPI_XILINX)		+= spi-xilinx.o
 obj-$(CONFIG_SPI_XTENSA_XTFPGA)		+= spi-xtensa-xtfpga.o
 obj-$(CONFIG_SPI_GPIO_PIC32MZ)		+= spi-gpio-pic32mz.o
 obj-$(CONFIG_SPI_PIC32)			+= spi-pic32.o
+obj-$(CONFIG_SQI_PIC32)			+= sqi-pic32.o
