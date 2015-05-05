@@ -7,7 +7,6 @@
  * Licensed under GPLv2.
  */
 
-#include <linux/clk.h>
 #include <linux/err.h>
 #include <linux/io.h>
 #include <linux/module.h>
@@ -22,7 +21,6 @@
 
 struct pic32_pwm_chip {
 	struct pwm_chip chip;
-	struct clk *clk;
 	struct pic32_ocmp *oc;
 	struct pic32_pb_timer *timer;
 };
@@ -50,7 +48,7 @@ static int pic32_pwm_config(struct pwm_chip *chip, struct pwm_device *pwm,
 	ret = pic32_pb_timer_settime(pic32_pwm->timer,
 			PIC32_TIMER_MAY_RATE, period_ns);
 	if (ret)
-		dev_vdbg(chip->dev, "set_timeout() failed, ret %d\n", ret);
+		dev_err(chip->dev, "set_timeout() failed, ret %d\n", ret);
 
 	/* Set duty-cycle & PWM mode with OC */
 	ret = pic32_oc_settime(pic32_pwm->oc,
@@ -69,10 +67,9 @@ static int pic32_pwm_enable(struct pwm_chip *chip, struct pwm_device *pwm)
 {
 	struct pic32_pwm_chip *pic32_pwm = to_pic32_pwm_chip(chip);
 
-	/* enable clk */
-	clk_enable(pic32_pwm->clk);
 	/* start oc */
 	pic32_oc_start(pic32_pwm->oc);
+
 	/* start timer */
 	pic32_pb_timer_start(pic32_pwm->timer);
 
@@ -83,12 +80,12 @@ static int pic32_pwm_enable(struct pwm_chip *chip, struct pwm_device *pwm)
 static void pic32_pwm_disable(struct pwm_chip *chip, struct pwm_device *pwm)
 {
 	struct pic32_pwm_chip *pic32_pwm = to_pic32_pwm_chip(chip);
+
 	/* stop timer */
 	pic32_pb_timer_stop(pic32_pwm->timer);
+
 	/* stop OC */
 	pic32_oc_stop(pic32_pwm->oc);
-	/* disable clock */
-	clk_disable(pic32_pwm->clk);
 
 	dev_vdbg(chip->dev, "%s\n", __func__);
 }
@@ -132,14 +129,6 @@ static int pic32_pwm_probe(struct platform_device *pdev)
 		goto release_timer;
 	}
 
-	pic32_pwm->clk = pic32_pb_timer_get_clk(pic32_pwm->timer);
-	if (IS_ERR(pic32_pwm->clk)) {
-		dev_err(&pdev->dev, "pwm: clk not found\n");
-		ret = PTR_ERR(pic32_pwm->clk);
-		goto release_oc;
-	}
-	clk_prepare_enable(pic32_pwm->clk);
-
 	/* initalize PWM chip */
 	pic32_pwm->chip.dev = &pdev->dev;
 	pic32_pwm->chip.ops = &pic32_pwm_ops;
@@ -158,16 +147,13 @@ static int pic32_pwm_probe(struct platform_device *pdev)
 	ret = pwmchip_add(&pic32_pwm->chip);
 	if (ret < 0) {
 		dev_err(&pdev->dev, "failed to add PWM chip %d\n", ret);
-		goto unprepare_clk;
+		goto release_oc;
 	}
 
 	platform_set_drvdata(pdev, pic32_pwm);
 
 	dev_info(&pdev->dev, "PWM: registered successfully\n");
 	return ret;
-unprepare_clk:
-	clk_disable_unprepare(pic32_pwm->clk);
-	pic32_pb_timer_put_clk(pic32_pwm->timer);
 release_oc:
 	pic32_oc_free(pic32_pwm->oc);
 release_timer:
@@ -179,13 +165,12 @@ static int pic32_pwm_remove(struct platform_device *pdev)
 {
 	struct pic32_pwm_chip *pic32_pwm = platform_get_drvdata(pdev);
 
-	/* disable clk */
-	clk_disable_unprepare(pic32_pwm->clk);
-	pic32_pb_timer_put_clk(pic32_pwm->timer);
 	/* release OC */
 	pic32_oc_free(pic32_pwm->oc);
+
 	/* release timer */
 	pic32_pb_timer_free(pic32_pwm->timer);
+
 	/* remove pwm */
 	return pwmchip_remove(&pic32_pwm->chip);
 }
