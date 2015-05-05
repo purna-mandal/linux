@@ -672,10 +672,12 @@ static unsigned long pb_timer_determine_clk_rate_from_timeout(
 int pic32_pb_timer_settime(struct pic32_pb_timer *timer,
 	unsigned long flags, uint64_t timeout_nsec)
 {
-	int ret;
+	int ret = 0;
 	unsigned long rate;
 
 	mutex_lock(&timer->mutex);
+	if (WARN_ON(timer->enable_count > 0))
+		goto out_done;
 
 	if (flags & PIC32_TIMER_MAY_RATE) {
 		rate = pb_timer_determine_clk_rate_from_timeout(
@@ -747,6 +749,8 @@ int pic32_pb_timer_start(struct pic32_pb_timer *timer)
 	dbg_timer("(%s)\n", __timer_name(timer));
 
 	__timer_lock(timer, flags);
+	if (++timer->enable_count > 1)
+		goto out_unlock;
 
 	/* For continueous timing mode there is no specific case to handle.
 	 * But in all other cases install interrupt handler and perform atleast
@@ -782,6 +786,8 @@ int pic32_pb_timer_start(struct pic32_pb_timer *timer)
 	}
 #endif
 	pbt_enable(timer);
+
+out_unlock:
 	__timer_unlock(timer, flags);
 	return 0;
 }
@@ -801,6 +807,12 @@ int pic32_pb_timer_stop(struct pic32_pb_timer *timer)
 
 	__timer_lock(timer, flags);
 
+	if (WARN_ON(timer->enable_count == 0))
+		goto out_unlock;
+
+	if (--timer->enable_count > 0)
+		goto out_unlock;
+
 #ifdef PIC32_TIMER_HANDLE_IRQ
 	if (timer->irq)
 		disable_irq_nosync(timer->irq);
@@ -808,6 +820,8 @@ int pic32_pb_timer_stop(struct pic32_pb_timer *timer)
 	pbt_disable(timer);
 
 	clk_disable(timer->clk);
+
+out_unlock:
 	__timer_unlock(timer, flags);
 
 	return 0;
