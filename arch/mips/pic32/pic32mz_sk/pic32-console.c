@@ -61,9 +61,13 @@ _en_uart:
 	enable_uart_with_rate(port, baud);
 }
 
-int __init early_console_get_baud_from_archcmdline(void)
+static int __init early_console_get_baud_from_archcmdline(void)
 {
+#ifdef CONFIG_CMDLINE_OVERRIDE
+	char *arch_cmdline = CONFIG_CMDLINE;
+#else
 	char *arch_cmdline = fw_getcmdline();
+#endif
 	char *s;
 	int baud = -1;
 

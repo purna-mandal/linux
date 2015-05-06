@@ -51,9 +51,17 @@ char *prom_getenv(char *envname)
 	return NULL;
 }
 
-char __init fw_early_console_get_port_from_archcmdline(void)
+static int __init fw_early_console_get_port_from_archcmdline(void)
 {
+	/*
+	 * arch_mem_init() has not been called yet, so we don't have a real
+	 * command line setup if using CONFIG_CMDLINE_BOOL.
+	 */
+#ifdef CONFIG_CMDLINE_OVERRIDE
+	char *arch_cmdline = CONFIG_CMDLINE;
+#else
 	char *arch_cmdline = fw_getcmdline();
+#endif
 	char *s;
 	char port = -1;
 
