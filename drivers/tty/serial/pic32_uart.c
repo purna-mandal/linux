@@ -743,8 +743,14 @@ static int pic32_uart_probe(struct platform_device *pdev)
 	sport->rts_pin		= -EINVAL;
 	sport->dev		= &pdev->dev;
 
-	/* only enable clock when USART is in use */
+	/* TODO: clk_disable_unprepare() only should be called if this is not an in-use console port. */
+#if 0
 	clk_disable_unprepare(sport->clk);
+#endif
+
+	/*
+	 * TODO: where is clk_prepare_enable() eventually called?
+	 */
 
 	/* CTS/RTS gpios */
 	sport->cts_pin = of_get_named_gpio(np, "cts-gpios", 0);
