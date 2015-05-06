@@ -29,7 +29,7 @@
 #include <linux/serial.h>
 #include <linux/serial_core.h>
 #include <uapi/linux/serial_core.h>
-
+#include <linux/delay.h>
 #include <linux/io.h>
 
 #include "pic32_uart.h"
@@ -611,23 +611,15 @@ static struct uart_ops pic32_uart_ops = {
 };
 
 #ifdef CONFIG_SERIAL_PIC32_CONSOLE
-static void wait_for_xmitr(struct uart_port *port)
-{
-	struct pic32_sport *sport = to_pic32_sport(port);
-	u32 timeout = 1000;
-
-	while ((!(pic32_uart_read(sport, PIC32_UART_STA) & PIC32_UART_STA_TRMT)) && --timeout)
-		cpu_relax();
-}
-
 /* output given char */
 static void pic32_console_putchar(struct uart_port *port, int ch)
 {
 	struct pic32_sport *sport = to_pic32_sport(port);
-	u32 timeout = 1000;
+	u32 timeout = 10000;
 
-	while ((pic32_uart_read(sport, PIC32_UART_STA) & PIC32_UART_STA_UTXBF) && --timeout)
-		cpu_relax();
+	/* wait for tx empty */
+	while (!(pic32_uart_read(sport, PIC32_UART_STA) & PIC32_UART_STA_TRMT) && --timeout)
+                udelay(1);
 
 	pic32_uart_write(ch & 0xff, sport, PIC32_UART_TX);
 }
@@ -641,9 +633,6 @@ static void pic32_console_write(struct console *co, const char *s,
 
 	/* call uart helper to deal with \r\n */
 	uart_console_write(port, s, count, pic32_console_putchar);
-
-	/* and wait for last char to be transmitted */
-	wait_for_xmitr(port);
 }
 
 /* console core request to setup given console, find matching uart
