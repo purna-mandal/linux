@@ -687,6 +687,19 @@ console_initcall(pic32_console_init);
 #define PIC32_SCONSOLE NULL
 #endif
 
+/*
+ * Late console initialization.
+ */
+static int __init pic32_late_console_init(void)
+{
+	if (!(pic32_console.flags & CON_ENABLED))
+		register_console(&pic32_console);
+
+	return 0;
+}
+
+core_initcall(pic32_late_console_init);
+
 static struct uart_driver pic32_uart_driver = {
 	.owner			= THIS_MODULE,
 	.driver_name		= PIC32_DEV_NAME,
