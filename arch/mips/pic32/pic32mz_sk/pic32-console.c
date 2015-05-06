@@ -20,7 +20,6 @@
 #define UART_ENABLE           (1 << 15)
 #define UART_ENABLE_RX        (1 << 12)
 #define UART_ENABLE_TX        (1 << 10)
-#define UART_TX_FULL          (1 << 9)
 
 #define DEFAULT_EARLY_CON_BAUDRATE (115200)
 
@@ -113,8 +112,9 @@ int prom_putchar(char c)
 	if (unlikely(console_port == -1))
 		return 0;
 
-	while (__raw_readl(uart_base + UxSTA(console_port)) & UART_TX_FULL)
-		cpu_relax();
+	/* wait for tx empty */
+	while (!(__raw_readl(uart_base + UxSTA(console_port)) & (1 << 8)))
+                cpu_relax();
 
 	__raw_writel(c, uart_base + UxTXREG(console_port));
 
