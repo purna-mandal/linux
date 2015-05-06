@@ -33,7 +33,6 @@
 #include <linux/io.h>
 
 #include "pic32_uart.h"
-#include "pic32_early.h"
 
 /* UART name and device definitions */
 #define PIC32_DEV_NAME		"pic32-usart"
@@ -677,19 +676,12 @@ static int pic32_console_setup(struct console *co, char *options)
 	return uart_set_options(port, co, baud, parity, bits, flow);
 }
 
-static int __init pic32_console_early_setup(void)
-{
-	return pic32_earlyprintk_setup();
-}
-
-
 static struct uart_driver pic32_uart_driver;
 static struct console pic32_console = {
 	.name		= PIC32_SDEV_NAME,
 	.write		= pic32_console_write,
 	.device		= uart_console_device,
 	.setup		= pic32_console_setup,
-	.early_setup	= pic32_console_early_setup,
 	.flags		= CON_PRINTBUFFER,
 	.index		= -1,
 	.data		= &pic32_uart_driver,
