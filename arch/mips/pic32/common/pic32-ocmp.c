@@ -18,7 +18,6 @@
 #include <linux/types.h>
 #include <linux/init.h>
 #include <linux/sched.h>
-#include <linux/clkdev.h>
 #include <linux/list.h>
 #include <linux/of.h>
 #include <linux/of_address.h>
@@ -342,7 +341,6 @@ int pic32_oc_settime(struct pic32_ocmp *oc, int mode, uint64_t timeout_nsec)
 {
 	u32 dty;
 	unsigned long rate;
-	struct clk *clk;
 
 	if (unlikely(mode >= PIC32_OCM_MAX)) {
 		pr_err("%s: invalid mode %d\n", __oc_get_name(oc), mode);
@@ -355,11 +353,7 @@ int pic32_oc_settime(struct pic32_ocmp *oc, int mode, uint64_t timeout_nsec)
 	}
 
 	/* get timer rate */
-	clk = pic32_pb_timer_get_clk(oc->tmr);
-	clk_prepare(clk);
-	rate = clk_get_rate(clk);
-	clk_unprepare(clk);
-	pic32_pb_timer_put_clk(oc->tmr);
+	rate = pic32_pb_timer_get_rate(oc->tmr);
 
 	/* convert timeout(nsecs) to timer count */
 	dty = __clk_timeout_ns_to_period(timeout_nsec, rate);
@@ -402,7 +396,6 @@ int pic32_oc_gettime(struct pic32_ocmp *oc, uint64_t *comp_p,
 {
 	unsigned long rate;
 	u32 count2, count;
-	struct clk *clk;
 
 	if (!oc)
 		return -EINVAL;
@@ -410,9 +403,7 @@ int pic32_oc_gettime(struct pic32_ocmp *oc, uint64_t *comp_p,
 	mutex_lock(&oc->mutex);
 
 	/* get timer rate */
-	clk = pic32_pb_timer_get_clk(oc->tmr);
-	rate = clk_get_rate(clk);
-	pic32_pb_timer_put_clk(oc->tmr);
+	rate = pic32_pb_timer_get_rate(oc->tmr);
 
 	dbg_oc("(%s)\n", __oc_get_name(oc));
 
