@@ -243,16 +243,13 @@ static inline int pic32_pb_timer_get_irq(struct pic32_pb_timer *timer)
 	return -EINVAL;
 }
 
-/* pic32_pb_timer_get_clk - get clk of PIC32 timer. */
-static inline struct clk *pic32_pb_timer_get_clk(struct pic32_pb_timer *timer)
+/* pic32_pb_timer_get_rate - get clk rate of PIC32 timer. */
+static inline unsigned long pic32_pb_timer_get_rate(struct pic32_pb_timer *timer)
 {
 	if (!timer)
-		return NULL;
-	return timer->clk;
-}
+		return -EINVAL;
 
-static inline void pic32_pb_timer_put_clk(struct pic32_pb_timer *timer)
-{
+	return clk_get_rate(timer->clk);
 }
 
 struct pic32_pb_timer *pic32_pb_timer_request_specific(int id);

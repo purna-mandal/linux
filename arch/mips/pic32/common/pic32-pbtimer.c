@@ -620,9 +620,7 @@ static unsigned long pb_timer_determine_clk_rate_from_timeout(
 
 	/* get parent-clk & parent-rate */
 	parent_clk = clk_get_parent(timer->clk);
-	__clk_get(parent_clk);
 	parent_rate = clk_get_rate(parent_clk);
-	__clk_put(parent_clk);
 
 	/* rate = tck_rate / prescaler */
 	for (idx = 0; idx < timer->num_dividers; idx++) {
