@@ -20,6 +20,7 @@
 		usb1 = &usb1;
 		usb1_phy = &usb1_phy;
 		spi1 = &spi1;
+		spi7 = &sqi1;
 	};
 
 	cpus {
@@ -176,6 +177,33 @@
 
 		microchip,cpu-dai = <&i2s1 &i2s1>;
 		microchip,audio-codec = <&ak4953a>;
+	};
+
+	sqi1:spi@0xbf8e2000 {
+		#address-cells = <1>;
+		#size-cells = <0>;
+		compatible = "microchip,pic32-sqi";
+		reg = <0xbf8e2000 0x200>;
+		clocks = <&REFCLKO2>, <&PBCLK5>;
+		clock-names = "spi_ck","reg_ck";
+		interrupt-parent = <&evic>;
+		interrupts = <SQI1_EVENT DEFAULT_INT_PRI IRQ_TYPE_LEVEL_HIGH>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&pinctrl_sqi1>;
+#if 0
+		/* Michigan */
+		microchip,sqi-v1;
+#endif
+		quadflash:m25p80@0 {
+			#address-cells = <1>;
+			#size-cells = <0>;
+			compatible = "sst26vf032b","m25p80";
+			m25p,fast-read;
+			spi-max-frequency = <25000000>;
+			spi-rx-bus-width = <4>;
+			spi-tx-bus-width = <4>;
+			reg = <1>;
+		};
 	};
 
 	spi1:spi@0xbf821000 {

@@ -94,6 +94,20 @@
 			};
 		};
 
+		sqi1 {
+			pinctrl_sqi1: sqi1_pins0 {
+				pic32,single-pins =
+					<PORT_G 13 PIC32_PIN_CONF_DG>, /* D0 */
+					<PORT_G 12 PIC32_PIN_CONF_DG>, /* D1 */
+					<PORT_G 14 PIC32_PIN_CONF_DG>, /* D2 */
+					<PORT_A 7 PIC32_PIN_CONF_DG>, /* D3 */
+					<PORT_A 6 PIC32_PIN_CONF_DG>, /* CLK */
+					/*<PORT_D 4 PIC32_PIN_CONF_DG>, *//* CS0 */
+					<PORT_D 5 PIC32_PIN_CONF_DG> /* CS1 */
+				;
+			};
+		};
+
 		i2c1 {
 			pinctrl_i2c1: i2c1_0 {
 				pic32,single-pins = <PORT_A 15 PIC32_PIN_CONF_DG>,
