@@ -52,7 +52,6 @@ struct pic32_glue {
 	unsigned long		last_timer;	/* last timer data for */
 };
 
-
 static irqreturn_t pic32_over_current(int irq, void *d);
 
 static irqreturn_t pic32_usb_id_change(int irq, void *d);
@@ -458,11 +457,9 @@ static const struct musb_platform_ops pic32_ops = {
 	.try_idle	= pic32_musb_try_idle,
 
 	.set_vbus	= pic32_musb_set_vbus,
-
-	.fifo_mode = 2,
 };
 
-/* static u64 musb_dmamask = DMA_BIT_MASK(32); TODO: use it with DMA */
+static u64 musb_dmamask = DMA_BIT_MASK(32);
 
 static const struct of_device_id pic32_musb_of_match[] = {
 	{ .compatible = "microchip,pic32-usb" },
@@ -505,11 +502,29 @@ static int get_musb_port_mode(struct device *dev)
 	}
 }
 
+/* Microchip FIFO config - fits in 8KB */
+static struct musb_fifo_cfg microchip_musb_fifo_cfg[] = {
+{ .hw_ep_num =  1, .style = FIFO_TX,   .maxpacket = 512, },
+{ .hw_ep_num =  1, .style = FIFO_RX,   .maxpacket = 512, },
+{ .hw_ep_num =  2, .style = FIFO_TX,   .maxpacket = 512, },
+{ .hw_ep_num =  2, .style = FIFO_RX,   .maxpacket = 512, },
+{ .hw_ep_num =  3, .style = FIFO_TX,   .maxpacket = 512, },
+{ .hw_ep_num =  3, .style = FIFO_RX,   .maxpacket = 512, },
+{ .hw_ep_num =  4, .style = FIFO_TX,   .maxpacket = 512, },
+{ .hw_ep_num =  4, .style = FIFO_RX,   .maxpacket = 512, },
+{ .hw_ep_num =  5, .style = FIFO_TX,   .maxpacket = 512, },
+{ .hw_ep_num =  5, .style = FIFO_RX,   .maxpacket = 512, },
+{ .hw_ep_num =  6, .style = FIFO_TX,   .maxpacket = 512, },
+{ .hw_ep_num =  6, .style = FIFO_RX,   .maxpacket = 512, },
+{ .hw_ep_num =  7, .style = FIFO_TX,   .maxpacket = 512, },
+{ .hw_ep_num =  7, .style = FIFO_RX,   .maxpacket = 512, },
+};
+
 int pic32_create_musb_pdev(struct pic32_glue *glue,
 		struct platform_device *parent)
 {
 	struct musb_hdrc_platform_data pdata;
-	struct resource	resources[2];
+	struct resource	resources[3];
 	struct resource	*res;
 	struct device *dev = &parent->dev;
 	struct musb_hdrc_config	*config;
@@ -524,7 +539,6 @@ int pic32_create_musb_pdev(struct pic32_glue *glue,
 		return -EINVAL;
 	}
 	resources[0] = *res;
-
 	resources[0].name = "mc";
 
 	res = platform_get_resource_byname(parent, IORESOURCE_IRQ, "mc");
@@ -535,6 +549,16 @@ int pic32_create_musb_pdev(struct pic32_glue *glue,
 	resources[1] = *res;
 	resources[1].name = "mc";
 
+	res = platform_get_resource_byname(parent, IORESOURCE_IRQ, "dma");
+	if (!res)
+		dev_warn(dev, "No MUSB DMA irq provided. Assuming PIO mode.\n");
+	else {
+		resources[2] = *res;
+		resources[2].name = "dma";
+	}
+	resources[2] = *res;
+	resources[2].name = "dma";
+
 	/* Allocate the child platform device */
 	musb = platform_device_alloc("musb-hdrc", PLATFORM_DEVID_AUTO);
 	if (!musb) {
@@ -543,8 +567,8 @@ int pic32_create_musb_pdev(struct pic32_glue *glue,
 	}
 
 	musb->dev.parent		= dev;
-	musb->dev.dma_mask		= 0;	/* TODO: use it with DMA*/
-	musb->dev.coherent_dma_mask	= 0;	/* TODO: use it with DMA*/
+	musb->dev.dma_mask		= &musb_dmamask;
+	musb->dev.coherent_dma_mask	= 0;
 
 	glue->musb = musb;
 
@@ -567,6 +591,8 @@ int pic32_create_musb_pdev(struct pic32_glue *glue,
 	config->num_eps = get_int_prop(dn, "mentor,num-eps");
 	config->ram_bits = get_int_prop(dn, "mentor,ram-bits");
 	config->host_port_deassert_reset_at_resume = 1;
+	config->fifo_cfg = microchip_musb_fifo_cfg;
+	config->fifo_cfg_size = ARRAY_SIZE(microchip_musb_fifo_cfg);
 	pdata.mode = get_musb_port_mode(dev);
 
 	/* DT keeps this entry in mA, musb expects it as per USB spec */
