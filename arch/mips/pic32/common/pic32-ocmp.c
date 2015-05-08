@@ -134,7 +134,8 @@ static inline void oc_set_mode(u8 mode, struct pic32_ocmp *oc)
 	u32 v = oc_readl(oc, OCxCON);
 	v &= ~(OCxCON_OCM << OCxCON_OCM_SHIFT);
 	v |= (mode << OCxCON_OCM_SHIFT);
-	oc_writel(v, oc, OCxCON);
+	if (v != oc_readl(oc, OCxCON))
+		oc_writel(v, oc, OCxCON);
 }
 
 static inline u8 oc_get_mode(struct pic32_ocmp *oc)
