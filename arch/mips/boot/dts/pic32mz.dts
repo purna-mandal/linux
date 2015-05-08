@@ -245,8 +245,9 @@
 		compatible = "microchip,pic32-usb";
 		reg = <0xbf8e3000 0x1000>;
 		reg-names = "mc";
-		interrupts = <USB_GENERAL_EVENT DEFAULT_INT_PRI IRQ_TYPE_LEVEL_HIGH>;
-		interrupt-names = "mc", "over_current";
+		interrupts = <USB_GENERAL_EVENT DEFAULT_INT_PRI IRQ_TYPE_LEVEL_HIGH>,
+				<USB_DMA_EVENT DEFAULT_INT_PRI IRQ_TYPE_LEVEL_HIGH>;
+		interrupt-names = "mc", "dma", "over_current";
 		dr_mode = "host";
 		mentor,multipoint = <1>;
 		mentor,num-eps = <8>;
@@ -281,8 +282,6 @@
 		clocks = <&UPLL>;
 		clock-names = "main_clk";
 		clock-frequency = <24000000>;
-		/*vcc-supply = <&hsusb1_vcc_regulator>;
-		reset-gpios = <&gpio1 7 GPIO_ACTIVE_LOW>;*/
 	};
 
 	leds {
