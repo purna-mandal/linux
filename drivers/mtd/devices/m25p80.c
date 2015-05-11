@@ -80,7 +80,7 @@ static void m25p80_write(struct spi_nor *nor, loff_t to, size_t len,
 {
 	struct m25p *flash = nor->priv;
 	struct spi_device *spi = flash->spi;
-	struct spi_transfer t[2] = {};
+	struct spi_transfer t[3] = {};
 	struct spi_message m;
 	int cmd_sz = m25p_cmdsz(nor);
 
@@ -96,9 +96,25 @@ static void m25p80_write(struct spi_nor *nor, loff_t to, size_t len,
 	t[0].len = cmd_sz;
 	spi_message_add_tail(&t[0], &m);
 
-	t[1].tx_buf = buf;
-	t[1].len = len;
-	spi_message_add_tail(&t[1], &m);
+	if (nor->program_opcode == SPINOR_OP_QUAD_PP) {
+		t[0].len = 1; /* only command */
+
+		/* address in Quad mode */
+		t[1].tx_buf = &flash->command[1];
+		t[1].len = nor->addr_width;
+		t[1].tx_nbits = 4;
+		spi_message_add_tail(&t[1], &m);
+
+		/* data in Quad mode */
+		t[2].tx_buf = buf;
+		t[2].len = len;
+		t[2].tx_nbits = 4;
+		spi_message_add_tail(&t[2], &m);
+	} else {
+		t[1].tx_buf = buf;
+		t[1].len = len;
+		spi_message_add_tail(&t[1], &m);
+	}
 
 	spi_sync(spi, &m);
 
@@ -275,7 +291,7 @@ static const struct spi_device_id m25p_ids[] = {
 	{"s25fl016k"},	{"s25fl064k"},	{"s25fl132k"},
 	{"sst25vf040b"},{"sst25vf080b"},{"sst25vf016b"},{"sst25vf032b"},
 	{"sst25vf064c"},{"sst25wf512"},	{"sst25wf010"},	{"sst25wf020"},
-	{"sst25wf040"},
+	{"sst25wf040"},	{"sst26vf032"},	{"sst26vf032b"},
 	{"m25p05"},	{"m25p10"},	{"m25p20"},	{"m25p40"},
 	{"m25p80"},	{"m25p16"},	{"m25p32"},	{"m25p64"},
 	{"m25p128"},	{"n25q032"},

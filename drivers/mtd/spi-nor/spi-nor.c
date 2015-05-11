@@ -55,6 +55,9 @@ struct flash_info {
 #define	SPI_NOR_DUAL_READ	0x20    /* Flash supports Dual Read */
 #define	SPI_NOR_QUAD_READ	0x40    /* Flash supports Quad Read */
 #define	USE_FSR			0x80	/* use flag status register */
+#define SPI_NOR_QUAD_WRITE	0x100	/* Flash supports Quad Write */
+#define SST_UNLOCK		0x200	/* SST unlock block protect */
+
 };
 
 #define JEDEC_MFR(info)	((info)->id[0])
@@ -610,6 +613,8 @@ static const struct spi_device_id spi_nor_ids[] = {
 	{ "sst25wf020",  INFO(0xbf2503, 0, 64 * 1024,  4, SECT_4K | SST_WRITE) },
 	{ "sst25wf040",  INFO(0xbf2504, 0, 64 * 1024,  8, SECT_4K | SST_WRITE) },
 	{ "sst25wf080",  INFO(0xbf2505, 0, 64 * 1024, 16, SECT_4K | SST_WRITE) },
+	{ "sst26vf032",  INFO(0xbf2602, 0, 64 * 1024, 64, SECT_4K | SST_UNLOCK) },
+	{ "sst26vf032b", INFO(0xbf2642, 0, 64 * 1024, 64, SECT_4K | SPI_NOR_QUAD_READ | SPI_NOR_QUAD_WRITE|SST_UNLOCK) },
 
 	/* ST Microelectronics -- newer production may have feature updates */
 	{ "m25p05",  INFO(0x202010,  0,  32 * 1024,   2, 0) },
@@ -1049,6 +1054,32 @@ int spi_nor_scan(struct spi_nor *nor, const char *name, enum read_mode mode)
 		mtd->_unlock = spi_nor_unlock;
 	}
 
+	if (info->flags & SST_UNLOCK) {
+		u8 *command, cmd_len = 10;
+
+		command = devm_kzalloc(dev, cmd_len, GFP_KERNEL);
+		if (!command)
+			return -ENOMEM;
+
+		/* Disable Write Protection (enabled by default) */
+		write_enable(nor);
+		ret = nor->write_reg(nor, SPINOR_OP_WRBP, NULL, 0, 0);
+		if (ret)
+			dev_err(dev, "disabling block protection failed\n");
+
+
+		/* read back to confirm protection is disabled, */
+		ret = nor->read_reg(nor, SPINOR_OP_RDBP, command, cmd_len);
+		if (ret)
+			dev_err(dev, "block protection read failed\n");
+
+		ret = (command[0] << 24)|(command[1] << 16);
+		ret |= (command[2] << 8)|command[3];
+		dev_info(dev, "block-protect stat 0x%08x\n", ret);
+
+		devm_kfree(dev, command);
+	}
+
 	/* sst nor chips use AAI word program */
 	if (info->flags & SST_WRITE)
 		mtd->_write = sst_write;
@@ -1126,7 +1157,11 @@ int spi_nor_scan(struct spi_nor *nor, const char *name, enum read_mode mode)
 		return -EINVAL;
 	}
 
-	nor->program_opcode = SPINOR_OP_PP;
+	/* Quad page program, if device supports it */
+	if ((mode & SPI_NOR_QUAD) && (info->flags & SPI_NOR_QUAD_WRITE))
+		nor->program_opcode = SPINOR_OP_QUAD_PP;
+	else
+		nor->program_opcode = SPINOR_OP_PP;
 
 	if (info->addr_width)
 		nor->addr_width = info->addr_width;
