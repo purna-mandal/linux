@@ -194,33 +194,23 @@ static int get_ext_irq_index(irq_hw_number_t hw)
 	switch (hw) {
 	case EXTERNAL_INTERRUPT_0:
 		return 0;
-		break;
 	case EXTERNAL_INTERRUPT_1:
 		return 1;
-		break;
 	case EXTERNAL_INTERRUPT_2:
 		return 2;
-		break;
 	case EXTERNAL_INTERRUPT_3:
 		return 3;
-		break;
 	case EXTERNAL_INTERRUPT_4:
 		return 4;
-		break;
 	default:
 		return -1;
-		}
+	}
 }
 
 static int evic_intc_map(struct irq_domain *irqd, unsigned int virq,
 			irq_hw_number_t hw)
 {
 	u32 reg, mask;
-
-/*irq_set_chip_and_handler_name(virq,
-				&pic32_irq_chip,
-				handle_fasteoi_irq,
-				"fasteoi"); */
 
 	irq_set_chip(virq, &pic32_irq_chip);
 
