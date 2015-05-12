@@ -86,6 +86,7 @@ _out:
 void __init prom_init(void)
 {
 	char port;
+
 	prom_argc = fw_arg0;
 	_prom_argv = (int *) fw_arg1;
 	_prom_envp = (int *) fw_arg2;

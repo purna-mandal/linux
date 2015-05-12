@@ -114,7 +114,7 @@ int prom_putchar(char c)
 
 	/* wait for tx empty */
 	while (!(__raw_readl(uart_base + UxSTA(console_port)) & (1 << 8)))
-                cpu_relax();
+		cpu_relax();
 
 	__raw_writel(c, uart_base + UxTXREG(console_port));
 
