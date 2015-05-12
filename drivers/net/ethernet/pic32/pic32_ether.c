@@ -13,8 +13,6 @@
  * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
  * for more details.
  */
-#define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
-
 #include <linux/clk.h>
 #include <linux/module.h>
 #include <linux/moduleparam.h>
