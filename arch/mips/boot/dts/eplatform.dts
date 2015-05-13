@@ -54,18 +54,20 @@
 	rtc0@bf800c00 {
 		compatible = "microchip,pic32-rtc";
 		reg = <0xbf800c00 0x60>;
-		interrupts = <REAL_TIME_CLOCK DEFAULT_INT_PRI IRQ_TYPE_NONE>;
+		interrupts = <REAL_TIME_CLOCK DEFAULT_INT_PRI IRQ_TYPE_EDGE_RISING>;
 		clocks = <&RTCCLK>;
 	};
 
 	pic32_ether: ethernet@bf882000 {
 		compatible = "microchip,pic32-ether";
 		reg = <0xbf882000 0x1000>;
-		interrupts = <ETHERNET_INTERRUPT DEFAULT_INT_PRI IRQ_TYPE_NONE>;
+		interrupts = <ETHERNET_INTERRUPT DEFAULT_INT_PRI IRQ_TYPE_LEVEL_HIGH>;
 		phy-mode = "rmii";
 		mac-address = [00 00 00 00 00 00];
 		clock-names = "eth_clk";
 		clocks = <&PBCLK5>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&pinctrl_eth0>;
 	};
 
 	watchdog: wdt@bf800800 {
@@ -77,14 +79,14 @@
 	dma: dma-controller@bf811000 {
 		compatible = "microchip,pic32-dma";
 		reg = <0xbf811000 0x2000>;
-		interrupts = <DMA_CHANNEL_0 DEFAULT_INT_PRI IRQ_TYPE_NONE>,
-			<DMA_CHANNEL_1 DEFAULT_INT_PRI IRQ_TYPE_NONE>,
-			<DMA_CHANNEL_2 DEFAULT_INT_PRI IRQ_TYPE_NONE>,
-			<DMA_CHANNEL_3 DEFAULT_INT_PRI IRQ_TYPE_NONE>,
-			<DMA_CHANNEL_4 DEFAULT_INT_PRI IRQ_TYPE_NONE>,
-			<DMA_CHANNEL_5 DEFAULT_INT_PRI IRQ_TYPE_NONE>,
-			<DMA_CHANNEL_6 DEFAULT_INT_PRI IRQ_TYPE_NONE>,
-			<DMA_CHANNEL_7 DEFAULT_INT_PRI IRQ_TYPE_NONE>;
+		interrupts = <DMA_CHANNEL_0 DEFAULT_INT_PRI IRQ_TYPE_EDGE_RISING>,
+			<DMA_CHANNEL_1 DEFAULT_INT_PRI IRQ_TYPE_EDGE_RISING>,
+			<DMA_CHANNEL_2 DEFAULT_INT_PRI IRQ_TYPE_EDGE_RISING>,
+			<DMA_CHANNEL_3 DEFAULT_INT_PRI IRQ_TYPE_EDGE_RISING>,
+			<DMA_CHANNEL_4 DEFAULT_INT_PRI IRQ_TYPE_EDGE_RISING>,
+			<DMA_CHANNEL_5 DEFAULT_INT_PRI IRQ_TYPE_EDGE_RISING>,
+			<DMA_CHANNEL_6 DEFAULT_INT_PRI IRQ_TYPE_EDGE_RISING>,
+			<DMA_CHANNEL_7 DEFAULT_INT_PRI IRQ_TYPE_EDGE_RISING>;
 		#dma-cells = <1>;
 	};
 
@@ -100,9 +102,9 @@
 		compatible = "microchip,pic32-spi";
 		reg = <0xbf821000 0x200>;
 		interrupt-parent = <&evic>;
-		interrupts = <SPI1_FAULT DEFAULT_INT_PRI IRQ_TYPE_NONE>,
-			     <SPI1_RECEIVE_DONE DEFAULT_INT_PRI IRQ_TYPE_NONE>,
-			     <SPI1_TRANSFER_DONE DEFAULT_INT_PRI IRQ_TYPE_NONE>;
+		interrupts = <SPI1_FAULT DEFAULT_INT_PRI IRQ_TYPE_LEVEL_HIGH>,
+			     <SPI1_RECEIVE_DONE DEFAULT_INT_PRI IRQ_TYPE_LEVEL_HIGH>,
+			     <SPI1_TRANSFER_DONE DEFAULT_INT_PRI IRQ_TYPE_LEVEL_HIGH>;
 		pinctrl-names = "default";
 		pinctrl-0 = <&pinctrl_spi1>;
 		cs-gpios = <&pioD 4 0>; /* #gpio-cells = <2>, first cell is pin# and second one unused */
