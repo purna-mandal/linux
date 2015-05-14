@@ -140,9 +140,6 @@ static int pic32_pwm_probe(struct platform_device *pdev)
 	/* OC: set timebase */
 	pic32_oc_set_time_base(pic32_pwm->oc, pic32_pwm->timer);
 
-	/* Disable PWM chip */
-	pic32_pwm_disable(&pic32_pwm->chip, 0);
-
 	/* add pwm-chip */
 	ret = pwmchip_add(&pic32_pwm->chip);
 	if (ret < 0) {
