@@ -389,34 +389,8 @@ static int timer_match_by_id(struct pic32_pb_timer *timer, void *data)
 
 static int timer_match_by_cap(struct pic32_pb_timer *timer, void *data)
 {
-	struct pic32_pb_timer *next;
-	int cap = *((int *)data);
-	int ret = 0;
-
-	if ((cap & timer->capability) == cap) {
-
-		/* 32-bit timer ? */
-		if ((cap & PIC32_TIMER_32BIT) == 0)
-			return 1;
-
-		 /* last entry in the list */
-		if (list_is_last(&timer->link, &pic32_timers_list))
-			return 0;
-
-		/* is next_timer free ? */
-		next = list_next_entry(timer, link);
-		if (timer_is_busy(next))
-			return 0;
-
-		if ((timer->id + 1) == next->id) {
-			pr_info("pb-timer: found upper-half of 32b timer.\n");
-			ret = 1;
-			next->flags = PIC32_TIMER_BUSY;
-			timer->flags = cap;
-		}
-	}
-
-	return ret;
+	int cap_arg = *((int *)data);
+	return ((cap_arg & timer->capability) == cap_arg);
 }
 
 static int timer_match_by_node(struct pic32_pb_timer *timer, void *data)
@@ -453,13 +427,15 @@ static struct pic32_pb_timer *pb_timer_request(
 		if (found) {
 
 			/* multi-client timer ? */
-			if (timer_is_busy(timer))
+			if (++timer->usage_count > 1) {
+				mutex_unlock(&timer->mutex);
 				break;
+			}
 
 			/* lock timer */
 			__timer_lock(timer, flags);
 
-			/* mark in-use */
+			/* mark busy */
 			timer->flags |= PIC32_TIMER_BUSY;
 
 			/* disable timer */
@@ -524,12 +500,15 @@ EXPORT_SYMBOL(pic32_pb_timer_request_any);
 
 int pic32_pb_timer_free(struct pic32_pb_timer *timer)
 {
-	struct pic32_pb_timer *next;
-
 	if (unlikely(!timer))
 		return -EINVAL;
 
 	mutex_lock(&timer->mutex);
+	if (WARN_ON(timer->usage_count == 0))
+		goto out_unlock;
+
+	if (--timer->usage_count > 0)
+		goto out_unlock;
 
 	/* disable timer */
 	pbt_disable(timer);
@@ -537,21 +516,8 @@ int pic32_pb_timer_free(struct pic32_pb_timer *timer)
 	/* free this instance */
 	timer->flags &= ~PIC32_TIMER_BUSY;
 
-	/* is 32bit mode enabled? (two adjacent 16bit timers clubbed) */
+	/* 32bit mode enabled? reset 32-bit mode. */
 	if (timer_is_32bit(timer)) {
-		if (list_is_last(&timer->link, &pic32_timers_list)) {
-			mutex_unlock(&timer->mutex);
-
-			/* possibly combined entity */
-			return 0;
-		}
-
-		/* free next instance of timer too, if it was merged */
-		next = list_next_entry(timer, link);
-		if (next->id == (timer->id + 1))
-			next->flags &= ~PIC32_TIMER_BUSY;
-
-		/* reset 32bit mode. */
 		timer->flags &= ~PIC32_TIMER_32BIT;
 		pbt_set_32bit(0, timer);
 	}
@@ -563,9 +529,10 @@ int pic32_pb_timer_free(struct pic32_pb_timer *timer)
 
 	timer->flags = 0;
 
-	mutex_unlock(&timer->mutex);
-
 	clk_unprepare(timer->clk);
+
+out_unlock:
+	mutex_unlock(&timer->mutex);
 	return 0;
 }
 EXPORT_SYMBOL(pic32_pb_timer_free);

@@ -100,6 +100,7 @@ struct pic32_pb_timer {
 	spinlock_t lock;
 	struct mutex mutex;
 	unsigned long enable_count;
+	unsigned long usage_count;
 };
 
 #define timer_cap_32bit(timer)	((timer)->capability & PIC32_TIMER_32BIT)
