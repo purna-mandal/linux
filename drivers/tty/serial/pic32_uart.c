@@ -343,18 +343,12 @@ static void pic32_uart_en_and_unmask(struct uart_port *port)
 	pic32_uart_rset(PIC32_UART_STA_UTXEN | PIC32_UART_STA_URXEN,
 			sport, PIC32_UART_STA);
 	pic32_uart_rset(PIC32_UART_MODE_ON, sport, PIC32_UART_MODE);
-
-	enable_irq(sport->irq_tx);
-	enable_irq(sport->irq_rx);
 }
 
 /* disable rx & tx operation on uart */
 static void pic32_uart_dsbl_and_mask(struct uart_port *port)
 {
 	struct pic32_sport *sport = to_pic32_sport(port);
-
-	disable_irq(sport->irq_tx);
-	disable_irq(sport->irq_rx);
 
 	pic32_uart_rclr(PIC32_UART_MODE_ON, sport, PIC32_UART_MODE);
 	pic32_uart_rclr(PIC32_UART_STA_UTXEN | PIC32_UART_STA_URXEN,
@@ -388,6 +382,7 @@ static int pic32_uart_startup(struct uart_port *port)
 	sport->irq_fault_name = kasprintf(GFP_KERNEL, "%s%d-fault",
 					  pic32_uart_type(port),
 					  sport->idx);
+	irq_set_status_flags(sport->irq_fault, IRQ_NOAUTOEN);
 	ret = request_irq(sport->irq_fault, pic32_uart_fault_interrupt,
 			  sport->irqflags_fault, sport->irq_fault_name, port);
 	if (ret) {
@@ -412,6 +407,7 @@ static int pic32_uart_startup(struct uart_port *port)
 	sport->irq_tx_name = kasprintf(GFP_KERNEL, "%s%d-tx",
 				       pic32_uart_type(port),
 				       sport->idx);
+	irq_set_status_flags(sport->irq_tx, IRQ_NOAUTOEN);
 	ret = request_irq(sport->irq_tx, pic32_uart_tx_interrupt,
 			  sport->irqflags_tx, sport->irq_tx_name, port);
 	if (ret) {
@@ -425,12 +421,8 @@ static int pic32_uart_startup(struct uart_port *port)
 	pic32_uart_rclr(PIC32_UART_STA_URXISEL1 | PIC32_UART_STA_URXISEL0,
 							sport, PIC32_UART_STA);
 
-	/* set  interrupt on empty */
+	/* set interrupt on empty */
 	pic32_uart_rclr(PIC32_UART_STA_UTXISEL1, sport, PIC32_UART_STA);
-
-	/* Disable fault interrupts, the fault conditions are handled by the
-	 *  rcv interrupt routine. */
-	disable_irq(sport->irq_fault);
 
 	/* enable all interrupts and eanable uart */
 	pic32_uart_en_and_unmask(port);
@@ -743,14 +735,11 @@ static int pic32_uart_probe(struct platform_device *pdev)
 	sport->rts_pin		= -EINVAL;
 	sport->dev		= &pdev->dev;
 
-	/* TODO: clk_disable_unprepare() only should be called if this is not an in-use console port. */
-#if 0
-	clk_disable_unprepare(sport->clk);
-#endif
-
-	/*
-	 * TODO: where is clk_prepare_enable() eventually called?
-	 */
+	ret = clk_prepare_enable(sport->clk);
+	if (ret) {
+		dev_err(&pdev->dev, "clk enable ?\n");
+		goto err;
+	}
 
 	/* CTS/RTS gpios */
 	sport->cts_pin = of_get_named_gpio(np, "cts-gpios", 0);
@@ -826,6 +815,7 @@ static int pic32_uart_remove(struct platform_device *pdev)
 	struct pic32_sport *sport = to_pic32_sport(port);
 
 	uart_remove_one_port(&pic32_uart_driver, port);
+	clk_disable_unprepare(sport->clk);
 	platform_set_drvdata(pdev, NULL);
 	pic32_sports[sport->idx] = NULL;
 
