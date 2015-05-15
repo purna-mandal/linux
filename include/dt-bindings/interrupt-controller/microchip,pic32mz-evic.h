@@ -142,6 +142,8 @@
 #define UART6_TRANSFER_DONE 190
 /* microchip,eplatform-evic */
 #define SDHC_EVENT 191
+#define GLCD_INTERRUPT 192
+#define GPU_INTERRUPT 193
 
 /* Interrupt priority bits */
 #define PRI_0	0	/* Note:This priority disables the interrupt! */
