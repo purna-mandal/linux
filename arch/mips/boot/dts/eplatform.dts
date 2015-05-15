@@ -121,4 +121,31 @@
 	aliases {
 		spi0 = &spi1;
 	};
+
+	lcd0: fb@bf8ea000 {
+                compatible = "microchip,pic32-lcd";
+                reg = <0xbf8ea000 0x1000>;
+		interrupts = <GLCD_INTERRUPT DEFAULT_INT_PRI IRQ_TYPE_EDGE_RISING>;
+                status = "okay";
+		bits-per-pixel = <32>;
+		pic32,transp-length = <0>;
+		pic32,red-offset = <16>;
+		pic32,grayscale = <0>;
+
+		display-timings {
+			native-mode = <&timing0>;
+			timing0: 480x272 {
+				pixclock = <40000000>;
+				clock-frequency = <40000000>;
+				hactive = <480>;
+				vactive = <272>;
+				hfront-porch = <1>;
+				hback-porch = <42>;
+				hsync-len = <2>;
+				vback-porch = <40>;
+				vfront-porch = <21>;
+				vsync-len = <23>;
+			};
+		};
+	};
 };
