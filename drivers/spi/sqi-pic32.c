@@ -202,6 +202,7 @@ static inline void sqi_soft_reset(struct pic32_sqi *sqi)
 static inline void sqi_enable_spi(struct pic32_sqi *sqi)
 {
 	u32 v = readl(sqi->regs + SQI_CONF_REG);
+
 	v |= (sqi->flags & SQI_IP_V1) ? SQI_EN_V1 : SQI_EN;
 	writel(v, sqi->regs + SQI_CONF_REG);
 }
@@ -209,6 +210,7 @@ static inline void sqi_enable_spi(struct pic32_sqi *sqi)
 static inline void sqi_disable_spi(struct pic32_sqi *sqi)
 {
 	u32 v = readl(sqi->regs + SQI_CONF_REG);
+
 	v &= (sqi->flags & SQI_IP_V1) ? ~SQI_EN_V1 : ~SQI_EN;
 	writel(v, sqi->regs + SQI_CONF_REG);
 }
@@ -294,6 +296,7 @@ static inline void sqi_set_clk_rate(struct pic32_sqi *sqi, u32 sck)
 static inline void sqi_set_rx_thr(struct pic32_sqi *sqi, int fifo_lvl)
 {
 	u32 v = readl(sqi->regs + SQI_CMD_THRES_REG);
+
 	v &= ~(RXTHR_MASK << RXTHR_SHIFT);
 	v |= ((fifo_lvl & RXTHR_MASK) << RXTHR_SHIFT);
 	writel(v, sqi->regs + SQI_CMD_THRES_REG);
@@ -302,6 +305,7 @@ static inline void sqi_set_rx_thr(struct pic32_sqi *sqi, int fifo_lvl)
 static inline void sqi_set_rx_intr(struct pic32_sqi *sqi, int fifo_lvl)
 {
 	u32 v = readl(sqi->regs + SQI_INT_THRES_REG);
+
 	v &= ~(RXTHR_MASK << RXTHR_SHIFT);
 	v |= (fifo_lvl << RXTHR_SHIFT);
 	writel(v, sqi->regs + SQI_INT_THRES_REG);
@@ -315,6 +319,7 @@ static inline void sqi_set_rx_intr(struct pic32_sqi *sqi, int fifo_lvl)
 static inline void sqi_set_tx_thr(struct pic32_sqi *sqi, int fifo_lvl)
 {
 	u32 v = readl(sqi->regs + SQI_CMD_THRES_REG);
+
 	v &= ~(TXTHR_MASK << TXTHR_SHIFT);
 	v |= ((fifo_lvl & TXTHR_MASK) << TXTHR_SHIFT);
 	writel(v, sqi->regs + SQI_CMD_THRES_REG);
@@ -323,6 +328,7 @@ static inline void sqi_set_tx_thr(struct pic32_sqi *sqi, int fifo_lvl)
 static inline void sqi_set_tx_intr(struct pic32_sqi *sqi, int fifo_lvl)
 {
 	u32 v = readl(sqi->regs + SQI_INT_THRES_REG);
+
 	v &= ~(TXTHR_MASK << TXTHR_SHIFT);
 	v |= (fifo_lvl << TXTHR_SHIFT);
 	writel(v, sqi->regs + SQI_INT_THRES_REG);
@@ -876,7 +882,6 @@ static int sqi_desc_ring_alloc(struct pic32_sqi *sqi)
 	/* allocate descriptor to manage hw_bd and linked bounce_buffer */
 	desc = devm_kzalloc(sqi->dev, sizeof(*d) * SQI_BD_COUNT, GFP_KERNEL);
 	if (!desc) {
-		dev_err(sqi->dev, "no mem ?\n");
 		dma_free_coherent(sqi->dev, size, sqi->buffer, sqi->buffer_dma);
 		return -ENOMEM;
 	}
@@ -1029,7 +1034,7 @@ static int pic32_sqi_probe(struct platform_device *pdev)
 		dev_err(&pdev->dev, "no reg_clk ?\n");
 		goto err_free_master;
 	}
-	dev_dbg(&pdev->dev, "clk: %s, rate %lu\n",
+	dev_dbg(&pdev->dev, "reg-clk: %s, rate %lu\n",
 		__clk_get_name(sqi->reg_clk), clk_get_rate(sqi->reg_clk));
 
 	sqi->clk = devm_clk_get(&pdev->dev, "spi_ck");
@@ -1042,7 +1047,7 @@ static int pic32_sqi_probe(struct platform_device *pdev)
 	clk_prepare_enable(sqi->reg_clk);
 	clk_prepare_enable(sqi->clk);
 
-	dev_dbg(&pdev->dev, "clk: %s, rate %lu\n",
+	dev_dbg(&pdev->dev, "spi-clk: %s, rate %lu\n",
 		__clk_get_name(sqi->clk), clk_get_rate(sqi->clk));
 
 	sqi->num_cs = 2;
