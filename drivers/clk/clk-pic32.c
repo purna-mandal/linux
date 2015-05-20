@@ -293,6 +293,7 @@ static int pic32_of_clk_add_aliases(struct device_node *np,
 	const char *alias_name;
 	int index;
 	int count = of_property_count_strings(np, "clock-output-names");
+
 	for (index = 1; index < count; index++) {
 		if (of_property_read_string_index(np, "clock-output-names",
 						  index, &alias_name) < 0)
@@ -369,6 +370,7 @@ static unsigned long calc_best_divided_rate(unsigned long rate,
 static inline uint16_t pbclk_read_pbdiv(struct pic32_pbclk *pb)
 {
 	u32 v = clk_readl(pb->regs);
+
 	return ((v >> PB_DIV_SHIFT) & PB_DIV_MASK) + 1;
 }
 
@@ -479,6 +481,7 @@ static int pbclk_debug_init(struct clk_hw *hw, struct dentry *dentry)
 static int roclk_endisable(struct clk_hw *hw, int enable)
 {
 	struct pic32_refosc *refo = clkhw_to_refosc(hw);
+
 	if (enable)
 		clk_writel(REFO_ON|REFO_OE, PIC32_SET(refo->regs));
 	else
@@ -489,6 +492,7 @@ static int roclk_endisable(struct clk_hw *hw, int enable)
 static int roclk_is_enabled(struct clk_hw *hw)
 {
 	struct pic32_refosc *refo = clkhw_to_refosc(hw);
+
 	return clk_readl(refo->regs) & REFO_ON;
 }
 
@@ -698,6 +702,7 @@ static long roclk_determine_rate(struct clk_hw *hw, unsigned long rate,
 	struct clk *clk = hw->clk, *parent_clk, *best_parent_clk = NULL;
 	unsigned int i, delta, best_delta = -1;
 	unsigned long parent_rate, best_parent_rate, best = 0, nearest_rate;
+
 	/* find a parent which can generate nearest clkrate >= rate */
 	for (i = 0; i < __clk_get_num_parents(clk); i++) {
 
@@ -844,6 +849,7 @@ static int roclk_set_rate(struct clk_hw *hw, unsigned long rate,
 	unsigned long parent_rate)
 {
 	u8 index = roclk_get_parent(hw);
+
 	return roclk_set_rate_and_parent(hw, rate, parent_rate, index);
 }
 
@@ -897,8 +903,8 @@ static void upll_enable_disable(struct clk_hw *hw, int enable)
 static int upll_clk_is_enable(struct clk_hw *hw)
 {
 	struct pic32_upll *upll = clkhw_to_upll(hw);
-	uint32_t v = clk_readl(upll->regs);
-	return v & UPLL_EN;
+
+	return clk_readl(upll->regs) & UPLL_EN;
 }
 
 static int upll_clk_enable(struct clk_hw *hw)
@@ -1308,6 +1314,7 @@ static int mpll_clk_is_enable(struct clk_hw *hw)
 {
 	struct pic32_mpll *mpll = clkhw_to_mpll(hw);
 	uint32_t v = clk_readl(mpll->regs);
+
 	return (!(v & MPLL_DISABLE)) && (v & MPLL_READY);
 }
 
@@ -1419,7 +1426,7 @@ static struct clk_ops sosc_ops = {
 	__initdata.ops = (__ops);			\
 	__initdata.flags = (__flags);			\
 	__initdata.parent_names = (__parents);		\
-	__initdata.num_parents = (__nr_parents);
+	__initdata.num_parents = (__nr_parents)
 
 
 static struct clk *periph_clk_register(const char *name,
@@ -1433,10 +1440,8 @@ static struct clk *periph_clk_register(const char *name,
 			flags|CLK_IS_BASIC, &pbclk_ops);
 
 	pbclk = kzalloc(sizeof(*pbclk), GFP_KERNEL);
-	if (!pbclk) {
-		pr_err("%s: could not allocate clk\n", name);
+	if (!pbclk)
 		return ERR_PTR(-ENOMEM);
-	}
 
 	/* init */
 	pbclk->regs = regs;
@@ -1463,10 +1468,8 @@ static struct clk *sys_mux_clk_register(const char *name,
 		CLK_IS_BASIC, clkop);
 
 	sysclk = kzalloc(sizeof(*sysclk), GFP_KERNEL);
-	if (!sysclk) {
-		pr_err("%s: could not allocate sysclk\n", name);
+	if (!sysclk)
 		return ERR_PTR(-ENOMEM);
-	}
 
 	/* init sysclk data */
 	sysclk->hw.init = &init;
@@ -1498,10 +1501,8 @@ static struct clk *spll_clk_register(const char *name, const char *parents,
 	init_clk_data(init, name, &parents, 1, CLK_IS_BASIC, &spll_clk_ops);
 
 	pll = kzalloc(sizeof(*pll), GFP_KERNEL);
-	if (!pll) {
-		pr_err("%s: could not allocate spll-clk\n", name);
+	if (!pll)
 		return ERR_PTR(-ENOMEM);
-	}
 
 	/* initialize configuration */
 	pll->regs = regs;
@@ -1531,10 +1532,8 @@ static struct clk *upll_clk_register(const char *name, const char *parent,
 		flags|CLK_IS_BASIC, &upll_clk_ops);
 
 	upll = kzalloc(sizeof(*upll), GFP_KERNEL);
-	if (!upll) {
-		pr_err("%s: could not allocate plled factor clk\n", name);
+	if (!upll)
 		return ERR_PTR(-ENOMEM);
-	}
 
 	upll->flags = flags;
 	upll->hw.init = &init;
@@ -1560,10 +1559,8 @@ static struct clk *mpll_clk_register(const char *name,
 		CLK_IGNORE_UNUSED|CLK_IS_BASIC, &mpll_clk_ops);
 
 	mpll = kzalloc(sizeof(*mpll), GFP_KERNEL);
-	if (!mpll) {
-		pr_err("%s: could not allocate plled factor clk\n", name);
+	if (!mpll)
 		return ERR_PTR(-ENOMEM);
-	}
 
 	/* init mpll */
 	mpll->hw.init = &init;
@@ -1590,10 +1587,8 @@ static struct clk *refo_clk_register(const char *name, const char **parents,
 	init_clk_data(init, name, parents, nr_parents, clk_flags, &roclk_ops);
 
 	refo = kmalloc(sizeof(*refo), GFP_KERNEL);
-	if (!refo) {
-		pr_err("%s: could not allocate plled factor clk\n", name);
+	if (!refo)
 		return ERR_PTR(-ENOMEM);
-	}
 
 	/* initialize configuration */
 	refo->regs = regs;
@@ -1637,10 +1632,8 @@ static void __init of_sosc_clk_setup(struct device_node *np)
 
 	/* allocate fixed-rate clock */
 	sosc = kzalloc(sizeof(*sosc), GFP_KERNEL);
-	if (!sosc) {
-		pr_err("%s: could not allocate fixed clk\n", np->name);
+	if (!sosc)
 		return;
-	}
 
 	init_clk_data(init, name, NULL, 0, CLK_IS_BASIC|CLK_IS_ROOT, &sosc_ops);
 
@@ -1658,7 +1651,6 @@ static void __init of_sosc_clk_setup(struct device_node *np)
 		kfree(sosc);
 	else
 		pic32_of_clk_register_clkdev(np, clk);
-	return;
 }
 
 static void __init of_periph_clk_setup(struct device_node *np)
@@ -1704,7 +1696,6 @@ static void __init of_periph_clk_setup(struct device_node *np)
 
 err_map:
 	iounmap(regs);
-	return;
 }
 
 static void __init of_refo_clk_setup(struct device_node *np)
@@ -1724,10 +1715,8 @@ static void __init of_refo_clk_setup(struct device_node *np)
 	}
 
 	parents = kzalloc((sizeof(char *) * count), GFP_KERNEL);
-	if (!parents) {
-		pr_err("%s: could not allocate parent_names\n", np->name);
+	if (!parents)
 		return;
-	}
 
 	ret = pic32_of_clk_get_parent_indices(np, &parent_idx, count);
 	if (ret)
@@ -1804,10 +1793,8 @@ static void __init of_sys_mux_postdiv_setup(struct device_node *np,
 	}
 
 	parents = kzalloc((sizeof(char *) * count), GFP_KERNEL);
-	if (!parents) {
-		pr_err("%s: could not allocate parent_names\n", np->name);
+	if (!parents)
 		return;
-	}
 
 	ret = pic32_of_clk_get_parent_indices(np, &parent_idx, count);
 	if (ret)
@@ -1856,7 +1843,6 @@ err_parent_idx:
 	kfree(parent_idx);
 err_name:
 	kfree(parents);
-	return;
 }
 
 static void __init of_sys_mux_slew_setup(struct device_node *np)
@@ -1887,10 +1873,8 @@ static void __init of_sys_pll_setup(struct device_node *np)
 	}
 
 	parent_names = kzalloc((sizeof(char *) * count), GFP_KERNEL);
-	if (!parent_names) {
-		pr_err("syspll: could not allocate parent_names\n");
+	if (!parent_names)
 		return;
-	}
 
 	for (i = 0; i < count; i++)
 		parent_names[i] = of_clk_get_parent_name(np, i);
@@ -2005,7 +1989,6 @@ static void __init of_frcdiv_setup(struct device_node *np)
 	}
 
 	pic32_of_clk_register_clkdev(np, clk);
-	return;
 }
 
 static void __init of_usb_pll_setup(struct device_node *np)
@@ -2029,7 +2012,6 @@ static void __init of_usb_pll_setup(struct device_node *np)
 	}
 
 	pic32_of_clk_register_clkdev(np, clk);
-	return;
 }
 
 static __init void of_mux_clk_setup(struct device_node *np)
@@ -2050,10 +2032,8 @@ static __init void of_mux_clk_setup(struct device_node *np)
 	}
 
 	parents = kzalloc((sizeof(char *) * num_parents), GFP_KERNEL);
-	if (!parents) {
-		pr_err("%s: could not allocate parent_names\n", np->name);
+	if (!parents)
 		return;
-	}
 
 	ret = pic32_of_clk_get_parent_indices(np, &parent_idx, num_parents);
 	for (i = 0; i < num_parents; i++)
@@ -2125,6 +2105,7 @@ static const struct of_device_id pic32_clk_match[] __initconst = {
 static irqreturn_t pic32_fscm_isr_handler(int irq, void *data)
 {
 	u32 v = clk_readl(pic32_clk_regbase);
+
 	if (v & OSC_CLK_FAILED)
 		pr_info("pic32-clk: FSCM detected clk failure.\n");
 
