@@ -1,20 +1,12 @@
 /*
- * Purna Chandra Mandal, purna.mandal@microchip.com
- * Copyright (C) 2014 Microchip Technology Inc.  All rights reserved.
+ * PIC32 General Purpose Timer Driver.
  *
- * This program is free software; you can distribute it and/or modify it
- * under the terms of the GNU General Public License (Version 2) as
- * published by the Free Software Foundation.
+ * Copyright (c) 2014, Microchip Technology Inc.
+ *      Purna Chandra Mandal <purna.mandal@microchip.com>
  *
- * This program is distributed in the hope it will be useful, but WITHOUT
- * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
- * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
- * for more details.
- *
- * You should have received a copy of the GNU General Public License along
- * with this program; if not, write to the Free Software Foundation, Inc.,
- * 59 Temple Place - Suite 330, Boston MA 02111-1307, USA.
+ * Licensed under GPLv2.
  */
+
 #include <linux/types.h>
 #include <linux/init.h>
 #include <linux/kernel_stat.h>
@@ -123,9 +115,11 @@ static void write_pbt_period16(uint32_t v, struct pic32_pb_timer *timer)
 static uint32_t read_pbt_count_dual(struct pic32_pb_timer *timer)
 {
 	uint32_t v;
+
 	v = pbt_readw(timer, PIC32_TIMER_COUNT + PIC32_TIMER_UPPER); /* upper */
 	v <<= 16;
 	v |= pbt_readw(timer, PIC32_TIMER_COUNT); /* lower */
+
 	return v;
 }
 
@@ -138,9 +132,11 @@ static void write_pbt_count_dual(uint32_t count, struct pic32_pb_timer *timer)
 static uint32_t read_pbt_period_dual(struct pic32_pb_timer *timer)
 {
 	uint32_t v;
+
 	v = pbt_readw(timer, PIC32_TIMER_PERIOD + PIC32_TIMER_UPPER);
 	v <<= 16;
 	v |= pbt_readw(timer, PIC32_TIMER_PERIOD);
+
 	return v;
 }
 
@@ -311,11 +307,9 @@ static int of_timer_clk_register(struct pic32_pb_timer *timer)
 		return -EINVAL;
 	}
 
-	parents = kzalloc(sizeof(const char *) * num, GFP_KERNEL);
-	if (!parents) {
-		pr_err("%s: memory alloc failed!\n", __func__);
+	parents = kcalloc(num, sizeof(const char *), GFP_KERNEL);
+	if (!parents)
 		return -ENOMEM;
-	}
 
 	ret = pic32_of_clk_get_parent_indices(np, &timer->clk_idx, num);
 	if (ret)
@@ -325,7 +319,6 @@ static int of_timer_clk_register(struct pic32_pb_timer *timer)
 		parents[i] = of_clk_get_parent_name(np, i);
 
 	snprintf(clk_name, sizeof(clk_name), "%s_clk", np->name);
-
 	init.name = clk_name;
 	init.ops = &pb_timer_clk_ops;
 	init.flags = CLK_IS_BASIC;
@@ -381,6 +374,7 @@ static int timer_match_by_id(struct pic32_pb_timer *timer, void *data)
 {
 	int id = *((int *)data);
 	int ret = (id == timer->id);
+
 	if (ret)
 		timer->flags = timer->capability;
 
@@ -390,6 +384,7 @@ static int timer_match_by_id(struct pic32_pb_timer *timer, void *data)
 static int timer_match_by_cap(struct pic32_pb_timer *timer, void *data)
 {
 	int cap_arg = *((int *)data);
+
 	return ((cap_arg & timer->capability) == cap_arg);
 }
 
@@ -705,6 +700,7 @@ EXPORT_SYMBOL(pic32_pb_timer_gettime);
  */
 int pic32_pb_timer_start(struct pic32_pb_timer *timer)
 {
+	u8 parent_idx;
 	int handle_intr = 0;
 	unsigned long flags;
 
@@ -730,13 +726,16 @@ int pic32_pb_timer_start(struct pic32_pb_timer *timer)
 
 	if (timer_is_gated(timer)) {
 		/* Sanity, gating is not allowed with external clk */
-		u8 parent_idx = pbt_clk_get_parent(&timer->hw);
+		parent_idx = pbt_clk_get_parent(&timer->hw);
 		if (parent_idx != 0) {
 			pr_err("pb-timer:gating not allowed for ext-clk\n");
-		} else {
-			pbt_enable_gate(timer);
-			handle_intr = 1;
+			clk_disable(timer->clk);
+			--timer->enable_count;
+			goto out_unlock;
 		}
+
+		pbt_enable_gate(timer);
+		handle_intr = 1;
 	}
 
 	if (timer_is_oneshot(timer))
@@ -765,6 +764,7 @@ EXPORT_SYMBOL(pic32_pb_timer_start);
 int pic32_pb_timer_stop(struct pic32_pb_timer *timer)
 {
 	unsigned long flags;
+
 	if (IS_ERR_OR_NULL(timer))
 		return -EINVAL;
 
@@ -796,6 +796,7 @@ EXPORT_SYMBOL(pic32_pb_timer_stop);
 #ifdef PIC32_TIMER_HANDLE_IRQ
 static irqreturn_t pbt_irq_handler(int irq, void *dev_id)
 {
+	uint32_t count;
 	struct pic32_pb_timer *timer = (struct pic32_pb_timer *)dev_id;
 
 	timer->overrun++;
@@ -808,7 +809,7 @@ static irqreturn_t pbt_irq_handler(int irq, void *dev_id)
 
 	/* gated timer */
 	if (timer_is_gated(timer)) {
-		uint32_t count = pbt_read_count(timer);
+		count = pbt_read_count(timer);
 		pbt_disable(timer);
 		pr_info("%s:gated accumulation count %08x\n",
 			__timer_name(timer), count);
@@ -829,10 +830,8 @@ static int of_pb_timer_setup(struct device_node *np, const void *data)
 	dbg_timer("np %s\n", np->name);
 
 	timer = kzalloc(sizeof(*timer), GFP_KERNEL);
-	if (timer == NULL) {
-		pr_err("%s: memory alloc failed!\n", __func__);
+	if (timer == NULL)
 		return -ENOMEM;
-	}
 
 	timer->np = of_node_get(np);
 
@@ -935,6 +934,7 @@ void __init of_pic32_pb_timer_init(void)
 {
 	struct device_node *np;
 	const struct of_device_id *match;
+
 	for_each_matching_node_and_match(np, pic32_timer_match, &match)
 		of_pb_timer_setup(np, match->data);
 
@@ -945,6 +945,7 @@ static int pb_timer_summary_show(struct seq_file *s, void *data)
 {
 	int i, p;
 	struct pic32_pb_timer *timer = (struct pic32_pb_timer *)s->private;
+
 	if (!timer)
 		return -EINVAL;
 
@@ -987,6 +988,7 @@ static struct debugfs_reg32 pb_timer_regset[] = {
 static int debugfs_timeout_set(void *data, u64 val)
 {
 	struct pic32_pb_timer *timer = (struct pic32_pb_timer *)data;
+
 	return pic32_pb_timer_settime(timer, PIC32_TIMER_MAY_RATE,
 		(u64)(val * NSEC_PER_MSEC));
 }
@@ -994,8 +996,10 @@ static int debugfs_timeout_set(void *data, u64 val)
 static int debugfs_timeout_get(void *data, u64 *val)
 {
 	struct pic32_pb_timer *timer = (struct pic32_pb_timer *)data;
+
 	pic32_pb_timer_gettime(timer, val, NULL);
 	*val = do_div(*val, NSEC_PER_MSEC);
+
 	return 0;
 }
 DEFINE_SIMPLE_ATTRIBUTE(fops_timeout,
@@ -1032,8 +1036,8 @@ static int debugfs_request_set(void *data, u64 val)
 
 	if (val)
 		return (pic32_pb_timer_request_specific(timer->id) == timer);
-	else
-		pic32_pb_timer_free(timer);
+
+	pic32_pb_timer_free(timer);
 
 	return 0;
 }
@@ -1041,7 +1045,9 @@ static int debugfs_request_set(void *data, u64 val)
 static int debugfs_is_ready(void *data, u64 *val)
 {
 	struct pic32_pb_timer *timer = (struct pic32_pb_timer *)data;
+
 	*val = timer_is_busy(timer);
+
 	return 0;
 }
 DEFINE_SIMPLE_ATTRIBUTE(fops_request,
@@ -1050,14 +1056,18 @@ DEFINE_SIMPLE_ATTRIBUTE(fops_request,
 static int debugfs_count_set(void *data, u64 val)
 {
 	struct pic32_pb_timer *timer = (struct pic32_pb_timer *)data;
+
 	pbt_write_count((u32) val, timer);
+
 	return 0;
 }
 
 static int debugfs_count_get(void *data, u64 *val)
 {
 	struct pic32_pb_timer *timer = (struct pic32_pb_timer *)data;
+
 	*val = pbt_read_count(timer);
+
 	return 0;
 }
 DEFINE_SIMPLE_ATTRIBUTE(fops_count,
@@ -1066,14 +1076,18 @@ DEFINE_SIMPLE_ATTRIBUTE(fops_count,
 static int debugfs_period_set(void *data, u64 val)
 {
 	struct pic32_pb_timer *timer = (struct pic32_pb_timer *)data;
+
 	pbt_write_period((u32) val, timer);
+
 	return 0;
 }
 
 static int debugfs_period_get(void *data, u64 *val)
 {
 	struct pic32_pb_timer *timer = (struct pic32_pb_timer *)data;
+
 	*val = pbt_read_period(timer);
+
 	return 0;
 }
 DEFINE_SIMPLE_ATTRIBUTE(fops_period,
@@ -1082,8 +1096,10 @@ DEFINE_SIMPLE_ATTRIBUTE(fops_period,
 static int debugfs_prescaler_set(void *data, u64 val)
 {
 	struct pic32_pb_timer *timer = (struct pic32_pb_timer *)data;
+
 	timer->save_prescaler = (u8) val;
 	pbt_write_prescaler((u8) val, timer);
+
 	return 0;
 }
 
