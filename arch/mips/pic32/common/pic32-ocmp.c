@@ -1,19 +1,10 @@
 /*
- * Purna Chandra Mandal, purna.mandal@microchip.com
- * Copyright (C) 2014 Microchip Technology Inc.  All rights reserved.
+ * PIC32 General Purpose Output Compare Driver.
  *
- * This program is free software; you can distribute it and/or modify it
- * under the terms of the GNU General Public License (Version 2) as
- * published by the Free Software Foundation.
+ * Copyright (c) 2014, Microchip Technology Inc.
+ *      Purna Chandra Mandal <purna.mandal@microchip.com>
  *
- * This program is distributed in the hope it will be useful, but WITHOUT
- * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
- * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
- * for more details.
- *
- * You should have received a copy of the GNU General Public License along
- * with this program; if not, write to the Free Software Foundation, Inc.,
- * 59 Temple Place - Suite 330, Boston MA 02111-1307, USA.
+ * Licensed under GPLv2.
  */
 #include <linux/types.h>
 #include <linux/init.h>
@@ -131,7 +122,9 @@ static inline void oc_set_timer_id(u8 v, struct pic32_ocmp *oc)
 
 static inline void oc_set_mode(u8 mode, struct pic32_ocmp *oc)
 {
-	u32 v = oc_readl(oc, OCxCON);
+	u32 v;
+
+	v = oc_readl(oc, OCxCON);
 	v &= ~(OCxCON_OCM << OCxCON_OCM_SHIFT);
 	v |= (mode << OCxCON_OCM_SHIFT);
 	if (v != oc_readl(oc, OCxCON))
@@ -140,7 +133,9 @@ static inline void oc_set_mode(u8 mode, struct pic32_ocmp *oc)
 
 static inline u8 oc_get_mode(struct pic32_ocmp *oc)
 {
-	u32 v = oc_readl(oc, OCxCON);
+	u32 v;
+
+	v = oc_readl(oc, OCxCON);
 	return (v >> OCxCON_OCM_SHIFT) & OCxCON_OCM;
 }
 
@@ -181,6 +176,7 @@ static int __oc_match_by_id(struct pic32_ocmp *oc, void *data)
 {
 	int id = *((int *)data);
 	int ret = (id == oc->id);
+
 	if (ret)
 		oc->flags = oc->capability;
 
@@ -202,8 +198,8 @@ static int __oc_match_by_node(struct pic32_ocmp *oc, void *data)
 {
 	struct device_node *np = (struct device_node *)data;
 	int ret = (np == oc->np);
-	dbg_oc("%s, np %s\n", __oc_get_name(oc), np->name);
 
+	dbg_oc("%s, np %s\n", __oc_get_name(oc), np->name);
 	if (ret)
 		oc->flags = oc->capability;
 
@@ -281,8 +277,8 @@ EXPORT_SYMBOL(pic32_oc_request_by_cap);
 
 struct pic32_ocmp *pic32_oc_request_by_node(struct device_node *np)
 {
-	const char *prop = "microchip,ocmp";
 	int rc;
+	const char *prop = "microchip,ocmp";
 	struct of_phandle_args spec;
 
 	rc = of_parse_phandle_with_args(np, prop, "#oc-cells", 0, &spec);
@@ -322,16 +318,21 @@ int pic32_oc_free(struct pic32_ocmp *oc)
 }
 EXPORT_SYMBOL(pic32_oc_free);
 
-/* pic32_oc_set_time_base - set timebase (i.e. pic32 general purpose timer)
- *          whose running counter will be compared against OC comp & sec-comp.
+/* pic32_oc_set_time_base - set timebase.
+ *
+ * Here timebase is pic32 general purpose timer whose running counter
+ * will be compared against OC comp & sec-comp register.
  */
 int pic32_oc_set_time_base(struct pic32_ocmp *oc, struct pic32_pb_timer *timer)
 {
 	mutex_lock(&oc->mutex);
+
 	oc->tmr = timer;
 	/* set time src bit of OCxCON depending on timer->id */
 	oc_set_timer_id(timer->id, oc);
+
 	mutex_unlock(&oc->mutex);
+
 	return 0;
 }
 EXPORT_SYMBOL(pic32_oc_set_time_base);
@@ -359,9 +360,9 @@ int pic32_oc_settime(struct pic32_ocmp *oc, int mode, uint64_t timeout_nsec)
 	/* convert timeout(nsecs) to timer count */
 	dty = __clk_timeout_ns_to_period(timeout_nsec, rate);
 
-	dbg_oc("(%s)\n", __oc_get_name(oc));
 	mutex_lock(&oc->mutex);
 	oc_set_mode(mode, oc);
+
 	switch (mode) {
 	case PIC32_OCM_NONE:
 		break;
@@ -460,6 +461,7 @@ EXPORT_SYMBOL(pic32_oc_start);
 int pic32_oc_stop(struct pic32_ocmp *oc)
 {
 	unsigned long flags;
+
 	if (IS_ERR_OR_NULL(oc))
 		return -EINVAL;
 
@@ -481,10 +483,8 @@ static int of_oc_setup_one(struct device_node *np, const void *data)
 	dbg_oc("np %s\n", np->name);
 
 	oc = kzalloc(sizeof(*oc), GFP_KERNEL);
-	if (oc == NULL) {
-		pr_err("%s: memory alloc failed!\n", __func__);
+	if (oc == NULL)
 		return -ENOMEM;
-	}
 
 	oc->np = of_node_get(np);
 
