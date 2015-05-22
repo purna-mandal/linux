@@ -240,7 +240,7 @@ cflags-y			+= -I$(srctree)/arch/mips/include/asm/mach-generic
 drivers-$(CONFIG_PCI)		+= arch/mips/pci/
 
 ifdef CONFIG_MAPPED_KERNEL
-  PHYS_LOAD_ADDRESS = -D"PHYSADDR=0x$(CONFIG_PHYS_LOAD_ADDRESS)"
+  PHYS_LOAD_ADDRESS = -DPHYSADDR=0x$(CONFIG_PHYS_LOAD_ADDRESS)
   load-y = 0x$(CONFIG_PHYS_LOAD_ADDRESS)
 endif
 
