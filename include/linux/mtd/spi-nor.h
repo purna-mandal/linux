@@ -48,7 +48,7 @@
 #define SPINOR_OP_BP		0x02	/* Byte program */
 #define SPINOR_OP_WRDI		0x04	/* Write disable */
 #define SPINOR_OP_AAI_WP	0xad	/* Auto address increment word program */
-#define	SPINOR_OP_QUAD_PP	0x32	/* Page program (up to 256 bytes) (Quad SPI) */
+#define SPINOR_OP_QUAD_PP	0x32	/* Page program (up to 256 bytes) (Quad SPI) */
 #define SPINOR_OP_RDBP		0x72	/* Read Block Protect */
 #define SPINOR_OP_WRBP		0x42	/* Write Block Protect */
 
