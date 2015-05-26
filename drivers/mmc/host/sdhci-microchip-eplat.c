@@ -66,6 +66,12 @@ static const struct sdhci_ops eplat_sdhci_ops = {
 	 * layer to do the job. */
 	.get_max_clock = eplat_sdhci_get_max_clock,
 	.get_min_clock = eplat_sdhci_get_min_clock,
+
+	.set_clock = sdhci_set_clock,
+	.set_bus_width = sdhci_set_bus_width,
+	.reset = sdhci_reset,
+	.set_uhs_signaling = sdhci_set_uhs_signaling,
+
 };
 
 void eplat_sdhci_shared_bus(struct platform_device *pdev)
