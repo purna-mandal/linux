@@ -683,7 +683,7 @@ static void pic32_spi_cleanup(struct spi_device *spi)
 	if (!(pic32s->flags & SPI_SS_MASTER)) {
 		cs_high = pic32s->mode & SPI_CS_HIGH;
 		gpio_direction_output(spi->cs_gpio, !cs_high);
-		devm_gpio_free(&spi->dev, spi->cs_gpio);
+		gpio_free(spi->cs_gpio);
 	}
 
 	/* reset reference */
@@ -745,8 +745,7 @@ static int pic32_spi_setup(struct spi_device *spi)
 
 	cs_high = pic32s->mode & SPI_CS_HIGH;
 	if (gpio_is_valid(spi->cs_gpio)) {
-		ret = devm_gpio_request(&spi->dev,
-				       spi->cs_gpio, dev_name(&spi->dev));
+		ret = gpio_request(spi->cs_gpio, dev_name(&spi->dev));
 		if (!ret) {
 			gpio_direction_output(spi->cs_gpio, !cs_high);
 			pic32s->flags &= ~SPI_SS_MASTER;
