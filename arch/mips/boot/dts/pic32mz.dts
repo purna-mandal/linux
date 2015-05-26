@@ -179,7 +179,7 @@
 		microchip,audio-codec = <&ak4953a>;
 	};
 
-	sqi1:spi@0xbf8e2000 {
+	sqi1:sqi@0xbf8e2000 {
 		#address-cells = <1>;
 		#size-cells = <0>;
 		compatible = "microchip,pic32-sqi";
@@ -221,16 +221,31 @@
 		cs-gpios = <&pioD 4 0>; /* #gpio-cells = <2>, first cell is pin# and second one unused */
 		clocks = <&PBCLK2>,<&REFCLKO1>;
 		clock-names = "mck0","mck1";
+
 		flash: m25p80@0 {
 			#address-cells = <1>;
 			#size-cells = <0>;
 			compatible = "sst25vf064c","m25p80";
+			spi-cpol;
+			spi-cpha;
 			spi-max-frequency = <25000000>;
 			reg = <0>;
 			m25p,fast-read;
+			status = "disabled";
+		};
+
+		mmc-slot@0 {
+			compatible = "mmc-spi-slot";
+			reg = <0>;
+			voltage-ranges = <3300 3300>;
+			spi-max-frequency = <10000000>;
+			gpios = <&pioB 11 1 /* Card Detect */
+				 &pioB 13 0 /* Write Protect*/
+				>;
+			status = "disabled";
 		};
 	};
-#if 0
+
 	clk-test {
 		compatible = "microchip,pic32-clk-test";
 		clocks = <&PBCLK2>;
@@ -238,8 +253,8 @@
 		microchip,pic32-pb2clk-test;
 		microchip,pic32-sclk-test;
 		microchip,pic32-spll-test;
+		status = "disabled";
 	};
-#endif
 
 	usb1: usb@bf8e3000 {
 		compatible = "microchip,pic32-usb";
