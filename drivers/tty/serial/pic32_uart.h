@@ -193,4 +193,4 @@ static inline u32 pic32_uart_read(struct pic32_sport *sport,
 #define PIC32_UART_STA_OERR       (1 << 1)
 #define PIC32_UART_STA_URXDA      (1 << 0)
 
-#endif
+#endif /* __DT_PIC32_UART_H__ */

@@ -424,12 +424,16 @@ static int pic32_uart_startup(struct uart_port *port)
 	/* set interrupt on empty */
 	pic32_uart_rclr(PIC32_UART_STA_UTXISEL1, sport, PIC32_UART_STA);
 
+	ret = clk_prepare_enable(sport->clk);
+	if (ret)
+		goto _restore_irq_ret;
+
 	/* enable all interrupts and eanable uart */
 	pic32_uart_en_and_unmask(port);
 
 _restore_irq_ret:
 	local_irq_restore(flags);
-	return 0;
+	return ret;
 }
 
 /* serial core request to flush & disable uart */
@@ -442,6 +446,8 @@ static void pic32_uart_shutdown(struct uart_port *port)
 	spin_lock_irqsave(&port->lock, flags);
 	pic32_uart_dsbl_and_mask(port);
 	spin_unlock_irqrestore(&port->lock, flags);
+
+	clk_disable_unprepare(sport->clk);
 
 	/* free all 3 interrupts for this UART */
 	free_irq(sport->irq_fault, port);
@@ -734,12 +740,6 @@ static int pic32_uart_probe(struct platform_device *pdev)
 	sport->cts_pin		= -EINVAL;
 	sport->rts_pin		= -EINVAL;
 	sport->dev		= &pdev->dev;
-
-	ret = clk_prepare_enable(sport->clk);
-	if (ret) {
-		dev_err(&pdev->dev, "clk enable ?\n");
-		goto err;
-	}
 
 	/* CTS/RTS gpios */
 	sport->cts_pin = of_get_named_gpio(np, "cts-gpios", 0);
