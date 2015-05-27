@@ -741,6 +741,12 @@ static int pic32_uart_probe(struct platform_device *pdev)
 	sport->rts_pin		= -EINVAL;
 	sport->dev		= &pdev->dev;
 
+	ret = clk_prepare_enable(sport->clk);
+	if (ret) {
+		dev_err(&pdev->dev, "clk enable ?\n");
+		goto err;
+	}
+
 	/* CTS/RTS gpios */
 	sport->cts_pin = of_get_named_gpio(np, "cts-gpios", 0);
 	if (gpio_is_valid(sport->cts_pin)) {
