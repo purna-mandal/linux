@@ -832,7 +832,10 @@ static irqreturn_t pic32ether_interrupt(int irq, void *dev_id)
 	}
 
 	if (status & MAC_BIT(ETHIRQ_RXOVFLW)) {
+		/* This is very noisy on EPLATFORM, so silence it. */
+#ifndef CONFIG_PIC32_EPLATFORM
 		netdev_warn(bp->dev, "rx overflow\n");
+#endif
 		mac_writel(bp, PIC32_CLR(ETHIRQ), MAC_BIT(ETHIRQ_RXOVFLW));
 	}
 
