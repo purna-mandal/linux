@@ -34,6 +34,7 @@
 #include <linux/of_device.h>
 #include <linux/of_mdio.h>
 #include <linux/of_net.h>
+#include <linux/of_gpio.h>
 #include <asm/mach-pic32/pic32.h>
 #include <linux/pinctrl/consumer.h>
 
@@ -1445,6 +1446,7 @@ static int __init pic32ether_probe(struct platform_device *pdev)
 #ifdef USE_KSEG1_DMA_MEM
 	u32 base_addr = 0x1000; /* try to be somewhere above ebase vectors */
 #endif
+	int gpio;
 
 	regs = platform_get_resource(pdev, IORESOURCE_MEM, 0);
 	if (!regs) {
@@ -1546,6 +1548,22 @@ static int __init pic32ether_probe(struct platform_device *pdev)
 	if (err) {
 		dev_err(&pdev->dev, "Cannot register net device, aborting.\n");
 		goto err_out_disable_clocks;
+	}
+
+	gpio = of_get_named_gpio(pdev->dev.of_node, "reset-gpio", 0);
+	if (gpio_is_valid(gpio)) {
+		err = devm_gpio_request_one(&pdev->dev, gpio,
+					GPIOF_OUT_INIT_HIGH,
+					"pic32_ether reset");
+		if (err < 0)
+			goto err_out_unregister_netdev;
+
+		gpio_set_value(gpio, 0);
+		usleep_range(1250, 1500);
+		gpio_set_value(gpio, 1);
+		usleep_range(1250, 1500);
+
+		dev_warn(&pdev->dev, "reset-gpio asserted.\n");
 	}
 
 	err = pic32ether_mii_init(bp);
