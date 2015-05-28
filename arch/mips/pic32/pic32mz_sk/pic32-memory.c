@@ -48,6 +48,12 @@ static char cmdline[COMMAND_LINE_SIZE];
 /* determined physical memory size, not overridden by command line args  */
 unsigned long physical_memsize = 0L;
 
+#if defined(CONFIG_PIC32MZ_PLANC) || defined(CONFIG_PIC32MZ_PLAND)
+#define EBI_SRAM_SIZE SZ_16M
+#else
+#define EBI_SRAM_SIZE SZ_8M
+#endif
+
 fw_memblock_t * __init fw_getmdesc(int eva)
 {
 	static int init_done;
@@ -97,10 +103,7 @@ fw_memblock_t * __init fw_getmdesc(int eva)
 	/* EBI SRAM */
 	mdesc[2].type = BOOT_MEM_RAM;
 	mdesc[2].base = UPPERMEM_START;
-	mdesc[2].size = SZ_8M;
-#ifdef CONFIG_PIC32MZ_PLANC
-	mdesc[2].size = SZ_16M;
-#endif
+	mdesc[2].size = EBI_SRAM_SIZE;
 	mdesc[2].valid = 1;
 
 	init_done = 1;
@@ -133,7 +136,7 @@ static struct tlb_entry wired_mappings[] = {
 		.entryhi	= UNCAC_BASE_UPPER,
 		.pagemask	= PM_4M,
 	},
-#ifdef CONFIG_PIC32MZ_PLANC
+#if defined(CONFIG_PIC32MZ_PLANC) || defined(CONFIG_PIC32MZ_PLAND)
 #define SZ_12M	0x00C00000
 	{
 		.entrylo0	= ENTRYLO_CAC(UPPERMEM_START + SZ_8M),

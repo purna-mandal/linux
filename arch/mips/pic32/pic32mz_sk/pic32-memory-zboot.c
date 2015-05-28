@@ -33,6 +33,12 @@
 
 static fw_memblock_t mdesc[FW_MAX_MEMBLOCKS];
 
+#if defined(CONFIG_PIC32MZ_PLANC) || defined(CONFIG_PIC32MZ_PLAND)
+#define EBI_SRAM_SIZE SZ_16M
+#else
+#define EBI_SRAM_SIZE SZ_8M
+#endif
+
 fw_memblock_t * __init fw_getmdesc(int eva)
 {
 	static int init;
@@ -45,11 +51,7 @@ fw_memblock_t * __init fw_getmdesc(int eva)
 
 		mdesc[1].type = BOOT_MEM_RAM;
 		mdesc[1].base = UPPERMEM_START;
-#if defined(CONFIG_PIC32MZ_PLANC)
-		mdesc[1].size = SZ_16M;
-#else
-		mdesc[1].size = SZ_8M;
-#endif
+		mdesc[1].size = EBI_SRAM_SIZE;
 		mdesc[1].valid = 1;
 
 		init = 1;

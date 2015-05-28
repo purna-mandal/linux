@@ -29,7 +29,6 @@
 #define EBISMT0		0x94
 #define EBISMT1		0x98
 #define EBISMT2		0x9C
-#define EBISMT3		0xA0
 #define EBISMCON	0xA4
 
 #define EBI_SRAM	0x20 /* memory type */
@@ -38,14 +37,14 @@ void __init setup_ebi_sram(void)
 {
 	void __iomem *ebi_base = ioremap(PIC32_BASE_EBI, 0x1000);
 	void __iomem *config_base = ioremap(PIC32_BASE_CONFIG, 0x400);
-	int mem_sz = SZ_4M;
+	int mem_sz = SZ_2M;
 	int mem_sz_mask = 6;
 
 	BUG_ON(!config_base);
 	BUG_ON(!ebi_base);
 
-#ifdef CONFIG_PIC32MZ_PLANC
-	mem_sz = SZ_8M;
+#if defined(CONFIG_PIC32MZ_PLANC) || defined(CONFIG_PIC32MZ_PLAND)
+	mem_sz = SZ_4M;
 	mem_sz_mask = 7;
 #endif
 	/*
@@ -95,11 +94,18 @@ void __init setup_ebi_sram(void)
 	 * No page size
 	 * No RDY pin
 	 */
-#ifdef CONFIG_PIC32MZ_PLANB
-	__raw_writel(2|(1 << 6)|(1 << 8)|(1 << 10), ebi_base + EBISMT0);
+#if defined(CONFIG_PIC32MZ_PLANB)
+	__raw_writel(1 << 10 | 1 << 8 | 1 << 6 | 2, ebi_base + EBISMT0);
+	__raw_writel(0, ebi_base + EBISMT1);
+#elif defined(CONFIG_PIC32MZ_PLAND)
+	__raw_writel(1 << 10 | 1 << 8 | 1 << 6 | 2, ebi_base + EBISMT0);
+	__raw_writel(1 << 10 | 1 << 8 | 1 << 6 | 3, ebi_base + EBISMT1);
 #else
-	__raw_writel(7|(1 << 6)|(1 << 8)|(2 << 10), ebi_base + EBISMT0);
+	__raw_writel(2 << 10 | 1 << 8 | 1 << 6 | 7, ebi_base + EBISMT0);
+	__raw_writel(0, ebi_base + EBISMT1);
 #endif
+	__raw_writel(0, ebi_base + EBISMT2);
+
 	/*
 	 * Keep default data width to 16-bits
 	 */

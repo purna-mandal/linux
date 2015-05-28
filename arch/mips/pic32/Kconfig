@@ -103,6 +103,11 @@ config PIC32MZ_PLANC
 	help
 	  PIC32MZ With Plan C Board
 
+config PIC32MZ_PLAND
+	bool "PIC32MZ With Plan D Board"
+	help
+	  PIC32MZ With Plan D Board
+
 endchoice
 
 endif # MACH_PIC32
