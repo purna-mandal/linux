@@ -42,7 +42,7 @@ vmlinuzobjs-y := $(obj)/head.o $(obj)/string.o $(obj)/dbg.o
 ifndef CONFIG_PIC32
 vmlinuzobjs-y			   += $(obj)/decompress.o
 else
-vmlinuzobjs-y			   += $(obj)/decompress-pic32.o $(obj)/pic32-pps.o $(obj)/cache.o
+vmlinuzobjs-y			   += $(obj)/decompress-pic32.o $(obj)/pic32-pps.o $(obj)/cache.o $(obj)/ebi-test.o
 endif
 
 ifdef CONFIG_DEBUG_ZBOOT

@@ -91,12 +91,11 @@ void error(char *x)
 #define EBISMT0		0x94
 #define EBISMT1		0x98
 #define EBISMT2		0x9C
-#define EBISMT3		0xA0
 #define EBISMCON	0xA4
 
 #define ioremap_fake(offset, size) ((void __iomem *)(unsigned long)offset)
 
-#ifdef CONFIG_PIC32MZ_PLANC
+#if defined(CONFIG_PIC32MZ_PLANC) || defined(CONFIG_PIC32MZ_PLAND)
 #define CHIP_SIZE SZ_4M
 #define MEMSIZE 7 /* 4MB */
 #else
@@ -145,8 +144,8 @@ static void ebi_setup(void)
 	 */
 	__raw_writel(1 << 5 | MEMSIZE, ebi_base + EBIMSK0);
 	__raw_writel(1 << 5 | MEMSIZE, ebi_base + EBIMSK1);
-	__raw_writel(1 << 5 | MEMSIZE, ebi_base + EBIMSK2);
-	__raw_writel(1 << 5 | MEMSIZE, ebi_base + EBIMSK3);
+	__raw_writel(1 << 8 | 1 << 5 | MEMSIZE, ebi_base + EBIMSK2);
+	__raw_writel(1 << 8 | 1 << 5 | MEMSIZE, ebi_base + EBIMSK3);
 
 	/*
 	 * Configure EBISMT0
@@ -161,9 +160,15 @@ static void ebi_setup(void)
 	 */
 #if defined(CONFIG_PIC32MZ_PLANB)
 	__raw_writel(1 << 10 | 1 << 8 | 1 << 6 | 2, ebi_base + EBISMT0);
+	__raw_writel(0, ebi_base + EBISMT1);
+#elif defined(CONFIG_PIC32MZ_PLAND)
+	__raw_writel(1 << 10 | 1 << 8 | 1 << 6 | 3, ebi_base + EBISMT0);
+	__raw_writel(1 << 10 | 1 << 8 | 1 << 6 | 4, ebi_base + EBISMT1);
 #else
 	__raw_writel(2 << 10 | 1 << 8 | 1 << 6 | 7, ebi_base + EBISMT0);
+	__raw_writel(0, ebi_base + EBISMT1);
 #endif
+	__raw_writel(0, ebi_base + EBISMT2);
 
 	/*
 	 * Keep default data width to 16-bits
@@ -198,7 +203,7 @@ static struct tlb_entry wired_mappings[] = {
 		.entryhi	= UNCAC_BASE_UPPER,
 		.pagemask	= PM_4M,
 	},
-#ifdef CONFIG_PIC32MZ_PLANC
+#if defined(CONFIG_PIC32MZ_PLANC) || defined(CONFIG_PIC32MZ_PLAND)
 	{
 		.entrylo0	= ENTRYLO_CACHED(UPPERMEM_START + SZ_8M),
 		.entrylo1	= ENTRYLO_CACHED(UPPERMEM_START + SZ_12M),
@@ -298,6 +303,14 @@ static void prefetch_setup(void)
 	__raw_writel(0x30, prefetch_base + PIC32_SET(PIC32_PRECON));
 }
 
+extern void run_ebi_sram_test(u32 sram_size);
+
+#if defined(CONFIG_PIC32MZ_PLANC) || defined(CONFIG_PIC32MZ_PLAND)
+#define EBI_SRAM_SIZE SZ_16M
+#else
+#define EBI_SRAM_SIZE SZ_8M
+#endif
+
 void decompress_kernel(unsigned long boot_heap_start)
 {
 	unsigned long zimage_start, zimage_size;
@@ -305,6 +318,11 @@ void decompress_kernel(unsigned long boot_heap_start)
 	prefetch_setup();
 	ebi_setup();
 	tlb_setup();
+
+/* #define EBI_SRAM_TEST */
+#ifdef EBI_SRAM_TEST
+	run_ebi_sram_test(EBI_SRAM_SIZE);
+#endif
 
 	zimage_start = (unsigned long)(&__image_begin);
 	zimage_size = (unsigned long)(&__image_end) -
