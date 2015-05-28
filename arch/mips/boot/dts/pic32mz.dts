@@ -138,6 +138,7 @@
 		clocks = <&PBCLK5>;
 		pinctrl-names = "default";
 		pinctrl-0 = <&pinctrl_eth0>;
+		reset-gpio = <&pioH 11 0>;
 	};
 
 	watchdog: wdt@bf800800 {
