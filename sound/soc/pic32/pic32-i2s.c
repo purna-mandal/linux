@@ -94,6 +94,8 @@ static int pic32_i2s_trigger(struct snd_pcm_substream *substream, int cmd,
 	case SNDRV_PCM_TRIGGER_RESUME:
 	case SNDRV_PCM_TRIGGER_PAUSE_RELEASE:
 		trash = pic32_i2s_read(i2s, SPIBUF);
+		pic32_i2s_write(i2s, SPIBUF, 0);
+		pic32_i2s_write(i2s, PIC32_CLR(SPISTAT), -1);
 		pic32_i2s_write(i2s, PIC32_SET(SPICON), SPICON_ON);
 		break;
 	case SNDRV_PCM_TRIGGER_STOP:
@@ -236,9 +238,9 @@ static int pic32_i2s_hw_params(struct snd_pcm_substream *substream,
 	}
 
 	i2s->playback_dma_data.addr_width = width;
-	i2s->playback_dma_data.maxburst = 16 / width;
+	i2s->playback_dma_data.maxburst = 16 / width / 2;
 	i2s->capture_dma_data.addr_width = width;
-	i2s->capture_dma_data.maxburst = 16 / width;
+	i2s->capture_dma_data.maxburst = 16 / width / 2;
 
 	pic32_i2s_write(i2s, SPICON, conf);
 
@@ -271,18 +273,15 @@ static int pic32_i2s_set_sysclk(struct snd_soc_dai *dai, int clk_id,
 	case PIC32_I2S_REFCLK:
 
 		if (dir == SND_SOC_CLOCK_OUT) {
-
 			dev_dbg(dai->dev, "setting refclk rate %d\n", freq);
 
 			clk_set_rate(i2s->clk_refclk, freq);
-
 			if (freq != clk_get_rate(i2s->clk_refclk)) {
 				dev_dbg(dai->dev,
 					"failed to set refclk actual freq %ld to intended freq %d\n",
 					clk_get_rate(i2s->clk_refclk), freq);
 			}
 		}
-
 		break;
 	}
 
@@ -320,7 +319,7 @@ static int pic32_i2s_dai_probe(struct snd_soc_dai *dai)
 	conf = SPICON_FRMEN |
 		SPICON_FRMCNT_2BIT |
 		SPICON_ENHBUF |
-		SPICON_STXISEL_NOT_FULL |
+		SPICON_STXISEL_HALF_EMPTY |
 		SPICON_SRXISEL_NOT_EMPTY;
 
 	pic32_i2s_write(i2s, SPICON, conf);
@@ -375,6 +374,8 @@ static struct snd_soc_dai_driver pic32_i2s_dai = {
 		.formats = PIC32_I2S_FMTS,
 	},
 	.symmetric_rates = 1,
+	.symmetric_channels = 1,
+	.symmetric_samplebits = 1,
 	.ops = &pic32_i2s_dai_ops,
 };
 
@@ -405,15 +406,16 @@ static int pic32_i2s_dev_probe(struct platform_device *pdev)
 	if (!i2s)
 		return -ENOMEM;
 
-	i2s->playback_dma_data.slave_id = irq_tx;
 	i2s->capture_dma_data.slave_id = irq_rx;
+	i2s->playback_dma_data.slave_id = irq_tx;
 
 	mem = platform_get_resource(pdev, IORESOURCE_MEM, 0);
 	i2s->base = devm_ioremap_resource(&pdev->dev, mem);
 	if (IS_ERR(i2s->base))
 		return PTR_ERR(i2s->base);
 
-	i2s->phys_base = virt_to_phys((void *)mem->start);
+	/* TODO: virt_to_phys() does not work for SFR, do the proper math manually. */
+	i2s->phys_base = mem->start - KSEG1;
 
 	i2s->clk_i2s = devm_clk_get(&pdev->dev, NULL);
 	if (IS_ERR(i2s->clk_i2s)) {
@@ -421,8 +423,7 @@ static int pic32_i2s_dev_probe(struct platform_device *pdev)
 		return PTR_ERR(i2s->clk_i2s);
 	}
 
-	/* TODO: Don't use clk_get_sys and read of_clk_get(np, 0); */
-	i2s->clk_refclk = clk_get_sys("refo1_clk", NULL);
+	i2s->clk_refclk = devm_clk_get(&pdev->dev, "mck1");
 	if (IS_ERR(i2s->clk_refclk)) {
 		dev_err(&pdev->dev, "i2s refclk not found.\n");
 		return PTR_ERR(i2s->clk_refclk);
@@ -436,7 +437,7 @@ static int pic32_i2s_dev_probe(struct platform_device *pdev)
 		return ret;
 
 	return devm_snd_dmaengine_pcm_register(&pdev->dev, NULL,
-		SND_DMAENGINE_PCM_FLAG_COMPAT);
+					SND_DMAENGINE_PCM_FLAG_COMPAT);
 }
 
 static const struct of_device_id pic32_i2s_of_match[] = {
