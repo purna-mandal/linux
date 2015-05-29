@@ -26,6 +26,7 @@
 static void __iomem *uart_base;
 static char console_port = -1;
 
+#ifndef CONFIG_PIC32MZ_ZBOOT
 static void __init enable_uart_with_rate(char port, int baud)
 {
 	u32 pbclk = pic32_get_pbclk(2);
@@ -42,9 +43,12 @@ static void __init enable_uart_with_rate(char port, int baud)
 
 	iounmap(port_base);
 }
+#endif
 
 static void __init setup_early_console(char port, int baud)
 {
+/* ZBOOT loader already sets up pin configuration */
+#ifndef CONFIG_PIC32MZ_ZBOOT
 	/* early pinctrl configurations for serial ports */
 	if (port == 1) {
 		pic32_earlyco_port0_pinctrl();
@@ -58,6 +62,7 @@ static void __init setup_early_console(char port, int baud)
 	/* enable uart and config its rate */
 _en_uart:
 	enable_uart_with_rate(port, baud);
+#endif
 }
 
 static int __init early_console_get_baud_from_archcmdline(void)
