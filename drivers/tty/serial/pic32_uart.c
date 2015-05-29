@@ -113,18 +113,40 @@ static unsigned int pic32_uart_get_mctrl(struct uart_port *port)
 	return mctrl;
 }
 
+static inline void pic32_uart_txen(struct pic32_sport *sport, u8 en)
+{
+	if (en && !tx_enabled(sport)) {
+		pic32_uart_rset(PIC32_UART_STA_UTXEN, sport, PIC32_UART_STA);
+		tx_enabled(sport) = 1;
+	}
+	else if (!en && tx_enabled(sport)){
+		pic32_uart_rclr(PIC32_UART_STA_UTXEN, sport, PIC32_UART_STA);
+		tx_enabled(sport) = 0;
+	}
+}
+
+static inline void pic32_uart_irqtxen(struct pic32_sport *sport, u8 en)
+{
+	if (en && !tx_irq_enabled(sport)) {
+		enable_irq(sport->irq_tx);
+		tx_irq_enabled(sport) = 1;
+	}
+	else if (!en && tx_irq_enabled(sport)) {
+		/* use disable_irq_nosync() and not disable_irq() to avoid self
+		 * imposed deadlock by not waiting for irq handler to end,
+		 * since this callback is called from interrupt context. */
+		disable_irq_nosync(sport->irq_tx);
+		tx_irq_enabled(sport) = 0;
+	}
+}
+
 /* serial core request to disable tx ASAP (used for flow control) */
 static void pic32_uart_stop_tx(struct uart_port *port)
 {
 	struct pic32_sport *sport = to_pic32_sport(port);
 
-	/* Transmit Enable bit OFF */
-	pic32_uart_rclr(PIC32_UART_STA_UTXEN, sport, PIC32_UART_STA);
-
-	/* use disable_irq_nosync() and not disable_irq() to avoid self
-	 * imposed deadlock by not waiting for irq handler to end,
-	 * since this callback is called from interrupt context. */
-	disable_irq_nosync(sport->irq_tx);
+	pic32_uart_txen(sport, 0);
+	pic32_uart_irqtxen(sport, 0);
 }
 
 /* serial core request to (re)enable tx */
@@ -132,11 +154,8 @@ static void pic32_uart_start_tx(struct uart_port *port)
 {
 	struct pic32_sport *sport = to_pic32_sport(port);
 
-	/* enable tx interrupts */
-	enable_irq(sport->irq_tx);
-
-	/* Transmit Enable bit ON */
-	pic32_uart_rset(PIC32_UART_STA_UTXEN, sport, PIC32_UART_STA);
+	pic32_uart_irqtxen(sport, 1);
+	pic32_uart_txen(sport, 1);
 }
 
 /* serial core request to stop rx, called before port shutdown */
@@ -301,7 +320,7 @@ static void pic32_uart_do_tx(struct uart_port *port)
 	return;
 
 txq_empty:
-	disable_irq_nosync(sport->irq_tx);
+	pic32_uart_irqtxen(sport, 0);
 	return;
 }
 
@@ -383,6 +402,7 @@ static int pic32_uart_startup(struct uart_port *port)
 					  pic32_uart_type(port),
 					  sport->idx);
 	irq_set_status_flags(sport->irq_fault, IRQ_NOAUTOEN);
+	tx_irq_enabled(sport) = 0;
 	ret = request_irq(sport->irq_fault, pic32_uart_fault_interrupt,
 			  sport->irqflags_fault, sport->irq_fault_name, port);
 	if (ret) {

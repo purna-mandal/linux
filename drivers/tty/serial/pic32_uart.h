@@ -51,6 +51,8 @@ struct pic32_sport {
 	int irq_tx;
 	int irqflags_tx;
 	const char *irq_tx_name;
+	u8 enable_tx;
+	u8 enable_tx_irq;
 
 	int cts_pin;
 	int rts_pin;
@@ -62,6 +64,8 @@ struct pic32_sport {
 #define to_pic32_sport(c) container_of(c, struct pic32_sport, port)
 #define pic32_get_port(sport) (&sport->port)
 #define pic32_get_opt(sport) (&sport->opt)
+#define tx_enabled(sport) (sport->enable_tx)
+#define tx_irq_enabled(sport) (sport->enable_tx_irq)
 
 struct pic32_reg {
 	u32 val;
@@ -192,5 +196,19 @@ static inline u32 pic32_uart_read(struct pic32_sport *sport,
 #define PIC32_UART_STA_FERR       (1 << 2)
 #define PIC32_UART_STA_OERR       (1 << 1)
 #define PIC32_UART_STA_URXDA      (1 << 0)
+
+#if defined(PIC32UART_LOG_DBG)
+#define DBUFSIZE 1048
+static uint32_t d_bufidx = 0;
+static char d_buf[DBUFSIZE];
+
+#define pic32uart_log(format, arg...) \
+	do { \
+		d_bufidx += snprintf(&d_buf[d_bufidx], DBUFSIZE - d_bufidx, \
+		"(%s,%u):" format, __func__, __LINE__, ##arg); \
+	} while(0)
+#else
+#define pic32uart_log(format, arg...)
+#endif
 
 #endif /* __DT_PIC32_UART_H__ */
