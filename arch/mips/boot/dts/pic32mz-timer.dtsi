@@ -13,7 +13,7 @@
 		#timer-cells = <0>;
 		reg = <0xbf840000 0x30>;
 		compatible = "microchip,pic32-timerA";
-		interrupts = <4>;
+		interrupts = <TIMER1 DEFAULT_INT_PRI IRQ_TYPE_EDGE_RISING>;
 		clocks = <&PBCLK3>, <&SOSC>;
 		//microchip,clock-indices = <0>, <1>;
 		timer-id = <1>;
@@ -25,7 +25,7 @@
 		#timer-cells = <0>;
 		compatible = "microchip,pic32-timer";
 		reg = <0xbf840200 0x400>;
-		interrupts = <9>;
+		interrupts = <TIMER3 DEFAULT_INT_PRI IRQ_TYPE_EDGE_RISING>;
 		clocks = <&PBCLK3>, <&TxCKI>;
 		timer-id = <2>;
 		microchip,timer-32bit;   /* class B, 32-bit combined timer */
@@ -36,7 +36,7 @@
 		#timer-cells = <0>;
 		compatible = "microchip,pic32-timer";
 		reg = <0xbf840600 0x200>;
-		interrupts = <19>;
+		interrupts = <TIMER4 DEFAULT_INT_PRI IRQ_TYPE_EDGE_RISING>;
 		clocks = <&PBCLK3>, <&TxCKI>;
 		timer-id = <4>;
 	};
@@ -46,7 +46,7 @@
 		#timer-cells = <0>;
 		compatible = "microchip,pic32-timer";
 		reg = <0xbf840800 0x200>;
-		interrupts = <24>;
+		interrupts = <TIMER5 DEFAULT_INT_PRI IRQ_TYPE_EDGE_RISING>;
 		clocks = <&PBCLK3>, <&TxCKI>;
 		timer-id = <5>;
 		microchip,timer-adc; /* can trigger ADC on match */
@@ -57,9 +57,20 @@
 		#timer-cells = <0>;
 		compatible = "microchip,pic32-timer";
 		reg = <0xbf840A00 0x400>;
-		interrupts = <28>;
+		interrupts = <TIMER7 DEFAULT_INT_PRI IRQ_TYPE_EDGE_RISING>;
 		clocks = <&PBCLK3>, <&TxCKI>;
 		timer-id = <6>;
+		microchip,timer-32bit;
+	};
+
+	/* 32-bit class-b timer */
+	PBTIMER89:pbtimer89 {
+		#timer-cells = <0>;
+		compatible = "microchip,pic32-timer";
+		reg = <0xbf840E00 0x400>;
+		interrupts = <TIMER9 DEFAULT_INT_PRI IRQ_TYPE_EDGE_RISING>;
+		clocks = <&PBCLK3>, <&TxCKI>;
+		timer-id = <8>;
 		microchip,timer-32bit;
 	};
 };
