@@ -190,7 +190,7 @@
 			reg = <0xbf801280 0x20>;
 			#clock-cells = <0>;
 			compatible = "microchip,pic32-refoclk";
-			clocks = <&SYSCLK>,<&PBCLK1>,<&POSC>,<&FRC>,<&LPRC>,<&SOSC>,<&SYSCLK>,<&REFIx>,<&BFRC>;
+			clocks = <&SYSCLK>,<&PBCLK1>,<&POSC>,<&FRC>,<&LPRC>,<&SOSC>,<&SYSPLL>,<&REFIx>,<&BFRC>;
 			microchip,clock-indices=<0>,<1>,<2>   ,<3>   ,<4>    , <5>   , <7>   ,     <8>, <9>;
 			clock-output-names = "refo1_clk";
 			clock-frequency = <10000000>;  /* 10Mhz for I2S MCLK */
@@ -201,7 +201,7 @@
 			reg = <0xbf8012A0 0x20>;
 			#clock-cells = <0>;
 			compatible = "microchip,pic32-refoclk";
-			clocks = <&SYSCLK>,<&PBCLK1>,<&POSC>,<&FRC>,<&LPRC>,<&SOSC>,<&SYSCLK>,<&REFIx>,<&BFRC>;
+			clocks = <&SYSCLK>,<&PBCLK1>,<&POSC>,<&FRC>,<&LPRC>,<&SOSC>,<&SYSPLL>,<&REFIx>,<&BFRC>;
 			microchip,clock-indices=<0>,<1>,<2>   ,<3>   ,<4>    , <5>   , <7>   ,     <8>, <9>;
 			clock-output-names = "refo2_clk";
 			clock-frequency = <50000000>; /* 50MHz for SQI */
@@ -211,7 +211,7 @@
 		REFCLKO3:refo3_clk {
 			reg = <0xbf8012C0 0x20>;
 			compatible = "microchip,pic32-refoclk";
-			clocks = <&SYSCLK>,<&PBCLK1>,<&POSC>,<&FRC>,<&LPRC>,<&SOSC>,<&SYSCLK>,<&REFIx>,<&BFRC>;
+			clocks = <&SYSCLK>,<&PBCLK1>,<&POSC>,<&FRC>,<&LPRC>,<&SOSC>,<&SYSPLL>,<&REFIx>,<&BFRC>;
 			microchip,clock-indices=<0>,<1>,<2>   ,<3>   ,<4>    , <5>   , <7>   ,     <8>, <9>;
 			#clock-cells = <0>;
 			clock-output-names = "refo3_clk";
@@ -222,7 +222,7 @@
 		REFCLKO4:refo4_clk {
 			reg = <0xbf8012E0 0x20>;
 			compatible = "microchip,pic32-refoclk";
-			clocks = <&SYSCLK>,<&PBCLK1>,<&POSC>,<&FRC>,<&LPRC>,<&SOSC>,<&SYSCLK>,<&REFIx>,<&BFRC>;
+			clocks = <&SYSCLK>,<&PBCLK1>,<&POSC>,<&FRC>,<&LPRC>,<&SOSC>,<&SYSPLL>,<&REFIx>,<&BFRC>;
 			microchip,clock-indices=<0>,<1>,<2>   ,<3>   ,<4>    , <5>   , <7>   ,     <8>, <9>;
 			#clock-cells = <0>;
 			clock-output-names = "refo4_clk";
