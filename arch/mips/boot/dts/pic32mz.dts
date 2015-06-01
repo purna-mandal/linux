@@ -114,6 +114,13 @@
 		pinctrl-0 = <&pinctrl_oc9>;
 	};
 
+	iio-timer-trig {
+		compatible = "microchip,pic32-timer-trig";
+		microchip,timer = <&PBTIMER23>;
+		trig-period-sec = <2>;
+		status = "disabled";
+	};
+
 	rtc0@bf800c00 {
 		compatible = "microchip,pic32-rtc";
 		reg = <0xbf800c00 0x60>;
