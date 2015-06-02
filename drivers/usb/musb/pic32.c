@@ -314,6 +314,12 @@ static int pic32_musb_set_mode(struct musb *musb, u8 mode)
 	return 0;
 }
 
+static inline void pic32_musb_init_control(void)
+{
+	void __iomem *base = (void __iomem *)(unsigned long)(0xbf884000);
+	__raw_writel(0x1ff, base);
+}
+
 static int pic32_musb_init(struct musb *musb)
 {
 	struct device *dev = musb->controller;
@@ -382,6 +388,9 @@ static int pic32_musb_init(struct musb *musb)
 		dev_err(dev, "unsupported mode %d\n", musb->port_mode);
 		return -EINVAL;
 	}
+
+	pic32_musb_init_control();
+
 	return 0;
 }
 
