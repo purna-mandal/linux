@@ -32,9 +32,14 @@
 
 /* Watchdog Timer Control Register fields */
 #define WDTCON_CLR		0x0001
+#define WDTCON_WIN_EN_V2	0x0001
 #define WDTCON_WIN_EN		0x0002
 #define WDTCON_SWDTPS_MASK	0x001F
 #define WDTCON_SWDTPS_SHIFT	0x0002
+#define WDTCON_RMCS_MASK	0x0003
+#define WDTCON_RMCS_SHIFT	0x0006
+#define WDTCON_RMPS_MASK	0x001F
+#define WDTCON_RMPS_SHIFT	0x0008
 #define WDTCON_ON		0x8000
 #define WDTCON_CLR_KEY		0x5743
 
@@ -46,6 +51,7 @@
 /* Watchdog features/capabilities */
 #define WDT_FEAT_CLR_BIT	1 /* has CLR bit */
 #define WDT_FEAT_CLR_KEY	2 /* need CLRKEY word to be written */
+#define WDT_FEAT_VER2		4 /* IP version V2 */
 
 struct pic32_wdt {
 	spinlock_t	lock;
@@ -63,7 +69,15 @@ static inline int wdt_is_enabled(struct pic32_wdt *wdt)
 
 static inline int wdt_is_win_enabled(struct pic32_wdt *wdt)
 {
-	return readl(wdt->regs + WDTCON_REG) & WDTCON_WIN_EN;
+	uint32_t v;
+
+	v = readl(wdt->regs + WDTCON_REG);
+	if (wdt->feature & WDT_FEAT_VER2)
+		v &= WDTCON_WIN_EN_V2;
+	else
+		v &= WDTCON_WIN_EN;
+
+	return v;
 }
 
 static inline void wdt_enable(struct pic32_wdt *wdt)
@@ -80,7 +94,24 @@ static inline void wdt_disable(struct pic32_wdt *wdt)
 static inline uint32_t wdt_get_post_scaler(struct pic32_wdt *wdt)
 {
 	uint32_t v = readl(wdt->regs + WDTCON_REG);
-	v = (v >> WDTCON_SWDTPS_SHIFT) & WDTCON_SWDTPS_MASK;
+
+	if (wdt->feature & WDT_FEAT_VER2)
+		v = (v >> WDTCON_RMPS_SHIFT) & WDTCON_RMPS_MASK;
+	else
+		v = (v >> WDTCON_SWDTPS_SHIFT) & WDTCON_SWDTPS_MASK;
+
+	return v;
+}
+
+static inline uint32_t wdt_get_clk_id(struct pic32_wdt *wdt)
+{
+	uint32_t v = readl(wdt->regs + WDTCON_REG);
+
+	if (wdt->feature & WDT_FEAT_VER2)
+		v = (v >> WDTCON_RMCS_SHIFT) & WDTCON_RMCS_MASK;
+	else
+		v = 0;
+
 	return v;
 }
 
@@ -99,6 +130,7 @@ static inline void wdt_keepalive(struct pic32_wdt *wdt)
 static int pic32_wdt_bootstatus(struct pic32_wdt *wdt)
 {
 	u32 v = readl(wdt->regs + RESETCON_REG);
+
 	return v & RESETCON_WDT_TIMEOUT;
 }
 
@@ -108,7 +140,8 @@ static int pic32_wdt_get_timeout_secs(struct pic32_wdt *wdt)
 	u32 period, ps, terminal;
 
 	rate = clk_get_rate(wdt->clk);
-	pr_debug("wdt: clk_rate %lu (prescale)\n", rate);
+	pr_debug("wdt: clk_id %d, clk_rate %lu (prescale)\n",
+			wdt_get_clk_id(wdt), rate);
 
 	/* default, prescaler of 32 (i.e. div/32) is implicit. */
 	rate >>= 5;
@@ -121,6 +154,7 @@ static int pic32_wdt_get_timeout_secs(struct pic32_wdt *wdt)
 	period = terminal / rate;
 	pr_info("wdt: clk_rate %lu (postscale) / terminal %d, timeout %dsec\n",
 		rate, terminal, period);
+
 	return period;
 }
 
@@ -172,6 +206,7 @@ static int pic32_wdt_ping(struct watchdog_device *wdd)
 static unsigned int pic32_wdt_get_timeleft(struct watchdog_device *wdd)
 {
 	struct pic32_wdt *wdt = watchdog_get_drvdata(wdd);
+
 	return jiffies_to_msecs(wdt->next_heartbeat - jiffies) / MSEC_PER_SEC;
 }
 
@@ -199,6 +234,8 @@ static struct watchdog_device pic32_wdd = {
 static const struct of_device_id pic32_wdt_dt_ids[] = {
 	{ .compatible = "microchip,pic32-wdt",
 		.data = (void *)WDT_FEAT_CLR_KEY, },
+	{ .compatible = "microchip,pic32-wdt-v2",
+		.data = (void *)(WDT_FEAT_CLR_KEY|WDT_FEAT_VER2), },
 	{ /* sentinel */ }
 };
 MODULE_DEVICE_TABLE(of, pic32_wdt_dt_ids);
@@ -235,22 +272,24 @@ static int pic32_wdt_drv_probe(struct platform_device *pdev)
 		return ret;
 	}
 
+	if (pdev->dev.of_node) {
+		const struct of_device_id *match;
+
+		match = of_match_device(pic32_wdt_dt_ids, &pdev->dev);
+		if (!match)
+			dev_err(&pdev->dev, "no match found\n");
+		else
+			feature = (uint32_t) match->data;
+	}
+
+	wdt->feature = feature;
+
 	if (wdt_is_win_enabled(wdt)) {
 		dev_err(&pdev->dev, "windowed-clear mode is not supported.\n");
 		ret = -EOPNOTSUPP;
 		goto out_disable_clk;
 	}
 
-	if (pdev->dev.of_node) {
-		const struct of_device_id *match;
-		match = of_match_device(pic32_wdt_dt_ids, &pdev->dev);
-		if (!match)
-			dev_err(&pdev->dev, "no match found\n");
-		else
-			feature = (int) match->data;
-	}
-
-	wdt->feature = feature;
 	wdt->timeout = pic32_wdt_get_timeout_secs(wdt);
 	spin_lock_init(&wdt->lock);
 
