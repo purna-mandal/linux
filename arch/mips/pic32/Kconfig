@@ -28,7 +28,7 @@ config MIPS_PIC32MZ
 	select PINCTRL
 	select PINCTRL_PIC32
 	select PINCTRL_PIC32MZ
-	select SERIAL_PIC32
+	select SERIAL_PIC32 if TTY
 	select BUILTIN_DTB
 	help
 	  Microchip PIC32MZ Starter Kit.
@@ -59,7 +59,7 @@ config MIPS_PIC32_EPLATFORM
 	select PINCTRL
 	select PINCTRL_PIC32
 	select PINCTRL_PIC32MZ
-	select SERIAL_PIC32
+	select SERIAL_PIC32 if TTY
 	select BUILTIN_DTB
 	help
 	  Microchip PIC32 ePlatform.

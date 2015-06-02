@@ -51,7 +51,6 @@ struct pic32_sport {
 	int irq_tx;
 	int irqflags_tx;
 	const char *irq_tx_name;
-	u8 enable_tx;
 	u8 enable_tx_irq;
 
 	int cts_pin;
@@ -64,7 +63,6 @@ struct pic32_sport {
 #define to_pic32_sport(c) container_of(c, struct pic32_sport, port)
 #define pic32_get_port(sport) (&sport->port)
 #define pic32_get_opt(sport) (&sport->opt)
-#define tx_enabled(sport) (sport->enable_tx)
 #define tx_irq_enabled(sport) (sport->enable_tx_irq)
 
 struct pic32_reg {

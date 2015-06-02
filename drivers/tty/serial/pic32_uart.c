@@ -113,18 +113,8 @@ static unsigned int pic32_uart_get_mctrl(struct uart_port *port)
 	return mctrl;
 }
 
-static inline void pic32_uart_txen(struct pic32_sport *sport, u8 en)
-{
-	if (en && !tx_enabled(sport)) {
-		pic32_uart_rset(PIC32_UART_STA_UTXEN, sport, PIC32_UART_STA);
-		tx_enabled(sport) = 1;
-	}
-	else if (!en && tx_enabled(sport)){
-		pic32_uart_rclr(PIC32_UART_STA_UTXEN, sport, PIC32_UART_STA);
-		tx_enabled(sport) = 0;
-	}
-}
-
+/* stop tx and start tx are not called in pairs, therefore a flag indicates
+ the status of irq to control the irq-depth. */
 static inline void pic32_uart_irqtxen(struct pic32_sport *sport, u8 en)
 {
 	if (en && !tx_irq_enabled(sport)) {
@@ -145,7 +135,7 @@ static void pic32_uart_stop_tx(struct uart_port *port)
 {
 	struct pic32_sport *sport = to_pic32_sport(port);
 
-	pic32_uart_txen(sport, 0);
+	pic32_uart_rclr(PIC32_UART_STA_UTXEN, sport, PIC32_UART_STA);
 	pic32_uart_irqtxen(sport, 0);
 }
 
@@ -155,7 +145,7 @@ static void pic32_uart_start_tx(struct uart_port *port)
 	struct pic32_sport *sport = to_pic32_sport(port);
 
 	pic32_uart_irqtxen(sport, 1);
-	pic32_uart_txen(sport, 1);
+	pic32_uart_rset(PIC32_UART_STA_UTXEN, sport, PIC32_UART_STA);
 }
 
 /* serial core request to stop rx, called before port shutdown */
