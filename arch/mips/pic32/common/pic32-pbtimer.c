@@ -7,34 +7,14 @@
  * Licensed under GPLv2.
  */
 
-#include <linux/types.h>
-#include <linux/init.h>
-#include <linux/kernel_stat.h>
-#include <linux/sched.h>
-#include <linux/spinlock.h>
-#include <linux/interrupt.h>
 #include <linux/time.h>
-#include <linux/timex.h>
-#include <linux/clk-provider.h>
-#include <linux/clkdev.h>
-#include <linux/platform_device.h>
-#include <linux/list.h>
 #include <linux/of.h>
 #include <linux/of_address.h>
 #include <linux/of_device.h>
 #include <linux/of_irq.h>
-#include <linux/device.h>
-#include <linux/module.h>
 #include <linux/irq.h>
-#include <linux/mutex.h>
 #include <linux/seq_file.h>
-#include <asm/hardirq.h>
-#include <asm/div64.h>
-#include <asm/cpu.h>
-#include <asm/time.h>
 
-#include <asm/mips-boards/generic.h>
-#include <asm/mach-pic32/common.h>
 #include <asm/mach-pic32/pic32.h>
 #include <asm/mach-pic32/pbtimer.h>
 
@@ -56,25 +36,25 @@
 #define __timer_name(__timer) ((__timer)->np->name)
 
 struct timer_ops {
-	void (*write_count)(uint32_t v, struct pic32_pb_timer *tmr);
-	void (*write_period)(uint32_t v, struct pic32_pb_timer *tmr);
-	uint32_t (*read_count)(struct pic32_pb_timer *tmr);
-	uint32_t (*read_period)(struct pic32_pb_timer *tmr);
+	void (*write_count)(u32 v, struct pic32_pb_timer *tmr);
+	void (*write_period)(u32 v, struct pic32_pb_timer *tmr);
+	u32 (*read_count)(struct pic32_pb_timer *tmr);
+	u32 (*read_period)(struct pic32_pb_timer *tmr);
 };
 
-uint32_t pbt_read_count(struct pic32_pb_timer *timer)
+u32 pbt_read_count(struct pic32_pb_timer *timer)
 {
 	return timer->ops->read_count(timer);
 }
 EXPORT_SYMBOL(pbt_read_count);
 
-uint32_t pbt_read_period(struct pic32_pb_timer *timer)
+u32 pbt_read_period(struct pic32_pb_timer *timer)
 {
 	return timer->ops->read_period(timer);
 }
 EXPORT_SYMBOL(pbt_read_period);
 
-void pbt_write_count(uint32_t v, struct pic32_pb_timer *timer)
+void pbt_write_count(u32 v, struct pic32_pb_timer *timer)
 {
 	timer->ops->write_count(v, timer);
 
@@ -86,35 +66,35 @@ void pbt_write_count(uint32_t v, struct pic32_pb_timer *timer)
 }
 EXPORT_SYMBOL(pbt_write_count);
 
-void pbt_write_period(uint32_t v, struct pic32_pb_timer *timer)
+void pbt_write_period(u32 v, struct pic32_pb_timer *timer)
 {
 	timer->ops->write_period(v, timer);
 }
 EXPORT_SYMBOL(pbt_write_period);
 
-static uint32_t read_pbt_count16(struct pic32_pb_timer *timer)
+static u32 read_pbt_count16(struct pic32_pb_timer *timer)
 {
 	return pbt_readw(timer, PIC32_TIMER_COUNT);
 }
 
-static void write_pbt_count16(uint32_t count, struct pic32_pb_timer *timer)
+static void write_pbt_count16(u32 count, struct pic32_pb_timer *timer)
 {
 	pbt_writew(count, timer, PIC32_TIMER_COUNT);
 }
 
-static uint32_t read_pbt_period16(struct pic32_pb_timer *timer)
+static u32 read_pbt_period16(struct pic32_pb_timer *timer)
 {
 	return pbt_readw(timer, PIC32_TIMER_PERIOD);
 }
 
-static void write_pbt_period16(uint32_t v, struct pic32_pb_timer *timer)
+static void write_pbt_period16(u32 v, struct pic32_pb_timer *timer)
 {
-	pbt_writew((uint16_t) v, timer, PIC32_TIMER_PERIOD);
+	pbt_writew((u16) v, timer, PIC32_TIMER_PERIOD);
 }
 
-static uint32_t read_pbt_count_dual(struct pic32_pb_timer *timer)
+static u32 read_pbt_count_dual(struct pic32_pb_timer *timer)
 {
-	uint32_t v;
+	u32 v;
 
 	v = pbt_readw(timer, PIC32_TIMER_COUNT + PIC32_TIMER_UPPER); /* upper */
 	v <<= 16;
@@ -123,15 +103,15 @@ static uint32_t read_pbt_count_dual(struct pic32_pb_timer *timer)
 	return v;
 }
 
-static void write_pbt_count_dual(uint32_t count, struct pic32_pb_timer *timer)
+static void write_pbt_count_dual(u32 count, struct pic32_pb_timer *timer)
 {
 	pbt_writew(count, timer, PIC32_TIMER_COUNT);
 	pbt_writew(count >> 16, timer, PIC32_TIMER_COUNT + PIC32_TIMER_UPPER);
 }
 
-static uint32_t read_pbt_period_dual(struct pic32_pb_timer *timer)
+static u32 read_pbt_period_dual(struct pic32_pb_timer *timer)
 {
-	uint32_t v;
+	u32 v;
 
 	v = pbt_readw(timer, PIC32_TIMER_PERIOD + PIC32_TIMER_UPPER);
 	v <<= 16;
@@ -140,7 +120,7 @@ static uint32_t read_pbt_period_dual(struct pic32_pb_timer *timer)
 	return v;
 }
 
-static void write_pbt_period_dual(uint32_t v, struct pic32_pb_timer *timer)
+static void write_pbt_period_dual(u32 v, struct pic32_pb_timer *timer)
 {
 	pbt_writew(v, timer, PIC32_TIMER_PERIOD);
 	pbt_writew(v >> 16, timer, PIC32_TIMER_PERIOD + PIC32_TIMER_UPPER);
@@ -165,9 +145,9 @@ static inline struct pic32_pb_timer *clk_hw_to_pic32_pb_timer(struct clk_hw *hw)
 	return container_of(hw, struct pic32_pb_timer, hw);
 }
 
-static int pbt_clk_set_parent(struct clk_hw *hw, uint8_t idx)
+static int pbt_clk_set_parent(struct clk_hw *hw, u8 idx)
 {
-	uint16_t v;
+	u16 v;
 	struct pic32_pb_timer *timer = clk_hw_to_pic32_pb_timer(hw);
 
 	dbg_timer("(%s, parent_id: %d)\n", __timer_name(timer), idx);
@@ -185,7 +165,7 @@ static int pbt_clk_set_parent(struct clk_hw *hw, uint8_t idx)
 
 	default:
 		/* extended clock source */
-		if (timer_version(timer) == 2) {
+		if (timer_is_type_a(timer) && (timer_version(timer) == 2)) {
 			v = pbt_readw(timer, PIC32_TIMER_CTRL);
 			idx = (idx >> 1) & TIMER_ECS;
 			v &= ~(TIMER_ECS << TIMER_ECS_SHIFT);
@@ -201,17 +181,17 @@ static int pbt_clk_set_parent(struct clk_hw *hw, uint8_t idx)
 	return 0;
 }
 
-static uint8_t pbt_clk_get_parent(struct clk_hw *hw)
+static u8 pbt_clk_get_parent(struct clk_hw *hw)
 {
 	struct pic32_pb_timer *timer = clk_hw_to_pic32_pb_timer(hw);
-	uint16_t i, v;
+	u16 i, v;
 	u8 idx;
 
 	v = pbt_readw(timer, PIC32_TIMER_CTRL);
 
 	idx = (v & TIMER_CS) >> TIMER_CS_SHIFT;
-	if (timer_version(timer) == 2)
-		idx |= ((v >> TIMER_ECS_SHIFT) & TIMER_ECS) << 2;
+	if (timer_is_type_a(timer) && (timer_version(timer) == 2))
+		idx |= ((v >> TIMER_ECS_SHIFT) & TIMER_ECS) << 1;
 
 	if (timer->clk_idx == NULL)
 		goto done;
@@ -293,15 +273,15 @@ static unsigned long pbt_clk_get_rate(struct clk_hw *hw,
 {
 	struct pic32_pb_timer *timer = clk_hw_to_pic32_pb_timer(hw);
 	unsigned long rate;
-	uint8_t prescaler;
+	u8 prescaler;
 
 	/* rate = parent_rate / prescaler */
 	prescaler = pbt_read_prescaler(timer);
 
 	rate = parent_rate / timer->dividers[prescaler];
 
-	dbg_timer("(%s, parent_rate = %lu) / rate %lu\n",
-		__timer_name(timer), parent_rate, rate);
+	dbg_timer("(%s, parent_rate = %lu) / rate %lu, idx %u\n",
+		__timer_name(timer), parent_rate, rate, prescaler);
 
 	return rate;
 }
@@ -323,7 +303,6 @@ static int of_timer_clk_register(struct pic32_pb_timer *timer)
 	struct device_node *np = timer->np;
 	int ret, num, i;
 	const char **parents;
-	unsigned long rate, init_rate;
 	char clk_name[20];
 
 	/* check input clock source count */
@@ -369,25 +348,6 @@ static int of_timer_clk_register(struct pic32_pb_timer *timer)
 		kfree(timer->clk_idx);
 		goto err_parents;
 	}
-
-	/* prepare and configure clk */
-	clk_prepare_enable(timer->clk);
-
-	rate = clk_get_rate(timer->clk);
-
-	if (!of_property_read_u32(np, "clock-frequency", (u32 *)&init_rate)) {
-		ret = clk_set_rate(timer->clk, init_rate);
-		if (ret) {
-			pr_err("%s: failed to set pre-defined frequency %lu\n",
-				np->name, init_rate);
-		} else {
-			rate = clk_get_rate(timer->clk);
-			dbg_timer("%s: clk_rate = %lu, init-rate = %lu\n",
-				np->name, rate, init_rate);
-		}
-	}
-
-	/*TODO: explain why should we leave the clk enabled?????*/
 
 err_parents:
 	kfree(parents);
@@ -453,6 +413,8 @@ static struct pic32_pb_timer *pb_timer_request(
 				break;
 			}
 
+			clk_enable(timer->clk);
+
 			/* lock timer */
 			__timer_lock(timer, flags);
 
@@ -473,8 +435,6 @@ static struct pic32_pb_timer *pb_timer_request(
 
 			/* unlock */
 			__timer_unlock(timer, flags);
-
-			clk_prepare(timer->clk);
 
 			mutex_unlock(&timer->mutex);
 			break;
@@ -550,7 +510,7 @@ int pic32_pb_timer_free(struct pic32_pb_timer *timer)
 
 	timer->flags = 0;
 
-	clk_unprepare(timer->clk);
+	clk_disable(timer->clk);
 
 out_unlock:
 	mutex_unlock(&timer->mutex);
@@ -559,11 +519,11 @@ out_unlock:
 EXPORT_SYMBOL(pic32_pb_timer_free);
 
 static int pb_timer_set_timeout(struct pic32_pb_timer *timer,
-	uint64_t timeout_nsec)
+	u64 timeout_nsec)
 {
 	unsigned long rate = clk_get_rate(timer->clk);
-	uint64_t max_timeout, timeout;
-	uint32_t period, delta;
+	u64 max_timeout, timeout;
+	u32 period, delta;
 	unsigned long flags;
 
 	/* calc max timeout supported by current prescaler & configuration. */
@@ -596,21 +556,21 @@ static int pb_timer_set_timeout(struct pic32_pb_timer *timer,
 }
 
 static long __determine_clk_rate_from_timeout(struct pic32_pb_timer *timer,
-	uint64_t timeout_nsec, int algo, struct clk **parent_clk_p)
+	u64 timeout_nsec, int algo, struct clk **parent_clk_p)
 {
 	unsigned long rate;
-	unsigned int idx = 0, c;
-	unsigned int delta, best_delta = -1, best_div_idx = -1;
-	uint32_t period, best_period;
+	u32 period, best_period;
+	unsigned int idx, c, best_div_idx = -1;
+	unsigned int delta = -1, best_delta = -1;
 	unsigned long parent_rate, best_parent_rate;
+	u64 max_timeout, timeout, best_timeout = -1;
 	struct clk *parent_clk, *best_clk = NULL;
-	uint64_t max_timeout, timeout, best_timeout = -1;
 
-	for (c = 0; c <  __clk_get_num_parents(timer->clk); c++) {
+	for (c = 0; (c < __clk_get_num_parents(timer->clk)) && delta; c++) {
 
 		parent_clk = clk_get_parent_by_index(timer->clk, c);
 		parent_rate = clk_get_rate(parent_clk);
-		dbg_timer("%s: parent_clk %s, parent_rate %lu\n", __func__,
+		dbg_timer("parent_clk %s, parent_rate %lu\n",
 			__clk_get_name(parent_clk), parent_rate);
 
 		for (idx = 0; idx < timer->num_dividers; idx++) {
@@ -626,10 +586,10 @@ static long __determine_clk_rate_from_timeout(struct pic32_pb_timer *timer,
 				continue;
 			}
 
-			/* calculate timer.period from specified timeout */
+			/* calculate timer period from specified timeout */
 			period = __clk_timeout_ns_to_period(timeout_nsec, rate);
 
-			/* recalc again in-reverse to get best picture */
+			/* recalc back to get best approx */
 			timeout = __clk_period_to_timeout_ns(period, rate);
 
 			delta = abs(timeout - timeout_nsec);
@@ -640,13 +600,13 @@ static long __determine_clk_rate_from_timeout(struct pic32_pb_timer *timer,
 				best_timeout = timeout;
 				best_parent_rate = parent_rate;
 				best_clk = parent_clk;
+
+				if (delta == 0)
+					break;
 			}
 
 			dbg_timer("rate %lu, count %u/ timeout %llu, delt %u\n",
 				rate, period, timeout, delta);
-
-			if (delta == 0)
-				break;
 
 			if (algo == PIC32_TIMER_PRESCALE_HIGH_RES)
 				break;
@@ -671,7 +631,7 @@ static long __determine_clk_rate_from_timeout(struct pic32_pb_timer *timer,
 }
 
 int pic32_pb_timer_settime(struct pic32_pb_timer *timer,
-	unsigned long flags, uint64_t timeout_nsec)
+	unsigned long flags, u64 timeout_nsec)
 {
 	int ret = 0;
 	long rate, algo_flag;
@@ -708,11 +668,11 @@ out_done:
 }
 EXPORT_SYMBOL(pic32_pb_timer_settime);
 
-int pic32_pb_timer_gettime(struct pic32_pb_timer *timer, uint64_t *timeout,
-	uint64_t *elapsed)
+int pic32_pb_timer_gettime(struct pic32_pb_timer *timer, u64 *timeout,
+	u64 *elapsed)
 {
 	unsigned long rate;
-	uint32_t period, count;
+	u32 period, count;
 
 	if (!timer)
 		return 0;
@@ -724,7 +684,8 @@ int pic32_pb_timer_gettime(struct pic32_pb_timer *timer, uint64_t *timeout,
 	count = pbt_read_count(timer);
 
 	if (period == 0) {
-		*timeout = 0;
+		if (timeout)
+			*timeout = 0;
 		goto out_unlock;
 	}
 
@@ -768,8 +729,6 @@ int pic32_pb_timer_start(struct pic32_pb_timer *timer)
 	 * - oneshot mode, disable timer in isr.
 	 * - gated mode, *auto* disabled and note count.
 	 */
-
-	clk_enable(timer->clk);
 
 	pbt_disable_gate(timer);
 
@@ -833,8 +792,6 @@ int pic32_pb_timer_stop(struct pic32_pb_timer *timer)
 #endif
 	pbt_disable(timer);
 
-	clk_disable(timer->clk);
-
 out_unlock:
 	__timer_unlock(timer, flags);
 
@@ -845,7 +802,7 @@ EXPORT_SYMBOL(pic32_pb_timer_stop);
 #ifdef PIC32_TIMER_HANDLE_IRQ
 static irqreturn_t pbt_irq_handler(int irq, void *dev_id)
 {
-	uint32_t count;
+	u32 count;
 	struct pic32_pb_timer *timer = (struct pic32_pb_timer *)dev_id;
 
 	timer->overrun++;
@@ -872,6 +829,7 @@ static int of_pb_timer_setup(struct device_node *np, const void *data)
 {
 	struct pic32_pb_timer *timer;
 	struct pbtimer_platform_data *pdata;
+	unsigned long rate;
 	int ret;
 
 	pdata = (struct pbtimer_platform_data *)data;
@@ -947,6 +905,15 @@ static int of_pb_timer_setup(struct device_node *np, const void *data)
 			pr_err("%s: irq install failed!\n", __func__);
 	}
 #endif
+	/* prepare clk */
+	clk_prepare_enable(timer->clk);
+
+	if (!of_property_read_u32(np, "clock-frequency", (u32 *)&rate)) {
+		ret = clk_set_rate(timer->clk, rate);
+		if (ret)
+			pr_warn("%s: set_rate to %lu failed\n", np->name, rate);
+	}
+
 	/* save pre-scaler before disabling the timer */
 	timer->save_prescaler = pbt_read_prescaler(timer);
 	pbt_disable(timer);
@@ -1050,10 +1017,8 @@ static int debugfs_timeout_set(void *data, u64 val)
 
 static int debugfs_timeout_get(void *data, u64 *val)
 {
-	struct pic32_pb_timer *timer = (struct pic32_pb_timer *)data;
-
-	pic32_pb_timer_gettime(timer, val, NULL);
-	*val = do_div(*val, NSEC_PER_MSEC);
+	pic32_pb_timer_gettime((struct pic32_pb_timer *)data, val, NULL);
+	do_div(*val, NSEC_PER_MSEC);
 
 	return 0;
 }
@@ -1065,21 +1030,17 @@ static int debugfs_enable_set(void *data, u64 val)
 	int ret;
 	struct pic32_pb_timer *timer = (struct pic32_pb_timer *)data;
 
-	if (val) {
-		clk_enable(timer->clk);
+	if (val)
 		ret = pic32_pb_timer_start(timer);
-	} else {
+	else
 		ret = pic32_pb_timer_stop(timer);
-		clk_disable(timer->clk);
-	}
 
 	return ret;
 }
 
 static int debugfs_enable_get(void *data, u64 *val)
 {
-	struct pic32_pb_timer *timer = (struct pic32_pb_timer *)data;
-	*val = pbt_is_enabled(timer);
+	*val = pbt_is_enabled((struct pic32_pb_timer *)data);
 	return 0;
 }
 DEFINE_SIMPLE_ATTRIBUTE(fops_enable,
@@ -1099,73 +1060,31 @@ static int debugfs_request_set(void *data, u64 val)
 
 static int debugfs_is_ready(void *data, u64 *val)
 {
-	struct pic32_pb_timer *timer = (struct pic32_pb_timer *)data;
-
-	*val = timer_is_busy(timer);
-
+	*val = timer_is_busy((struct pic32_pb_timer *)data);
 	return 0;
 }
 DEFINE_SIMPLE_ATTRIBUTE(fops_request,
 	debugfs_is_ready, debugfs_request_set, "%llu\n");
 
-static int debugfs_count_set(void *data, u64 val)
-{
-	struct pic32_pb_timer *timer = (struct pic32_pb_timer *)data;
+#define DEFINE_TIMER_DEBUGFS_RW(_pfx)					\
+static int debugfs_set_##_pfx(void *data, u64 val)			\
+{									\
+	pbt_write_##_pfx((u32) val, (struct pic32_pb_timer *)data);	\
+	return 0;							\
+}									\
+									\
+static int debugfs_get_##_pfx(void *data, u64 *val)			\
+{									\
+	*val = pbt_read_##_pfx((struct pic32_pb_timer *)data);		\
+	return 0;							\
+}									\
+									\
+DEFINE_SIMPLE_ATTRIBUTE(fops_##_pfx,					\
+	debugfs_get_##_pfx, debugfs_set_##_pfx, "%llu\n")		\
 
-	pbt_write_count((u32) val, timer);
-
-	return 0;
-}
-
-static int debugfs_count_get(void *data, u64 *val)
-{
-	struct pic32_pb_timer *timer = (struct pic32_pb_timer *)data;
-
-	*val = pbt_read_count(timer);
-
-	return 0;
-}
-DEFINE_SIMPLE_ATTRIBUTE(fops_count,
-	debugfs_count_get, debugfs_count_set, "%llu\n");
-
-static int debugfs_period_set(void *data, u64 val)
-{
-	struct pic32_pb_timer *timer = (struct pic32_pb_timer *)data;
-
-	pbt_write_period((u32) val, timer);
-
-	return 0;
-}
-
-static int debugfs_period_get(void *data, u64 *val)
-{
-	struct pic32_pb_timer *timer = (struct pic32_pb_timer *)data;
-
-	*val = pbt_read_period(timer);
-
-	return 0;
-}
-DEFINE_SIMPLE_ATTRIBUTE(fops_period,
-	debugfs_period_get, debugfs_period_set, "%llu\n");
-
-static int debugfs_prescaler_set(void *data, u64 val)
-{
-	struct pic32_pb_timer *timer = (struct pic32_pb_timer *)data;
-
-	timer->save_prescaler = (u8) val;
-	pbt_write_prescaler((u8) val, timer);
-
-	return 0;
-}
-
-static int debugfs_prescaler_get(void *data, u64 *val)
-{
-	struct pic32_pb_timer *timer = (struct pic32_pb_timer *)data;
-	*val = pbt_read_prescaler(timer);
-	return 0;
-}
-DEFINE_SIMPLE_ATTRIBUTE(fops_prescaler,
-	debugfs_prescaler_get, debugfs_prescaler_set, "%llu\n");
+DEFINE_TIMER_DEBUGFS_RW(count);
+DEFINE_TIMER_DEBUGFS_RW(period);
+DEFINE_TIMER_DEBUGFS_RW(prescaler);
 
 static ssize_t pb_timer_show_cap(struct file *file,
 		char __user *userbuf, size_t count, loff_t *ppos)
@@ -1186,7 +1105,6 @@ static ssize_t pb_timer_show_cap(struct file *file,
 		cap);
 
 	return simple_read_from_buffer(userbuf, count, ppos, buf, len);
-
 }
 
 static const struct file_operations pb_timer_cap_fops = {
