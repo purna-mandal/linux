@@ -167,9 +167,10 @@ static inline struct pic32_pb_timer *clk_hw_to_pic32_pb_timer(struct clk_hw *hw)
 
 static int pbt_clk_set_parent(struct clk_hw *hw, uint8_t idx)
 {
+	uint16_t v;
 	struct pic32_pb_timer *timer = clk_hw_to_pic32_pb_timer(hw);
 
-	dbg_timer("(%s, %d)\n", __timer_name(timer), idx);
+	dbg_timer("(%s, parent_id: %d)\n", __timer_name(timer), idx);
 
 	if (unlikely(idx >= PIC32_TIMER_CLK_SRC_MAX - 1))
 		return -EINVAL;
@@ -177,10 +178,25 @@ static int pbt_clk_set_parent(struct clk_hw *hw, uint8_t idx)
 	if (timer->clk_idx)
 		idx = timer->clk_idx[idx];
 
-	if (idx)
-		pbt_writew(TIMER_CS, timer, PIC32_TIMER_CTRL_SET);
-	else
+	switch (idx) {
+	case 0:
 		pbt_writew(TIMER_CS, timer, PIC32_TIMER_CTRL_CLR);
+		break;
+
+	default:
+		/* extended clock source */
+		if (timer_version(timer) == 2) {
+			v = pbt_readw(timer, PIC32_TIMER_CTRL);
+			idx = (idx >> 1) & TIMER_ECS;
+			v &= ~(TIMER_ECS << TIMER_ECS_SHIFT);
+			v |= (idx << TIMER_ECS_SHIFT);
+			pbt_writew(v, timer, PIC32_TIMER_CTRL);
+			dbg_timer("(%s), ecs %d\n", __timer_name(timer), idx);
+		}
+
+		pbt_writew(TIMER_CS, timer, PIC32_TIMER_CTRL_SET);
+		break;
+	}
 
 	return 0;
 }
@@ -188,21 +204,27 @@ static int pbt_clk_set_parent(struct clk_hw *hw, uint8_t idx)
 static uint8_t pbt_clk_get_parent(struct clk_hw *hw)
 {
 	struct pic32_pb_timer *timer = clk_hw_to_pic32_pb_timer(hw);
-	uint16_t i, v = pbt_readw(timer, PIC32_TIMER_CTRL);
+	uint16_t i, v;
+	u8 idx;
 
-	v = (v & TIMER_CS) >> TIMER_CS_SHIFT;
+	v = pbt_readw(timer, PIC32_TIMER_CTRL);
+
+	idx = (v & TIMER_CS) >> TIMER_CS_SHIFT;
+	if (timer_version(timer) == 2)
+		idx |= ((v >> TIMER_ECS_SHIFT) & TIMER_ECS) << 2;
+
 	if (timer->clk_idx == NULL)
 		goto done;
 
 	for (i = 0; i < __clk_get_num_parents(hw->clk); i++) {
-		if (v == timer->clk_idx[i]) {
-			v = i;
+		if (idx == timer->clk_idx[i]) {
+			idx = i;
 			break;
 		}
 	}
 done:
-	dbg_timer("(%s): get_parent: indx %u\n", __timer_name(timer), v);
-	return (u8) v;
+	dbg_timer("(%s): get_parent: indx %u\n", __timer_name(timer), idx);
+	return idx;
 }
 
 static long pbt_clk_round_rate(struct clk_hw *hw, unsigned long rate,
@@ -220,6 +242,9 @@ static long pbt_clk_round_rate(struct clk_hw *hw, unsigned long rate,
 		if (delta < best_delta) {
 			best_idx = idx;
 			best_delta = delta;
+
+			if (!delta)
+				break;
 		}
 	}
 
@@ -247,9 +272,10 @@ static int pbt_clk_set_rate(struct clk_hw *hw, unsigned long rate,
 		}
 	}
 
-	dbg_timer("%s: set_rate %lu/ new_rate %lu, delta %d, idx %d\n",
-		__timer_name(timer), rate,
-		parent_rate / timer->dividers[best_idx], best_delta, best_idx);
+	dbg_timer("%s(%lu, prate %lu), new_rate %lu, delta %d, idx %d\n",
+		__timer_name(timer), rate, parent_rate,
+		parent_rate / timer->dividers[best_idx],
+		best_delta, best_idx);
 
 	__timer_lock(timer, flags);
 
@@ -569,81 +595,104 @@ static int pb_timer_set_timeout(struct pic32_pb_timer *timer,
 	return 0;
 }
 
-static unsigned long pb_timer_determine_clk_rate_from_timeout(
-	struct pic32_pb_timer *timer, uint64_t timeout_nsec, int algo)
+static long __determine_clk_rate_from_timeout(struct pic32_pb_timer *timer,
+	uint64_t timeout_nsec, int algo, struct clk **parent_clk_p)
 {
 	unsigned long rate;
-	uint64_t max_timeout, timeout, best_timeout = -1;
-	unsigned int idx = 0, delta;
-	unsigned int best_delta = -1, best_idx = -1;
-	unsigned long parent_rate;
+	unsigned int idx = 0, c;
+	unsigned int delta, best_delta = -1, best_div_idx = -1;
 	uint32_t period, best_period;
-	struct clk *parent_clk;
+	unsigned long parent_rate, best_parent_rate;
+	struct clk *parent_clk, *best_clk = NULL;
+	uint64_t max_timeout, timeout, best_timeout = -1;
 
-	/* get parent-clk & parent-rate */
-	parent_clk = clk_get_parent(timer->clk);
-	parent_rate = clk_get_rate(parent_clk);
+	for (c = 0; c <  __clk_get_num_parents(timer->clk); c++) {
 
-	/* rate = tck_rate / prescaler */
-	for (idx = 0; idx < timer->num_dividers; idx++) {
+		parent_clk = clk_get_parent_by_index(timer->clk, c);
+		parent_rate = clk_get_rate(parent_clk);
+		dbg_timer("%s: parent_clk %s, parent_rate %lu\n", __func__,
+			__clk_get_name(parent_clk), parent_rate);
 
-		rate = parent_rate / timer->dividers[idx];
+		for (idx = 0; idx < timer->num_dividers; idx++) {
 
-		/* calc max timeout that can be achieved by the prescaler. */
-		max_timeout = pb_timer_clk_get_max_timeout(timer, rate);
-		if (max_timeout < timeout_nsec)
-			continue;
+			/* rate = tck_rate / prescaler */
+			rate = parent_rate / timer->dividers[idx];
 
-		/* calculate timer.period from specified timeout */
-		period = __clk_timeout_ns_to_period(timeout_nsec, rate);
+			/* calc max timeout achievable with the prescaler */
+			max_timeout = pb_timer_clk_get_max_timeout(timer, rate);
+			if (max_timeout < timeout_nsec) {
+				dbg_timer("max_timeout %llu < timeout %llu.\n",
+					max_timeout, timeout_nsec);
+				continue;
+			}
 
-		/* recalc again in-reverse to get best picture */
-		timeout = __clk_period_to_timeout_ns(period, rate);
+			/* calculate timer.period from specified timeout */
+			period = __clk_timeout_ns_to_period(timeout_nsec, rate);
 
-		dbg_timer("clk_rate %lu, count %u / timeout %llu\n",
-			rate, period, timeout);
+			/* recalc again in-reverse to get best picture */
+			timeout = __clk_period_to_timeout_ns(period, rate);
 
-		delta = abs(timeout - timeout_nsec);
-		if (delta < best_delta) {
-			best_delta = delta;
-			best_period = period;
-			best_idx = idx;
-			best_timeout = timeout;
+			delta = abs(timeout - timeout_nsec);
+			if (delta < best_delta) {
+				best_delta = delta;
+				best_period = period;
+				best_div_idx = idx;
+				best_timeout = timeout;
+				best_parent_rate = parent_rate;
+				best_clk = parent_clk;
+			}
+
+			dbg_timer("rate %lu, count %u/ timeout %llu, delt %u\n",
+				rate, period, timeout, delta);
+
+			if (delta == 0)
+				break;
+
+			if (algo == PIC32_TIMER_PRESCALE_HIGH_RES)
+				break;
+
 		}
-
-		if (algo == PIC32_TIMER_PRESCALE_HIGH_RES)
-			break;
-
 	}
 
-	pr_debug("pic32-timer: best-idx %d, target_timeout %llu, timeout %llu\n",
-		best_idx, timeout_nsec, best_timeout);
+	dbg_timer("parent(%s, %lu), best_idx %d, best_timeout %llu, delta %u\n",
+		best_clk ? __clk_get_name(best_clk) : NULL, best_parent_rate,
+		best_div_idx, best_timeout, best_delta);
 
 	if (unlikely(best_delta == -1)) {
-		pr_err("pic32-timer: couldn't support asked timeout %llu.\n",
-			timeout_nsec);
+		pr_err("pic32-%s: timeout %lluns not supported\n",
+			__timer_name(timer), timeout_nsec);
 		return -EINVAL;
 	}
 
-	rate = parent_rate / timer->dividers[best_idx];
-	return rate;
+	if (parent_clk_p)
+		*parent_clk_p = best_clk;
+
+	return best_parent_rate / timer->dividers[best_div_idx];
 }
 
 int pic32_pb_timer_settime(struct pic32_pb_timer *timer,
 	unsigned long flags, uint64_t timeout_nsec)
 {
 	int ret = 0;
-	unsigned long rate;
+	long rate, algo_flag;
+	struct clk *parent_clk;
 
 	mutex_lock(&timer->mutex);
 	if (WARN_ON(timer->enable_count > 0))
 		goto out_done;
 
 	if (flags & PIC32_TIMER_MAY_RATE) {
-		rate = pb_timer_determine_clk_rate_from_timeout(
-			timer, timeout_nsec, PIC32_TIMER_PRESCALE_HIGH_RES);
-		if (rate != clk_get_rate(timer->clk))
+		algo_flag = flags & (PIC32_TIMER_PRESCALE_HIGH_RES|
+					PIC32_TIMER_PRESCALE_BEST_MATCH);
+		rate = __determine_clk_rate_from_timeout(timer,
+				timeout_nsec, algo_flag, &parent_clk);
+		if (rate <= 0)
+			goto out_done;
+
+		if (rate != clk_get_rate(timer->clk)) {
+			clk_set_parent(timer->clk, parent_clk);
 			clk_set_rate(timer->clk, rate);
+		}
 	}
 
 	ret = pb_timer_set_timeout(timer, timeout_nsec);
@@ -873,6 +922,9 @@ static int of_pb_timer_setup(struct device_node *np, const void *data)
 	if (of_find_property(np, "microchip,timer-oneshot", NULL))
 		timer->capability |= PIC32_TIMER_ONESHOT;
 
+	if (!of_property_read_u32(np, "microchip,timer-version", &ret))
+		timer->capability |= (ret << PIC32_TIMER_VER_SHIFT);
+
 	if (timer_cap_32bit(timer))
 		timer->ops = &pbt_ops32;
 	else
@@ -944,22 +996,25 @@ void __init of_pic32_pb_timer_init(void)
 static int pb_timer_summary_show(struct seq_file *s, void *data)
 {
 	int i, p;
+	struct clk *c, *parent_clk;
 	struct pic32_pb_timer *timer = (struct pic32_pb_timer *)s->private;
 
 	if (!timer)
 		return -EINVAL;
 
-	seq_printf(s, "%s: %luk, parent %luk, div %u, PRx 0x%08x, TMRx 0x%08x",
+	parent_clk = clk_get_parent(timer->clk);
+	seq_printf(s, "%s:%lukH, parent:%lukH, div:%u, PRx:0x%08x, TMRx:0x%08x",
 		__clk_get_name(timer->clk), clk_get_rate(timer->clk) / 1000,
-		clk_get_rate(__clk_get_parent(timer->clk)) / 1000,
+		clk_get_rate(parent_clk) / 1000,
 		timer->dividers[pbt_read_prescaler(timer)],
 		pbt_read_period(timer), pbt_read_count(timer));
 
 	seq_puts(s, "\n - - parents - -\n");
 	for (i = 0; i < __clk_get_num_parents(timer->clk); i++) {
 		p = timer->clk_idx ? timer->clk_idx[i] : i;
-		seq_printf(s, "<%d> %s\n", p,
-			__clk_get_name(clk_get_parent_by_index(timer->clk, i)));
+		c = clk_get_parent_by_index(timer->clk, i);
+		seq_printf(s, "<%d> %s%c\n", p, __clk_get_name(c),
+			(c == parent_clk) ? '*' : ' ');
 	}
 
 	seq_puts(s, "\n");
@@ -1035,7 +1090,7 @@ static int debugfs_request_set(void *data, u64 val)
 	struct pic32_pb_timer *timer = (struct pic32_pb_timer *)data;
 
 	if (val)
-		return (pic32_pb_timer_request_specific(timer->id) == timer);
+		return (pic32_pb_timer_request_specific(timer->id) != timer);
 
 	pic32_pb_timer_free(timer);
 

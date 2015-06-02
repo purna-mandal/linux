@@ -55,6 +55,9 @@
 /* Prescalers resets to zero on timer disable */
 #define PIC32_TIMER_PS_FIXUP_DISABLE	0x0800
 
+/* Timer Version */
+#define PIC32_TIMER_VER_SHIFT		28
+
 /* Timer Registers */
 #define PIC32_TIMER_CTRL	0x00
 #define PIC32_TIMER_CTRL_CLR	0x04
@@ -74,8 +77,10 @@
 #define TIMER_ON		0x8000
 #define TIMER_CKPS_SHIFT	4
 #define TIMER_CS_SHIFT		1
+#define TIMER_ECS		0x0003 /* extended clock source */
+#define TIMER_ECS_SHIFT		8
 
-#define PIC32_TIMER_CLK_SRC_MAX	2
+#define PIC32_TIMER_CLK_SRC_MAX	5
 
 struct timer_ops;
 
@@ -107,6 +112,7 @@ struct pic32_pb_timer {
 #define timer_cap_class_a(timer)((timer)->capability & PIC32_TIMER_CLASS_A)
 #define timer_cap_async(timer)	((timer)->capability & PIC32_TIMER_ASYNC)
 #define timer_cap_gated(timer)	((timer)->capability & PIC32_TIMER_GATED)
+#define timer_version(timer)	((timer)->capability >> PIC32_TIMER_VER_SHIFT)
 
 #define timer_is_busy(timer)	((timer)->flags & PIC32_TIMER_BUSY)
 #define timer_is_32bit(timer)	((timer)->flags & PIC32_TIMER_32BIT)
@@ -173,6 +179,7 @@ static inline void pbt_write_prescaler(uint8_t v, struct pic32_pb_timer *timer)
 static inline uint8_t pbt_read_prescaler(struct pic32_pb_timer *timer)
 {
 	uint16_t v = pbt_readw(timer, PIC32_TIMER_CTRL);
+
 	return (uint8_t)((v & TIMER_CKPS) >> TIMER_CKPS_SHIFT);
 }
 
@@ -194,8 +201,7 @@ static inline void pbt_disable(struct pic32_pb_timer *timer)
 
 static int __used pbt_is_enabled(struct pic32_pb_timer *timer)
 {
-	uint16_t v = pbt_readw(timer, PIC32_TIMER_CTRL);
-	return !!(v & TIMER_ON);
+	return !!(pbt_readw(timer, PIC32_TIMER_CTRL) & TIMER_ON);
 }
 
 static inline void pbt_enable_gate(struct pic32_pb_timer *timer)
@@ -210,8 +216,7 @@ static inline void pbt_disable_gate(struct pic32_pb_timer *timer)
 
 static __used int pbt_is_gate_enabled(struct pic32_pb_timer *timer)
 {
-	uint16_t v = pbt_readw(timer, PIC32_TIMER_CTRL);
-	return !!(v & TIMER_GATE);
+	return !!(pbt_readw(timer, PIC32_TIMER_CTRL) & TIMER_GATE);
 }
 
 static inline void pbt_set_32bit(int enable, struct pic32_pb_timer *timer)
@@ -245,7 +250,8 @@ static inline int pic32_pb_timer_get_irq(struct pic32_pb_timer *timer)
 }
 
 /* pic32_pb_timer_get_rate - get clk rate of PIC32 timer. */
-static inline unsigned long pic32_pb_timer_get_rate(struct pic32_pb_timer *timer)
+static inline unsigned long
+pic32_pb_timer_get_rate(struct pic32_pb_timer *timer)
 {
 	if (!timer)
 		return -EINVAL;
@@ -267,7 +273,9 @@ static inline unsigned long __clk_timeout_ns_to_period(u64 timeout_ns,
 	unsigned long rate)
 {
 	u32 T = NSEC_PER_SEC / rate;
+
 	do_div(timeout_ns, T);
+
 	return (unsigned long) timeout_ns;
 }
 
@@ -275,6 +283,7 @@ static inline u64 __clk_period_to_timeout_ns(unsigned long period,
 	unsigned long rate)
 {
 	u32 T = NSEC_PER_SEC / rate;
+
 	return period * T;
 }
 
@@ -282,10 +291,12 @@ static inline uint64_t
 pb_timer_clk_get_max_timeout(struct pic32_pb_timer *timer, unsigned long rate)
 {
 	uint64_t count;
+
 	if (timer_is_32bit(timer))
 		count = (u64) U32_MAX;
 	else
 		count = (u64) U16_MAX;
+
 	return __clk_period_to_timeout_ns(count, rate);
 }
 
@@ -299,6 +310,7 @@ static inline int pic32_pb_timer_getoverrun(struct pic32_pb_timer *timer)
 {
 	if (!timer)
 		return 0;
+
 	return timer->overrun;
 }
 

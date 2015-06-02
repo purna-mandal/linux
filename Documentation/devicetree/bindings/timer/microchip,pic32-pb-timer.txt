@@ -24,6 +24,7 @@ Optional properties:
 - microchip,timer-gated : gated timer
 - microchip,timer-adc : timer can trigger an ADC.
 - microchip,timer-oneshot: one-shot timer, instead of continuous.
+- microchip,timer-version: set timer version (default 1).
 - clock-frequency : default timer rate, see ../clocks/clock-bindings.txt for details.
 - microchip,clock-indices: See ../clocks/microchip,pic32-clock.txt
 
