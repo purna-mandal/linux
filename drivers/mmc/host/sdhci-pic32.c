@@ -1,5 +1,5 @@
 /*
- * Support of SDHCI platform devices for Microchip ePlatform.
+ * Support of SDHCI platform devices for Microchip PIC32.
  *
  * Copyright (C) 2015 Microchip
  * Andrei Pistirica, Paul Thacker
@@ -28,30 +28,30 @@
 #include <linux/io.h>
 #include "sdhci.h"
 
-#define EPLAT_MMC_OCR (MMC_VDD_32_33 | MMC_VDD_33_34)
+#define PIC32_MMC_OCR (MMC_VDD_32_33 | MMC_VDD_33_34)
 
-#define DEV_NAME "eplat-sdhci"
-struct eplat_sdhci_pdata {
+#define DEV_NAME "pic32-sdhci"
+struct pic32_sdhci_pdata {
 	struct platform_device	*pdev;
 	struct clk *clk;
 };
 
-unsigned int eplat_sdhci_get_max_clock(struct sdhci_host *host)
+unsigned int pic32_sdhci_get_max_clock(struct sdhci_host *host)
 {
-	struct eplat_sdhci_pdata *sdhci_pdata = sdhci_priv(host);
+	struct pic32_sdhci_pdata *sdhci_pdata = sdhci_priv(host);
 	unsigned int clk_rate = clk_get_rate(sdhci_pdata->clk);
 	struct platform_device *pdev = sdhci_pdata->pdev;
 
 	dev_dbg(&pdev->dev, "Sdhc max clock rate: %u\n", clk_rate);
 
-	/* EPLATFORM_SDHC_TODO: base clock when available */
+	/* PIC32MZDA_SDHC_TODO: base clock when available */
 	clk_rate = 25000000;
 	return clk_rate;
 }
 
-unsigned int eplat_sdhci_get_min_clock(struct sdhci_host *host)
+unsigned int pic32_sdhci_get_min_clock(struct sdhci_host *host)
 {
-	struct eplat_sdhci_pdata *sdhci_pdata = sdhci_priv(host);
+	struct pic32_sdhci_pdata *sdhci_pdata = sdhci_priv(host);
 	unsigned int clk_rate = clk_get_rate(sdhci_pdata->clk);
 	struct platform_device *pdev = sdhci_pdata->pdev;
 
@@ -61,11 +61,11 @@ unsigned int eplat_sdhci_get_min_clock(struct sdhci_host *host)
 	return clk_rate;
 }
 
-static const struct sdhci_ops eplat_sdhci_ops = {
-	/* EPLATFORM_SDHC_TODO: This should be removed - leave the sdhci
+static const struct sdhci_ops pic32_sdhci_ops = {
+	/* PIC32MZDA_SDHC_TODO: This should be removed - leave the sdhci
 	 * layer to do the job. */
-	.get_max_clock = eplat_sdhci_get_max_clock,
-	.get_min_clock = eplat_sdhci_get_min_clock,
+	.get_max_clock = pic32_sdhci_get_max_clock,
+	.get_min_clock = pic32_sdhci_get_min_clock,
 
 	.set_clock = sdhci_set_clock,
 	.set_bus_width = sdhci_set_bus_width,
@@ -74,7 +74,7 @@ static const struct sdhci_ops eplat_sdhci_ops = {
 
 };
 
-void eplat_sdhci_shared_bus(struct platform_device *pdev)
+void pic32_sdhci_shared_bus(struct platform_device *pdev)
 {
 #define SDH_SHARED_BUS_CTRL		0x000000E0
 #define SDH_SHARED_BUS_NR_CLK_PINS_MASK	0x7
@@ -97,34 +97,34 @@ void eplat_sdhci_shared_bus(struct platform_device *pdev)
 	writel(bus, host->ioaddr + SDH_SHARED_BUS_CTRL);
 }
 
-static int eplat_sdhci_probe_platform(struct platform_device *pdev,
-				      struct eplat_sdhci_pdata *pdata)
+static int pic32_sdhci_probe_platform(struct platform_device *pdev,
+				      struct pic32_sdhci_pdata *pdata)
 {
-#define SDH_CAPS_SLOT_TYPE_MASK 0xC0000000
-#define SLOT_TYPE_REMOVABLE	0x0
-#define SLOT_TYPE_EMBEDDED	0x1
-#define SLOT_TYPE_SHARED_BUS	0x2
+#define SDH_CAPS_SDH_SLOT_TYPE_MASK	0xC0000000
+#define SDH_SLOT_TYPE_REMOVABLE		0x0
+#define SDH_SLOT_TYPE_EMBEDDED		0x1
+#define SDH_SLOT_TYPE_SHARED_BUS	0x2
 	int ret = 0;
 	struct sdhci_host *host = platform_get_drvdata(pdev);
 	u32 caps_slot_type = (readl(host->ioaddr + SDHCI_CAPABILITIES) &
-					SDH_CAPS_SLOT_TYPE_MASK) >> 30;
+					SDH_CAPS_SDH_SLOT_TYPE_MASK) >> 30;
 
-	/* EPLATFORM_SDHC_TODO: !If shared bus is used on Darlington, then
+	/* PIC32MZDA_SDHC_TODO: !If shared bus is used on Darlington, then
 	 * the bus width, irq and clock should be set via DT */
 
 	/* Card slot connected on shared bus. */
-	if (caps_slot_type == SLOT_TYPE_SHARED_BUS)
-		eplat_sdhci_shared_bus(pdev);
+	if (caps_slot_type == SDH_SLOT_TYPE_SHARED_BUS)
+		pic32_sdhci_shared_bus(pdev);
 
 	return ret;
 }
 
-int eplat_sdhci_probe(struct platform_device *pdev)
+int pic32_sdhci_probe(struct platform_device *pdev)
 {
 	struct device *dev = &pdev->dev;
 	struct sdhci_host *host;
 	struct resource *iomem;
-	struct eplat_sdhci_pdata *sdhci_pdata;
+	struct pic32_sdhci_pdata *sdhci_pdata;
 	/* unsigned int clk_rate = 0; */
 	int ret;
 
@@ -146,11 +146,11 @@ int eplat_sdhci_probe(struct platform_device *pdev)
 		goto err_host;
 	}
 
-	host->ops = &eplat_sdhci_ops;
+	host->ops = &pic32_sdhci_ops;
 	host->irq = platform_get_irq(pdev, 0);
 
 	host->quirks2 = SDHCI_QUIRK2_NO_1_8_V;
-	host->mmc->ocr_avail = EPLAT_MMC_OCR;
+	host->mmc->ocr_avail = PIC32_MMC_OCR;
 
 	/* SDH CLK enable */
 	sdhci_pdata->clk = devm_clk_get(&pdev->dev, NULL);
@@ -160,7 +160,7 @@ int eplat_sdhci_probe(struct platform_device *pdev)
 		goto err_host;
 	}
 
-#if defined(EPLATFORM_SDHC_TODO)
+#if defined(PIC32MZDA_SDHC_TODO)
 	/* Enable clock when available! */
 	ret = clk_prepare_enable(sdhci_pdata->clk);
 	if (ret) {
@@ -172,7 +172,7 @@ int eplat_sdhci_probe(struct platform_device *pdev)
 	dev_dbg(&pdev->dev, "base clock at: %u\n", clk_rate);
 #endif
 
-	ret = eplat_sdhci_probe_platform(pdev, sdhci_pdata);
+	ret = pic32_sdhci_probe_platform(pdev, sdhci_pdata);
 	if (ret) {
 		dev_err(&pdev->dev, "failed to probe platform!\n");
 		goto err_host;
@@ -190,11 +190,11 @@ int eplat_sdhci_probe(struct platform_device *pdev)
 err_host:
 	sdhci_free_host(host);
 err:
-	dev_err(&pdev->dev, "eplat-sdhci probe failed: %d\n", ret);
+	dev_err(&pdev->dev, "pic32-sdhci probe failed: %d\n", ret);
 	return ret;
 }
 
-static int eplat_sdhci_remove(struct platform_device *pdev)
+static int pic32_sdhci_remove(struct platform_device *pdev)
 {
 	struct sdhci_host *host = platform_get_drvdata(pdev);
 	int dead = 0;
@@ -205,7 +205,7 @@ static int eplat_sdhci_remove(struct platform_device *pdev)
 		dead = 1;
 
 	sdhci_remove_host(host, dead);
-#ifdef EPLATFORM_SDHC_TODO
+#ifdef PIC32MZDA_SDHC_TODO
 	clk_disable_unprepare(sdhci_pdata->clk);
 #endif
 	sdhci_free_host(host);
@@ -214,47 +214,47 @@ static int eplat_sdhci_remove(struct platform_device *pdev)
 }
 
 #ifdef CONFIG_PM_SLEEP
-static int eplat_sdhci_suspend(struct device *dev)
+static int pic32_sdhci_suspend(struct device *dev)
 {
 	struct sdhci_host *host = dev_get_drvdata(dev);
 
-#ifdef EPLATFORM_SDHC_TODO
+#ifdef PIC32MZDA_SDHC_TODO
 	clk_disable(sdhci_pdata->clk);
 #endif
 	return sdhci_suspend_host(host);
 }
 
-static int eplat_sdhci_resume(struct device *dev)
+static int pic32_sdhci_resume(struct device *dev)
 {
 	struct sdhci_host *host = dev_get_drvdata(dev);
 
-#ifdef EPLATFORM_SDHC_TODO
+#ifdef PIC32MZDA_SDHC_TODO
 	clk_enable(sdhci_pdata->clk);
 #endif
 	return sdhci_resume_host(host);
 }
 #endif
 
-static SIMPLE_DEV_PM_OPS(sdhci_pm_ops, eplat_sdhci_suspend, eplat_sdhci_resume);
+static SIMPLE_DEV_PM_OPS(sdhci_pm_ops, pic32_sdhci_suspend, pic32_sdhci_resume);
 
-static const struct of_device_id eplat_sdhci_id_table[] = {
-	{ .compatible = "microchip,sdhci-eplatform" },
+static const struct of_device_id pic32_sdhci_id_table[] = {
+	{ .compatible = "microchip,pic32-sdhci" },
 	{}
 };
-MODULE_DEVICE_TABLE(of, eplat_sdhci_id_table);
+MODULE_DEVICE_TABLE(of, pic32_sdhci_id_table);
 
-static struct platform_driver eplat_sdhci_driver = {
+static struct platform_driver pic32_sdhci_driver = {
 	.driver = {
 		.name	= DEV_NAME,
 		.owner	= THIS_MODULE,
 		.pm	= &sdhci_pm_ops,
-		.of_match_table = of_match_ptr(eplat_sdhci_id_table),
+		.of_match_table = of_match_ptr(pic32_sdhci_id_table),
 	},
-	.probe		= eplat_sdhci_probe,
-	.remove		= eplat_sdhci_remove,
+	.probe		= pic32_sdhci_probe,
+	.remove		= pic32_sdhci_remove,
 };
 
-module_platform_driver(eplat_sdhci_driver);
+module_platform_driver(pic32_sdhci_driver);
 
 MODULE_DESCRIPTION("Microchip ePlatform SDHCI driver");
 MODULE_AUTHOR("Pistirica Sorin Andrei");

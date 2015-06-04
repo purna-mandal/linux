@@ -769,12 +769,12 @@ config MMC_TOSHIBA_PCI
 	depends on PCI
 	help
 
-config MMC_SDHCI_MICROCHIP_EPLATFORM
-	tristate "SDHCI support on Microchip-ePlatform"
+config MMC_SDHCI_MICROCHIP_PIC32
+	tristate "SDHCI support on Microchip PIC32 platform"
 	depends on MMC_SDHCI && MIPS_PIC32_EPLATFORM
 	help
 	  This selects the Secure Digital Host Controller Interface (SDHCI)
-	  for Microchip-ePlatform.
+	  for Microchip-PIC32 platform.
 
 	  If you have a controller with this interface, say Y or M here.
 

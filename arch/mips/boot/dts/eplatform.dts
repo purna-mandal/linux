@@ -8,7 +8,7 @@
 #include "pic32mz-uart.dtsi"
 #include "pic32mz-i2c.dtsi"
 #include "pic32mz-i2s.dtsi"
-#include "eplatform-sdhc.dtsi"
+#include "pic32mzda-sdhc.dtsi"
 
 / {
 	#address-cells = <1>;
