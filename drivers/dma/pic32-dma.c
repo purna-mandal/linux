@@ -255,7 +255,7 @@ static irqreturn_t pic32_dma_isr(int irq, void *data)
 
 	status = pic32_chan_readl(chan, PIC32_DCHINT) & PIC32_IRQ_FLAG_MASK;
 
-	pic32_chan_writel(chan, PIC32_CLR(PIC32_DCHINT), -1);
+	pic32_chan_writel(chan, PIC32_CLR(PIC32_DCHINT), PIC32_IRQ_FLAG_MASK);
 
 	spin_lock(&chan->vchan.lock);
 
@@ -508,6 +508,9 @@ static int pic32_dma_abort(struct pic32_chan *chan)
 		__func__, chan->id);
 
 	if (!chan->paused) {
+
+		/* Disable interrupts */
+		pic32_chan_writel(chan, PIC32_CLR(PIC32_DCHINT), -1);
 
 		/* Stop the channel */
 		pic32_chan_writel(chan, PIC32_CLR(PIC32_DCHCON),
