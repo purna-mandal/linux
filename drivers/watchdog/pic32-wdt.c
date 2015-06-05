@@ -31,11 +31,11 @@
 #define RESETCON_REG	0x10
 
 /* Watchdog Timer Control Register fields */
-#define WDTCON_CLR		0x0001
-#define WDTCON_WIN_EN_V2	0x0001
-#define WDTCON_WIN_EN		0x0002
-#define WDTCON_SWDTPS_MASK	0x001F
-#define WDTCON_SWDTPS_SHIFT	0x0002
+#define WDTCON_CLR_V1		0x0001
+#define WDTCON_WIN_EN		0x0001
+#define WDTCON_WIN_EN_V1	0x0002
+#define WDTCON_SWDTPS_MASK_V1	0x001F
+#define WDTCON_SWDTPS_SHIFT_V1	0x0002
 #define WDTCON_RMCS_MASK	0x0003
 #define WDTCON_RMCS_SHIFT	0x0006
 #define WDTCON_RMPS_MASK	0x001F
@@ -51,7 +51,7 @@
 /* Watchdog features/capabilities */
 #define WDT_FEAT_CLR_BIT	1 /* has CLR bit */
 #define WDT_FEAT_CLR_KEY	2 /* need CLRKEY word to be written */
-#define WDT_FEAT_VER2		4 /* IP version V2 */
+#define WDT_FEAT_V1		4 /* IP version V1 */
 
 struct pic32_wdt {
 	spinlock_t	lock;
@@ -72,8 +72,8 @@ static inline int wdt_is_win_enabled(struct pic32_wdt *wdt)
 	uint32_t v;
 
 	v = readl(wdt->regs + WDTCON_REG);
-	if (wdt->feature & WDT_FEAT_VER2)
-		v &= WDTCON_WIN_EN_V2;
+	if (wdt->feature & WDT_FEAT_V1)
+		v &= WDTCON_WIN_EN_V1;
 	else
 		v &= WDTCON_WIN_EN;
 
@@ -95,10 +95,10 @@ static inline uint32_t wdt_get_post_scaler(struct pic32_wdt *wdt)
 {
 	uint32_t v = readl(wdt->regs + WDTCON_REG);
 
-	if (wdt->feature & WDT_FEAT_VER2)
-		v = (v >> WDTCON_RMPS_SHIFT) & WDTCON_RMPS_MASK;
+	if (wdt->feature & WDT_FEAT_V1)
+		v = (v >> WDTCON_SWDTPS_SHIFT_V1) & WDTCON_SWDTPS_MASK_V1;
 	else
-		v = (v >> WDTCON_SWDTPS_SHIFT) & WDTCON_SWDTPS_MASK;
+		v = (v >> WDTCON_RMPS_SHIFT) & WDTCON_RMPS_MASK;
 
 	return v;
 }
@@ -107,10 +107,10 @@ static inline uint32_t wdt_get_clk_id(struct pic32_wdt *wdt)
 {
 	uint32_t v = readl(wdt->regs + WDTCON_REG);
 
-	if (wdt->feature & WDT_FEAT_VER2)
-		v = (v >> WDTCON_RMCS_SHIFT) & WDTCON_RMCS_MASK;
-	else
+	if (wdt->feature & WDT_FEAT_V1)
 		v = 0;
+	else
+		v = (v >> WDTCON_RMCS_SHIFT) & WDTCON_RMCS_MASK;
 
 	return v;
 }
@@ -124,7 +124,7 @@ static inline void wdt_keepalive(struct pic32_wdt *wdt)
 	}
 
 	if (wdt->feature & WDT_FEAT_CLR_BIT)
-		writel(WDTCON_CLR, PIC32_SET(wdt->regs + WDTCON_REG));
+		writel(WDTCON_CLR_V1, PIC32_SET(wdt->regs + WDTCON_REG));
 }
 
 static int pic32_wdt_bootstatus(struct pic32_wdt *wdt)
@@ -233,9 +233,9 @@ static struct watchdog_device pic32_wdd = {
 
 static const struct of_device_id pic32_wdt_dt_ids[] = {
 	{ .compatible = "microchip,pic32-wdt",
-		.data = (void *)WDT_FEAT_CLR_KEY, },
+		.data = (void *)(WDT_FEAT_CLR_KEY|WDT_FEAT_V1), },
 	{ .compatible = "microchip,pic32-wdt-v2",
-		.data = (void *)(WDT_FEAT_CLR_KEY|WDT_FEAT_VER2), },
+		.data = (void *)WDT_FEAT_CLR_KEY, },
 	{ /* sentinel */ }
 };
 MODULE_DEVICE_TABLE(of, pic32_wdt_dt_ids);
