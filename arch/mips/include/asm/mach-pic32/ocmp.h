@@ -24,5 +24,6 @@ int pic32_oc_set_time_base(struct pic32_ocmp *oc, struct pic32_pb_timer *timer);
 int pic32_oc_settime(struct pic32_ocmp *oc, int mode, uint64_t timeout_nsec);
 int pic32_oc_start(struct pic32_ocmp *oc);
 int pic32_oc_stop(struct pic32_ocmp *oc);
+int pic32_oc_get_irq(struct pic32_ocmp *oc);
 #endif
 

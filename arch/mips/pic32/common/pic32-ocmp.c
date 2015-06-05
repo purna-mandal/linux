@@ -475,6 +475,15 @@ int pic32_oc_stop(struct pic32_ocmp *oc)
 }
 EXPORT_SYMBOL(pic32_oc_stop);
 
+int pic32_oc_get_irq(struct pic32_ocmp *oc)
+{
+	if (IS_ERR_OR_NULL(oc))
+		return -EINVAL;
+
+	return oc->irq;
+}
+EXPORT_SYMBOL(pic32_oc_get_irq);
+
 static int of_oc_setup_one(struct device_node *np, const void *data)
 {
 	struct pic32_ocmp *oc;
