@@ -1656,8 +1656,10 @@ static int pic32_pinctrl_parse_pins(struct platform_device *pdev,
 		dev_dbg(data->dev, "rpin-conf(%x:%x)\n",
 			pinconf->dir, pinconf->conf);
 
-		/* syntax check */
-		if ((pincod->bucket != ppincod->bucket) ||
+		/* syntax check:
+		 * 1) if the function is not available for bucket or
+		 * 2) if the function is not availbale for direction */
+		if (((pincod->bucket & ppincod->bucket) == 0) ||
 		    (pincod->dir != ppincod->dir)) {
 			ret = -EINVAL;
 			goto out_clean_err;
