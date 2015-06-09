@@ -270,14 +270,12 @@ static irqreturn_t pic32_dma_isr(int irq, void *data)
 			"DMA block transfer complete\n");
 
 		if (chan->desc) {
-			if (chan->desc->dir != DMA_MEM_TO_MEM) {
+			if ((chan->desc->dir != DMA_MEM_TO_MEM) && chan->cyclic) {
 				vchan_cyclic_callback(&chan->desc->vdesc);
-			} else {
-				if (chan->next_sg == chan->desc->num_sgs) {
-					list_del(&chan->desc->vdesc.node);
-					vchan_cookie_complete(&chan->desc->vdesc);
-					chan->desc = NULL;
-				}
+			} else if (chan->next_sg == chan->desc->num_sgs) {
+				list_del(&chan->desc->vdesc.node);
+				vchan_cookie_complete(&chan->desc->vdesc);
+				chan->desc = NULL;
 			}
 		}
 	}
@@ -623,7 +621,7 @@ static int pic32_dma_chan_init(struct pic32_dma_dev *od,
 		goto err;
 	}
 
-	dev_info(od->ddev.dev, "Init PIC32 DMA channel %d\n", chan_id);
+	dev_dbg(od->ddev.dev, "Init PIC32 DMA channel %d\n", chan_id);
 
 	return 0;
 
