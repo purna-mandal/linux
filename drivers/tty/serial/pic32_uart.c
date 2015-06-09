@@ -36,11 +36,11 @@
 
 /* UART name and device definitions */
 #define PIC32_DEV_NAME		"pic32-usart"
-#define PIC32_MAX_UARTS		2
+#define PIC32_MAX_UARTS		3
 
 #define PIC32_SDEV_NAME		"ttyS"
 #define PIC32_SDEV_MAJOR	TTY_MAJOR
-#define PIC32_SDEV_MINOR	68
+#define PIC32_SDEV_MINOR	67
 
 /* pic32_sport pointer for console use */
 static struct pic32_sport *pic32_sports[PIC32_MAX_UARTS];

@@ -3,6 +3,7 @@
 	aliases {
 		serial0 = &usart0;
 		serial1 = &usart1;
+		serial2 = &usart2;
 	};
 
 	usart0: serial@bf822000 {
@@ -35,5 +36,21 @@
 			&pinctrl_uart2_rts>;
 		cts-gpios = <&pioB 10 0>;
 		rts-gpios = <&pioD 7 0>;
+	};
+
+	usart2: serial@bf822400 {
+		compatible = "microchip,pic32-usart";
+		reg = <0xbf822400 0x50>;
+		interrupts = <UART3_FAULT DEFAULT_INT_PRI IRQ_TYPE_LEVEL_HIGH>,
+			     <UART3_RECEIVE_DONE DEFAULT_INT_PRI IRQ_TYPE_LEVEL_HIGH>,
+			     <UART3_TRANSFER_DONE DEFAULT_INT_PRI IRQ_TYPE_LEVEL_HIGH>;
+		clocks = <&PBCLK2>;
+		pinctrl-names = "default";
+		pinctrl-0 = <
+			&pinctrl_uart3
+			&pinctrl_uart3_cts
+			&pinctrl_uart3_rts>;
+		cts-gpios = <&pioE 9 0>;
+		rts-gpios = <&pioE 8 0>;
 	};
 };
