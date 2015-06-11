@@ -30,7 +30,6 @@
 #include <linux/serial_core.h>
 #include <uapi/linux/serial_core.h>
 #include <linux/delay.h>
-#include <linux/io.h>
 
 #include "pic32_uart.h"
 
@@ -58,11 +57,11 @@ static unsigned int pic32_uart_tx_empty(struct uart_port *port)
 static void set_rts_state(struct pic32_sport *sport, unsigned int state)
 {
 	/* set RTS state */
-	if (gpio_is_valid(sport->rts_pin)) {
+	if (gpio_is_valid(sport->rts_gpio)) {
 		if (state == 0)
-			gpio_set_value(sport->rts_pin, 1);
+			gpio_set_value(sport->rts_gpio, 1);
 		else
-			gpio_set_value(sport->rts_pin, 0);
+			gpio_set_value(sport->rts_gpio, 0);
 	}
 }
 
@@ -70,6 +69,9 @@ static void set_rts_state(struct pic32_sport *sport, unsigned int state)
 static void pic32_uart_set_mctrl(struct uart_port *port, unsigned int mctrl)
 {
 	struct pic32_sport *sport = to_pic32_sport(port);
+
+	if (!sport->hw_flow_ctrl)
+		return;
 
 	/* set RTS state */
 	set_rts_state(sport, mctrl & TIOCM_RTS);
@@ -88,8 +90,8 @@ static unsigned int get_cts_state(struct pic32_sport *sport)
 	int val = 1;
 
 	/* read and invert UxCTS */
-	if (gpio_is_valid(sport->cts_pin))
-		val = !gpio_get_value(sport->cts_pin);
+	if (gpio_is_valid(sport->cts_gpio))
+		val = !gpio_get_value(sport->cts_gpio);
 
 	return val;
 }
@@ -98,9 +100,10 @@ static unsigned int get_cts_state(struct pic32_sport *sport)
 static unsigned int pic32_uart_get_mctrl(struct uart_port *port)
 {
 	struct pic32_sport *sport = to_pic32_sport(port);
-	unsigned int mctrl;
+	unsigned int mctrl = 0;
 
-	mctrl = 0;
+	if (!sport->hw_flow_ctrl)
+		return TIOCM_CTS;
 
 	if (get_cts_state(sport))
 		mctrl |= TIOCM_CTS;
@@ -120,8 +123,7 @@ static inline void pic32_uart_irqtxen(struct pic32_sport *sport, u8 en)
 	if (en && !tx_irq_enabled(sport)) {
 		enable_irq(sport->irq_tx);
 		tx_irq_enabled(sport) = 1;
-	}
-	else if (!en && tx_irq_enabled(sport)) {
+	} else if (!en && tx_irq_enabled(sport)) {
 		/* use disable_irq_nosync() and not disable_irq() to avoid self
 		 * imposed deadlock by not waiting for irq handler to end,
 		 * since this callback is called from interrupt context. */
@@ -290,6 +292,7 @@ static void pic32_uart_do_tx(struct uart_port *port)
 	while (!(PIC32_UART_STA_UTXBF &
 		pic32_uart_rval(sport, PIC32_UART_STA))) {
 		unsigned int c = xmit->buf[xmit->tail];
+
 		pic32_uart_write(c, sport, PIC32_UART_TX);
 
 		xmit->tail = (xmit->tail + 1) & (UART_XMIT_SIZE - 1);
@@ -311,7 +314,6 @@ static void pic32_uart_do_tx(struct uart_port *port)
 
 txq_empty:
 	pic32_uart_irqtxen(sport, 0);
-	return;
 }
 
 /* RX interrupt handler */
@@ -504,7 +506,8 @@ static void pic32_uart_set_termios(struct uart_port *port,
 				sport, PIC32_UART_MODE);
 
 
-	if (new->c_cflag & CRTSCTS) {
+	/* if hw flow ctrl, then the pins must be specified in device tree */
+	if ((new->c_cflag & CRTSCTS) && sport->hw_flow_ctrl) {
 		/* enable hardware flow control */
 		pic32_uart_rset(PIC32_UART_MODE_UEN1, sport, PIC32_UART_MODE);
 		pic32_uart_rclr(PIC32_UART_MODE_UEN0, sport, PIC32_UART_MODE);
@@ -626,8 +629,9 @@ static void pic32_console_putchar(struct uart_port *port, int ch)
 	u32 timeout = 10000;
 
 	/* wait for tx empty */
-	while (!(pic32_uart_read(sport, PIC32_UART_STA) & PIC32_UART_STA_TRMT) && --timeout)
-                udelay(1);
+	while (!(pic32_uart_read(sport, PIC32_UART_STA) & PIC32_UART_STA_TRMT)
+			&& --timeout)
+		udelay(1);
 
 	pic32_uart_write(ch & 0xff, sport, PIC32_UART_TX);
 }
@@ -747,8 +751,8 @@ static int pic32_uart_probe(struct platform_device *pdev)
 	sport->irq_tx		= irq_of_parse_and_map(np, 2);
 	sport->irqflags_tx	= IRQF_NO_THREAD;
 	sport->clk		= devm_clk_get(&pdev->dev, NULL);
-	sport->cts_pin		= -EINVAL;
-	sport->rts_pin		= -EINVAL;
+	sport->cts_gpio		= -EINVAL;
+	sport->rts_gpio		= -EINVAL;
 	sport->dev		= &pdev->dev;
 
 	ret = clk_prepare_enable(sport->clk);
@@ -756,42 +760,47 @@ static int pic32_uart_probe(struct platform_device *pdev)
 		dev_err(&pdev->dev, "clk enable ?\n");
 		goto err;
 	}
+	sport->hw_flow_ctrl = of_property_read_bool(np,
+					"microchip,uart-has-rtscts");
+	if (!sport->hw_flow_ctrl)
+		goto uart_no_flow_ctrl;
 
 	/* CTS/RTS gpios */
-	sport->cts_pin = of_get_named_gpio(np, "cts-gpios", 0);
-	if (gpio_is_valid(sport->cts_pin)) {
+	sport->cts_gpio = of_get_named_gpio(np, "cts-gpios", 0);
+	if (gpio_is_valid(sport->cts_gpio)) {
 		ret = devm_gpio_request(sport->dev,
-					sport->cts_pin, "CTS");
+					sport->cts_gpio, "CTS");
 		if (ret) {
 			dev_err(&pdev->dev,
 				"error requesting CTS GPIO\n");
 			goto err;
 		}
 
-		ret = gpio_direction_input(sport->cts_pin);
+		ret = gpio_direction_input(sport->cts_gpio);
 		if (ret) {
 			dev_err(&pdev->dev, "error setting CTS GPIO\n");
 			goto err;
 		}
 	}
 
-	sport->rts_pin = of_get_named_gpio(np, "rts-gpios", 0);
-	if (gpio_is_valid(sport->rts_pin)) {
+	sport->rts_gpio = of_get_named_gpio(np, "rts-gpios", 0);
+	if (gpio_is_valid(sport->rts_gpio)) {
 		ret = devm_gpio_request(sport->dev,
-					sport->rts_pin, "RTS");
+					sport->rts_gpio, "RTS");
 		if (ret) {
 			dev_err(&pdev->dev,
 				"error requesting RTS GPIO\n");
 			goto err;
 		}
 
-		ret = gpio_direction_output(sport->rts_pin, 1);
+		ret = gpio_direction_output(sport->rts_gpio, 1);
 		if (ret) {
 			dev_err(&pdev->dev, "error setting RTS GPIO\n");
 			goto err;
 		}
 	}
 
+uart_no_flow_ctrl:
 	pic32_sports[uart_idx] = sport;
 	port = &sport->port;
 	memset(port, 0, sizeof(*port));
@@ -839,7 +848,7 @@ static int pic32_uart_remove(struct platform_device *pdev)
 	return 0;
 }
 
-static struct of_device_id pic32_serial_dt_ids[] = {
+static const struct of_device_id pic32_serial_dt_ids[] = {
 	{ .compatible = "microchip,pic32-usart" },
 	{ /* sentinel */ }
 };

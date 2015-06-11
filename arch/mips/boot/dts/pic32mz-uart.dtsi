@@ -15,11 +15,13 @@
 		clocks = <&PBCLK2>;
 		pinctrl-names = "default";
 		pinctrl-0 = <
-			&pinctrl_uart1
+			&pinctrl_uart1>;
+#if 0
 			&pinctrl_uart1_cts
 			&pinctrl_uart1_rts>;
 		cts-gpios = <&pioB 15 0>;
 		rts-gpios = <&pioD 1 0>;
+#endif
 	};
 
 	usart1: serial@bf822200 {
@@ -31,11 +33,13 @@
 		clocks = <&PBCLK2>;
 		pinctrl-names = "default";
 		pinctrl-0 = <
-			&pinctrl_uart2
+			&pinctrl_uart2>;
+#if 0
 			&pinctrl_uart2_cts
 			&pinctrl_uart2_rts>;
 		cts-gpios = <&pioB 10 0>;
 		rts-gpios = <&pioD 7 0>;
+#endif
 	};
 
 	usart2: serial@bf822400 {
@@ -50,7 +54,8 @@
 			&pinctrl_uart3
 			&pinctrl_uart3_cts
 			&pinctrl_uart3_rts>;
-		cts-gpios = <&pioE 9 0>;
-		rts-gpios = <&pioE 8 0>;
+		microchip,uart-has-rtscts;
+		cts-gpios = <&pioB 14 0>;
+		rts-gpios = <&pioE 9 0>;
 	};
 };

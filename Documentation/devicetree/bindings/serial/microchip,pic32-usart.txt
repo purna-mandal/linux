@@ -4,8 +4,12 @@ Required properties:
 - compatible: Should be "microchip,pic32-usart"
 - reg: Should contain registers location and length
 - interrupts: Should contain interrupt
-- pinctrl: Should contain pinctrol for TX/RX/RTS/CTS
-- gpios: Should contain gpio pins for CTS/RTS
+- pinctrl: Should contain pinctrl for TX/RX/RTS/CTS
+
+Optional properties:
+- microchip,uart-has-rtscts : Indicate the uart has hardware flow control
+- rts-gpios: RTS pin for USP-based UART if microchip,uart-has-rtscts
+- cts-gpios: CTS pin for USP-based UART if microchip,uart-has-rtscts
 
 Example:
 	usart0: serial@bf822000 {
@@ -19,7 +23,7 @@ Example:
 			&pinctrl_uart1
 			&pinctrl_uart1_cts
 			&pinctrl_uart1_rts>;
-		/* CTS/RTS */
+		microchip,uart-has-rtscts;
 		cts-gpios = <&pioB 15 0>;
 		rts-gpios = <&pioD 1 0>;
 	};

@@ -33,8 +33,8 @@ struct pic32_console_opt {
  * @irq_tx: virtual tx interrupt number
  * @irqflags_tx: : flags related to tx irq
  * @irq_tx_name: irq tx name
- * @cts_pin: clear to send gpio
- * @rts_pin: ready to sent gpio
+ * @cts_gpio: clear to send gpio
+ * @rts_gpio: ready to sent gpio
  * @dev: device descriptor
  **/
 struct pic32_sport {
@@ -53,8 +53,9 @@ struct pic32_sport {
 	const char *irq_tx_name;
 	u8 enable_tx_irq;
 
-	int cts_pin;
-	int rts_pin;
+	bool hw_flow_ctrl;
+	int cts_gpio;
+	int rts_gpio;
 
 	struct clk *clk;
 

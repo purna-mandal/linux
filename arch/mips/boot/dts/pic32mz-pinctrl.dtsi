@@ -188,7 +188,7 @@
 					<PIC32_RP_OUT_RPD3 PIC32_PP_OUT_U1TX PIC32_PIN_CONF_DG_OUT
 					 PIC32_RP_IN_RPD2 PIC32_PP_IN_U1RX PIC32_PIN_CONF_DG_IN>;
 			};
-
+#if 0
 			pinctrl_uart1_cts: uart1_cts-0 {
 				pic32,pins =
 					<PIC32_RP_IN_RPB15 PIC32_PP_IN_U1CTS PIC32_PIN_CONF_DG_IN>;
@@ -197,6 +197,7 @@
 				pic32,pins =
 					<PIC32_RP_OUT_RPD1 PIC32_PP_OUT_U1RTS PIC32_PIN_CONF_DG_OUT>;
 			};
+#endif
 		};
 
 		uart2 {
@@ -206,7 +207,7 @@
 					<PIC32_RP_OUT_RPD0 PIC32_PP_OUT_U2TX PIC32_PIN_CONF_DG_OUT
 					 PIC32_RP_IN_RPB0 PIC32_PP_IN_U2RX PIC32_PIN_CONF_DG_IN>;
 			};
-
+#if 0
 			pinctrl_uart2_cts: uart2_cts-0 {
 				pic32,pins =
 					<PIC32_RP_IN_RPD10 PIC32_PP_IN_U2CTS PIC32_PIN_CONF_DG_IN>;
@@ -215,6 +216,7 @@
 				pic32,pins =
 					<PIC32_RP_OUT_RPC13 PIC32_PP_OUT_U2RTS PIC32_PIN_CONF_DG_OUT>;
 			};
+#endif
 		};
 
 		uart3 {
@@ -227,11 +229,11 @@
 
 			pinctrl_uart3_cts: uart3_cts-0 {
 				pic32,pins =
-					<PIC32_RP_IN_RPF2 PIC32_PP_IN_U3CTS PIC32_PIN_CONF_DG_IN>;
+					<PIC32_RP_IN_RPB14 PIC32_PP_IN_U3CTS PIC32_PIN_CONF_DG_IN>;
 			};
 			pinctrl_uart3_rts: uart3_rts-0 {
 				pic32,pins =
-					<PIC32_RP_OUT_RPE3 PIC32_PP_OUT_U3RTS PIC32_PIN_CONF_DG_OUT>;
+					<PIC32_RP_OUT_RPE9 PIC32_PP_OUT_U3RTS PIC32_PIN_CONF_DG_OUT>;
 			};
 		};
 
