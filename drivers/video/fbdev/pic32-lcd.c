@@ -347,8 +347,9 @@ static int pic32_lcd_pan_display(struct fb_var_screeninfo *var,
 	info->var.yoffset = var->yoffset;
 
 	/* compute new base address */
-	address = info->fix.smem_start + var->yoffset * info->fix.line_length +
-		var->xoffset * (var->bits_per_pixel >> 3);
+	address = info->fix.smem_start +
+		(var->yoffset * info->fix.line_length + var->xoffset) *
+		(var->bits_per_pixel >> 3);
 
 	pic32_writel(sinfo->mmio, PIC32_LCD_REG_LAYER0_BASEADDR, address);
 
