@@ -35,8 +35,8 @@
 #define pic32_readl(base, offset)	__raw_readl((base) + (offset))
 #define pic32_writel(base, offset, val) __raw_writel((val), (base) + (offset))
 
-#define XY16TOREG32(x, y)		((x) << 16 | ((y) & 0xffff))
-#define CLAMP255(i)			(((i) < 0) ? 0 : ((i) > 255) ? 255 : (i))
+#define XY16TOREG32(x, y)	((x) << 16 | ((y) & 0xffff))
+#define CLAMP255(i)		(((i) < 0) ? 0 : ((i) > 255) ? 255 : (i))
 
 /* LCD Controller info data structure, stored in device platform_data */
 struct pic32_lcd_pdata {
@@ -54,7 +54,7 @@ struct pic32_lcd_info {
 	int			irq;
 	unsigned int		smem_len;
 	struct platform_device	*pdev;
-	struct pic32_lcd_pdata pdata;
+	struct pic32_lcd_pdata	pdata;
 };
 
 static const struct fb_videomode *pic32_lcd_choose_mode(struct fb_var_screeninfo *var,
@@ -89,8 +89,7 @@ static int pic32_lcd_check_var(struct fb_var_screeninfo *var,
 
 	/*  FB_VMODE_CONUPDATE and FB_VMODE_SMOOTH_XPAN are equal!
 	 *  as FB_VMODE_SMOOTH_XPAN is only used internally */
-	if (var->vmode & FB_VMODE_CONUPDATE)
-	{
+	if (var->vmode & FB_VMODE_CONUPDATE) {
 		var->vmode |= FB_VMODE_YWRAP;
 		var->xoffset = info->var.xoffset;
 		var->yoffset = info->var.yoffset;
@@ -319,7 +318,7 @@ static int pic32_lcd_setcolreg(unsigned int regno, unsigned int red,
 	}
 
 	/*
-	 * the pseudo_palette expectes color values in screen format,
+	 * the pseudo_palette expects color values in screen format,
 	 * computed as seen above
 	 */
 	sinfo->pseudo_palette[regno] = out_val;
@@ -547,18 +546,20 @@ static int pic32_lcd_vsync(struct fb_info *info)
 
 	/* wait for it for a while */
 	if (!wait_event_interruptible_timeout(sinfo->wait_vsync,
-					      count != sinfo->vblank_count, HZ / 10))
+						count != sinfo->vblank_count,
+						HZ / 10))
 		return -ETIMEDOUT;
 
 	return 0;
 }
 
-static int pic32_lcd_ioctl(struct fb_info *info, unsigned int cmd, unsigned long arg)
+static int pic32_lcd_ioctl(struct fb_info *info, unsigned int cmd,
+			unsigned long arg)
 {
 	struct pic32_lcd_info *sinfo = info->par;
 	struct device *dev = &sinfo->pdev->dev;
-	int i,mode;
-	int red,green,blue;
+	int i, mode;
+	int red, green, blue;
 
 	switch (cmd)
 	{
@@ -569,7 +570,8 @@ static int pic32_lcd_ioctl(struct fb_info *info, unsigned int cmd, unsigned long
 		mode = pic32_readl(sinfo->mmio, PIC32_LCD_REG_MODE);
 
 		if (arg == 0) {
-			pic32_writel(sinfo->mmio, PIC32_LCD_REG_MODE, mode & ~PIC32_LCD_CONFIG_GAMMA);
+			pic32_writel(sinfo->mmio, PIC32_LCD_REG_MODE,
+				mode & ~PIC32_LCD_CONFIG_GAMMA);
 		} else {
 			for (i = 0; i < 256; i++)
 			{
@@ -730,7 +732,7 @@ static struct fb_ops pic32_lcd_ops = {
 	.fb_copyarea	= cfb_copyarea,
 	.fb_imageblit	= cfb_imageblit,
 	.fb_blank	= pic32_lcd_blank,
-	.fb_ioctl    	= pic32_lcd_ioctl,
+	.fb_ioctl	= pic32_lcd_ioctl,
 #ifdef PIC32_LCD_CURSOR
 	.fb_cursor	= pic32_lcd_cursor,
 #endif
@@ -820,7 +822,8 @@ static int pic32_lcd_probe(struct platform_device *pdev)
 			goto stop_clk;
 		}
 
-		info->screen_base = ioremap(info->fix.smem_start, info->fix.smem_len);
+		info->screen_base = ioremap(info->fix.smem_start,
+					info->fix.smem_len);
 		if (!info->screen_base) {
 			ret = -ENOMEM;
 			goto release_intmem;
@@ -871,7 +874,8 @@ static int pic32_lcd_probe(struct platform_device *pdev)
 	/* initialize register file */
 	pic32_writel(sinfo->mmio, PIC32_LCD_REG_MODE, 0);
 	pic32_writel(sinfo->mmio, PIC32_LCD_REG_CLKCON, 0 | (5 << 8));
-	pic32_writel(sinfo->mmio, PIC32_LCD_REG_LAYER0_BASEADDR, info->fix.smem_start);
+	pic32_writel(sinfo->mmio, PIC32_LCD_REG_LAYER0_BASEADDR,
+		info->fix.smem_start);
 	pic32_writel(sinfo->mmio, PIC32_LCD_REG_BGCOLOR, 0);
 	pic32_writel(sinfo->mmio, PIC32_LCD_REG_INTERRUPT, 1 << 31);
 
@@ -899,7 +903,8 @@ static int pic32_lcd_probe(struct platform_device *pdev)
 	}
 
 	dev_info(dev, "fb%d: %s framebuffer at 0x%08lx (mapped at %p), irq %d\n",
-		 info->node, info->fix.id, info->fix.mmio_start, sinfo->mmio, sinfo->irq);
+		info->node, info->fix.id, info->fix.mmio_start,
+		sinfo->mmio, sinfo->irq);
 
 	return 0;
 
@@ -911,7 +916,7 @@ unregister_irqs:
 unmap_mmio:
 	iounmap(sinfo->mmio);
 release_mem:
- 	release_mem_region(info->fix.mmio_start, info->fix.mmio_len);
+	release_mem_region(info->fix.mmio_start, info->fix.mmio_len);
 free_fb:
 	if (map)
 		iounmap(info->screen_base);
@@ -946,7 +951,7 @@ static int pic32_lcd_remove(struct platform_device *pdev)
 	fb_dealloc_cmap(&info->cmap);
 	free_irq(sinfo->irq, info);
 	iounmap(sinfo->mmio);
- 	release_mem_region(info->fix.mmio_start, info->fix.mmio_len);
+	release_mem_region(info->fix.mmio_start, info->fix.mmio_len);
 	pic32_lcd_free_video_memory(sinfo);
 
 	framebuffer_release(info);
