@@ -256,6 +256,6 @@ static struct platform_driver pic32_sdhci_driver = {
 
 module_platform_driver(pic32_sdhci_driver);
 
-MODULE_DESCRIPTION("Microchip ePlatform SDHCI driver");
+MODULE_DESCRIPTION("Microchip PIC32 SDHCI driver");
 MODULE_AUTHOR("Pistirica Sorin Andrei");
 MODULE_LICENSE("GPL v2");
