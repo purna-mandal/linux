@@ -12,7 +12,11 @@
 
 #include <linux/of_device.h>
 
+#ifdef CONFIG_PINCTRL_PIC32MZ
 #include "dt-bindings/pinctrl/pic32.h"
+#elif CONFIG_PINCTRL_PIC32MZDA
+#include "dt-bindings/pinctrl/pic32mzda.h"
+#endif
 
 #define MAX_PIO_BANKS	10
 #define PINS_PER_BANK	32
@@ -107,6 +111,7 @@ struct pic32_reg {
  **/
 enum pic32_pio_regs {
 	PIC32_UNKNOWN	= 0,
+
 	PIC32_ANSEL	= 1,
 	PIC32_TRIS	= 2,
 	PIC32_PORT	= 3,
@@ -117,6 +122,11 @@ enum pic32_pio_regs {
 	PIC32_CNCON	= 8,
 	PIC32_CNEN	= 9,
 	PIC32_CNSTAT	= 10,
+
+	PIC32_CNNE	= 11,
+	PIC32_CNF	= 12,
+	PIC32_SRCON1	= 13,
+	PIC32_SRCON0	= 14,
 
 	/* add above this line */
 	PIC32_LAST

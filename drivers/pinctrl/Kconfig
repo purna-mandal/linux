@@ -225,6 +225,14 @@ config PINCTRL_PIC32MZ
 	help
 	  This selectes the pinctrl driver for PIC32mz.
 
+config PINCTRL_PIC32MZDA
+	bool "Enable PIC32MZDA pinctrl"
+	depends on MIPS_PIC32MZ || MIPS_PIC32_EPLATFORM
+	depends on PINCTRL_PIC32
+	depends on USE_OF
+	help
+	  This selectes the pinctrl driver for PIC32mzda.
+
 source "drivers/pinctrl/berlin/Kconfig"
 source "drivers/pinctrl/freescale/Kconfig"
 source "drivers/pinctrl/intel/Kconfig"

@@ -32,7 +32,6 @@
 
 #include "core.h"
 #include "pinctrl-pic32.h"
-#include "dt-bindings/pinctrl/pic32.h"
 
 /* struct pic32_gpio_irq - pic32 gpio irq descriptor
  * @gpio_irqchip: irq chip descriptor related to pin bank
