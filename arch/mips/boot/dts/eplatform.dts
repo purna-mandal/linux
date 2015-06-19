@@ -1,20 +1,13 @@
 /dts-v1/;
 #include <dt-bindings/interrupt-controller/microchip,pic32mz-evic.h>
-
 #include "pic32mz-clk.dtsi"
-#include "pic32mz-timer.dtsi"
-#include "pic32mz-oc.dtsi"
 #include "pic32mz-pinctrl.dtsi"
-#include "pic32mz-uart.dtsi"
-#include "pic32mz-i2c.dtsi"
-#include "pic32mz-i2s.dtsi"
-#include "pic32mzda-sdhc.dtsi"
 
 / {
 	#address-cells = <1>;
 	#size-cells = <1>;
 	compatible = "mti,pic32";
-	model = "Microchip PIC32MZ Starter Kit";
+	model = "Microchip ePlatform";
 	interrupt-parent = <&evic>;
 
 	cpus {
@@ -28,17 +21,6 @@
                 reg = <0x08000000 0x08000000>;
         };
 
-	pwm@0 {
-		compatible = "microchip,pic32-pwm";
-		microchip,timer = <&PBTIMER23>; /* pbtimer phandle */
-		microchip,ocmp = <&OCMP1>; /* ocmp phandle */
-		//status = "disabled";
-#if 0
-		pinctrl-names = "default";
-		pinctrl-0 = <&pinctrl_pwm0>;
-#endif
-	};
-
 	chosen {
 		bootargs = "console=ttyS1,115200n8";
 	};
@@ -51,12 +33,26 @@
 		device_type="evic-v2";
 	};
 
-	rtc0@bf800c00 {
-		compatible = "microchip,pic32-rtc";
-		reg = <0xbf800c00 0x60>;
-		interrupts = <REAL_TIME_CLOCK DEFAULT_INT_PRI IRQ_TYPE_EDGE_RISING>;
-		clocks = <&RTCCLK>;
-	};
+        /* 32-bit class-b timer */
+        PBTIMER23:pbtimer23 {
+                #timer-cells = <0>;
+                compatible = "microchip,pic32-timer";
+                reg = <0xbf840200 0x400>;
+                interrupts = <TIMER3 DEFAULT_INT_PRI IRQ_TYPE_EDGE_RISING>;
+                clocks = <&PBCLK3>, <&TxCKI>;
+                timer-id = <2>;
+                microchip,timer-32bit;   /* class B, 32-bit combined timer */
+        };
+
+        /* 16-bit class-b timer */
+        PBTIMER4:pbtimer4 {
+                #timer-cells = <0>;
+                compatible = "microchip,pic32-timer";
+                reg = <0xbf840600 0x200>;
+                interrupts = <TIMER4 DEFAULT_INT_PRI IRQ_TYPE_EDGE_RISING>;
+                clocks = <&PBCLK3>, <&TxCKI>;
+                timer-id = <4>;
+        };
 
 	pic32_ether: ethernet@bf882000 {
 		compatible = "microchip,pic32-ether";
@@ -70,11 +66,20 @@
 		pinctrl-0 = <&pinctrl_eth0>;
 	};
 
-	watchdog: wdt@bf800800 {
-		compatible = "microchip,pic32-wdt-v2";
-		reg = <0xbf800800 0x200>;
-		clocks = <&LPRC>;
-	};
+        usart0: serial@bf822000 {
+                compatible = "microchip,pic32-usart";
+                reg = <0xbf822000 0x50>;
+                interrupts = <UART1_FAULT DEFAULT_INT_PRI IRQ_TYPE_LEVEL_HIGH>,
+                             <UART1_RECEIVE_DONE DEFAULT_INT_PRI IRQ_TYPE_LEVEL_HIGH>,
+                             <UART1_TRANSFER_DONE DEFAULT_INT_PRI IRQ_TYPE_LEVEL_HIGH>;
+                clocks = <&PBCLK2>;
+                pinctrl-names = "default";
+                pinctrl-0 = < &pinctrl_uart1>;
+        };
+
+        aliases {
+                serial0 = &usart0;
+        };
 
 	dma: dma-controller@bf811000 {
 		compatible = "microchip,pic32-dma";
@@ -90,37 +95,18 @@
 		#dma-cells = <1>;
 	};
 
-	rng0: rng@bf8e6000 {
-		compatible = "microchip,pic32-rng";
-		reg = <0xbf8e6000 0x1000>;
-		clocks = <&PBCLK5>;
-	};
-
-	spi1:spi@0xbf821000 {
-		#address-cells = <1>;
-		#size-cells = <0>;
-		compatible = "microchip,pic32-spi";
-		reg = <0xbf821000 0x200>;
-		interrupt-parent = <&evic>;
-		interrupts = <SPI1_FAULT DEFAULT_INT_PRI IRQ_TYPE_LEVEL_HIGH>,
-			     <SPI1_RECEIVE_DONE DEFAULT_INT_PRI IRQ_TYPE_LEVEL_HIGH>,
-			     <SPI1_TRANSFER_DONE DEFAULT_INT_PRI IRQ_TYPE_LEVEL_HIGH>;
-		pinctrl-names = "default";
-		pinctrl-0 = <&pinctrl_spi1>;
-		cs-gpios = <&pioD 4 0>; /* #gpio-cells = <2>, first cell is pin# and second one unused */
-		clocks = <&PBCLK2>;
-		flash: m25p80@0 {
-			#address-cells = <1>;
-			#size-cells = <0>;
-			compatible = "sst25vf064c","m25p80";
-			spi-max-frequency = <25000000>;
-			reg = <0>;
-		};
-	};
-
-	aliases {
-		spi0 = &spi1;
-	};
+        /* AHB:   base virtual address: 0xbf8e_0000 : _ffff
+         * SDIOC: base virtual address:       _c000 : _cfff
+         * ! Bus matrix - AHB address range.
+         */
+        sdhci@bf8ec000 {
+                compatible = "microchip,pic32-sdhci";
+                reg = <0xbf8ec000 0x100>;
+                interrupts = <SDHC_EVENT DEFAULT_INT_PRI IRQ_TYPE_LEVEL_HIGH>;
+                /* TODO?: bus width and Shared Bus configs. */
+                /* change to SDHCLK */
+                clocks = <&REFCLKO4>;
+        };
 
 	lcd0: fb@bf8ea000 {
                 compatible = "microchip,pic32-lcd";
