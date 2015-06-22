@@ -346,6 +346,19 @@ config PALMAS_GPADC
 	  is used in smartphones and tablets and supports a 16 channel
 	  general purpose ADC.
 
+config PIC32_ADC
+	tristate "Microchip PIC32 ADC"
+	depends on MACH_PIC32
+	select IIO_BUFFER
+	select IIO_TRIGGER
+	select IIO_TRIGGERED_BUFFER
+	select ANON_INODES # hack to fix missing dep
+	help
+	  Say yes here to build support for Microchip PIC32 ADC.
+
+	  To compile this driver as a module, choose M here: the
+	  module will be called pic32_adc.
+
 config QCOM_SPMI_IADC
 	tristate "Qualcomm SPMI PMIC current ADC"
 	depends on SPMI
