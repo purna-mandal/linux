@@ -556,7 +556,7 @@ static int pic32_init_hardware(struct iio_dev *idev)
 {
 	struct pic32_adc_state *st = iio_priv(idev);
 	u32 ADCCON3_mask, ADCANCON_mask;
-	u32 reg;
+	u32 reg = 0;
 	int res;
 
 	pic32_adc_writel(st, PIC32_ADCANCON, 0);
@@ -644,9 +644,9 @@ static int pic32_init_hardware(struct iio_dev *idev)
 			PIC32_ADCCON1_FSSCLKEN | PIC32_ADCCON1_ADCEN);
 
 	/* Wait for ADC cores to warmup */
-	if (!(pic32_adc_readl(st, PIC32_ADCANCON) & reg)) {
+	if ((pic32_adc_readl(st, PIC32_ADCANCON) & reg) != reg) {
 		msleep(20);
-		if (!(pic32_adc_readl(st, PIC32_ADCANCON) & reg))
+		if ((pic32_adc_readl(st, PIC32_ADCANCON) & reg) != reg)
 			return -ETIMEDOUT;
 	}
 
