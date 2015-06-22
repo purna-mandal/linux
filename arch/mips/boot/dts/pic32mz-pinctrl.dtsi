@@ -217,6 +217,12 @@
 			};
 		};
 
+		adc1 {
+			pinctrl_adc1: adc1_0 {
+				pic32,single-pins = <PORT_A 10 PIC32_PIN_CONF_AN_IN>;
+			};
+		};
+
 		/* GPIO banks */
 		pioA: gpio@bf860000 {
 			compatible = "microchip,pic32-gpio";

@@ -8,6 +8,7 @@
 #include "pic32mz-uart.dtsi"
 #include "pic32mz-i2c.dtsi"
 #include "pic32mz-i2s.dtsi"
+#include "pic32mz-adc.dtsi"
 
 / {
 	#address-cells = <1>;
