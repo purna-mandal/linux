@@ -35,11 +35,11 @@
 
 /* UART name and device definitions */
 #define PIC32_DEV_NAME		"pic32-usart"
-#define PIC32_MAX_UARTS		3
+#define PIC32_MAX_UARTS		6
 
 #define PIC32_SDEV_NAME		"ttyS"
 #define PIC32_SDEV_MAJOR	TTY_MAJOR
-#define PIC32_SDEV_MINOR	67
+#define PIC32_SDEV_MINOR	64
 
 /* pic32_sport pointer for console use */
 static struct pic32_sport *pic32_sports[PIC32_MAX_UARTS];
@@ -53,28 +53,10 @@ static unsigned int pic32_uart_tx_empty(struct uart_port *port)
 	return (val & PIC32_UART_STA_TRMT) ? 1 : 0;
 }
 
-/* set RTS pin for this port */
-static void set_rts_state(struct pic32_sport *sport, unsigned int state)
-{
-	/* set RTS state */
-	if (gpio_is_valid(sport->rts_gpio)) {
-		if (state == 0)
-			gpio_set_value(sport->rts_gpio, 1);
-		else
-			gpio_set_value(sport->rts_gpio, 0);
-	}
-}
-
 /* serial core request to set UART outputs */
 static void pic32_uart_set_mctrl(struct uart_port *port, unsigned int mctrl)
 {
 	struct pic32_sport *sport = to_pic32_sport(port);
-
-	if (!sport->hw_flow_ctrl)
-		return;
-
-	/* set RTS state */
-	set_rts_state(sport, mctrl & TIOCM_RTS);
 
 	/* set loopback mode */
 	if (mctrl & TIOCM_LOOP)
@@ -102,12 +84,15 @@ static unsigned int pic32_uart_get_mctrl(struct uart_port *port)
 	struct pic32_sport *sport = to_pic32_sport(port);
 	unsigned int mctrl = 0;
 
-	if (!sport->hw_flow_ctrl)
-		return TIOCM_CTS;
+	if (!sport->hw_flow_ctrl) {
+		mctrl |= TIOCM_CTS;
+		goto ret;
+	}
 
 	if (get_cts_state(sport))
 		mctrl |= TIOCM_CTS;
 
+ret:
 	/* DSR and CD are not supported in PIC32, so return 1
 	 * RI is not supported in PIC32, so return 0 */
 	mctrl |= TIOCM_CD;
@@ -752,7 +737,6 @@ static int pic32_uart_probe(struct platform_device *pdev)
 	sport->irqflags_tx	= IRQF_NO_THREAD;
 	sport->clk		= devm_clk_get(&pdev->dev, NULL);
 	sport->cts_gpio		= -EINVAL;
-	sport->rts_gpio		= -EINVAL;
 	sport->dev		= &pdev->dev;
 
 	ret = clk_prepare_enable(sport->clk);
@@ -765,7 +749,8 @@ static int pic32_uart_probe(struct platform_device *pdev)
 	if (!sport->hw_flow_ctrl)
 		goto uart_no_flow_ctrl;
 
-	/* CTS/RTS gpios */
+	/* CTS/RTS gpios
+	 * !Note: Basically, CTS is needed for reading the status. */
 	sport->cts_gpio = of_get_named_gpio(np, "cts-gpios", 0);
 	if (gpio_is_valid(sport->cts_gpio)) {
 		ret = devm_gpio_request(sport->dev,
@@ -782,7 +767,7 @@ static int pic32_uart_probe(struct platform_device *pdev)
 			goto err;
 		}
 	}
-
+#if 0
 	sport->rts_gpio = of_get_named_gpio(np, "rts-gpios", 0);
 	if (gpio_is_valid(sport->rts_gpio)) {
 		ret = devm_gpio_request(sport->dev,
@@ -799,7 +784,7 @@ static int pic32_uart_probe(struct platform_device *pdev)
 			goto err;
 		}
 	}
-
+#endif
 uart_no_flow_ctrl:
 	pic32_sports[uart_idx] = sport;
 	port = &sport->port;

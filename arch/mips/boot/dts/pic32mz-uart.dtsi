@@ -1,12 +1,12 @@
 
 / {
 	aliases {
-		serial0 = &usart0;
-		serial1 = &usart1;
-		serial2 = &usart2;
+		serial0 = &usart1;
+		serial1 = &usart2;
+		serial3 = &usart4;
 	};
 
-	usart0: serial@bf822000 {
+	usart1: serial@bf822000 {
 		compatible = "microchip,pic32-usart";
 		reg = <0xbf822000 0x50>;
 		interrupts = <UART1_FAULT DEFAULT_INT_PRI IRQ_TYPE_LEVEL_HIGH>,
@@ -16,15 +16,9 @@
 		pinctrl-names = "default";
 		pinctrl-0 = <
 			&pinctrl_uart1>;
-#if 0
-			&pinctrl_uart1_cts
-			&pinctrl_uart1_rts>;
-		cts-gpios = <&pioB 15 0>;
-		rts-gpios = <&pioD 1 0>;
-#endif
 	};
 
-	usart1: serial@bf822200 {
+	usart2: serial@bf822200 {
 		compatible = "microchip,pic32-usart";
 		reg = <0xbf822200 0x50>;
 		interrupts = <UART2_FAULT DEFAULT_INT_PRI IRQ_TYPE_LEVEL_HIGH>,
@@ -34,28 +28,22 @@
 		pinctrl-names = "default";
 		pinctrl-0 = <
 			&pinctrl_uart2>;
-#if 0
-			&pinctrl_uart2_cts
-			&pinctrl_uart2_rts>;
-		cts-gpios = <&pioB 10 0>;
-		rts-gpios = <&pioD 7 0>;
-#endif
 	};
 
-	usart2: serial@bf822400 {
+	usart4: serial@bf822400 {
 		compatible = "microchip,pic32-usart";
 		reg = <0xbf822400 0x50>;
-		interrupts = <UART3_FAULT DEFAULT_INT_PRI IRQ_TYPE_LEVEL_HIGH>,
-			     <UART3_RECEIVE_DONE DEFAULT_INT_PRI IRQ_TYPE_LEVEL_HIGH>,
-			     <UART3_TRANSFER_DONE DEFAULT_INT_PRI IRQ_TYPE_LEVEL_HIGH>;
+		interrupts = <UART4_FAULT DEFAULT_INT_PRI IRQ_TYPE_LEVEL_HIGH>,
+			     <UART4_RECEIVE_DONE DEFAULT_INT_PRI IRQ_TYPE_LEVEL_HIGH>,
+			     <UART4_TRANSFER_DONE DEFAULT_INT_PRI IRQ_TYPE_LEVEL_HIGH>;
 		clocks = <&PBCLK2>;
 		pinctrl-names = "default";
 		pinctrl-0 = <
-			&pinctrl_uart3
-			&pinctrl_uart3_cts
-			&pinctrl_uart3_rts>;
+			&pinctrl_uart4
+			&pinctrl_uart4_cts
+			&pinctrl_uart4_rts>;
 		microchip,uart-has-rtscts;
-		cts-gpios = <&pioB 14 0>;
-		rts-gpios = <&pioE 9 0>;
+		cts-gpios = <&pioB 1 0>;
+		/*rts-gpios = <&pioD 10 0>;*/
 	};
 };

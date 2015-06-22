@@ -55,7 +55,6 @@ struct pic32_sport {
 
 	bool hw_flow_ctrl;
 	int cts_gpio;
-	int rts_gpio;
 
 	struct clk *clk;
 
