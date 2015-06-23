@@ -34,16 +34,9 @@
 		reg = <0xbf801404 0x3c>, /* in  */
 		      <0xbf801538 0x57>; /* out */
 		clocks = <&PBCLK1>;
-		pinctrl-0 = <&pinctrl_hog_pins1>;
-		pinctrl-names = "default";
+		/* RPB12, RPB13, RPB14 - swes */
 
 		/* functions */
-		hog_pins1 {
-			/* sw1 - hog pins */
-			pinctrl_hog_pins1: hog_pins1-0 {
-				pic32,single-pins = <PORT_B 12 PIC32_PIN_CONF_PU_IN>;
-			};
-		};
 		oc_pins1 {
 			pinctrl_oc1: ocmp1_pins {
 				pic32,pins = <PIC32_RP_OUT_RPD1 PIC32_PP_OUT_OC1 PIC32_PIN_CONF_DG_OUT>;
@@ -204,7 +197,7 @@
 			pinctrl_uart4: uart4-0 {
 				pic32,pins =
 					<PIC32_RP_OUT_RPE9 PIC32_PP_OUT_U4TX PIC32_PIN_CONF_DG_OUT
-					PIC32_RP_IN_RPB14  PIC32_PP_IN_U4RX PIC32_PIN_CONF_DG_IN>;
+					PIC32_RP_IN_RPE8  PIC32_PP_IN_U4RX PIC32_PIN_CONF_DG_IN>;
 			};
 
 			pinctrl_uart4_cts: uart4_cts-0 {
