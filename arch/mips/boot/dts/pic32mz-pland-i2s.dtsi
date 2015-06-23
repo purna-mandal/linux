@@ -1,0 +1,75 @@
+/ {
+	i2s1: i2s@bf821000 {
+		compatible = "microchip,pic32-i2s";
+		reg = <0xbf821000 0x200>;
+		interrupts = <SPI1_RECEIVE_DONE DEFAULT_INT_PRI IRQ_TYPE_LEVEL_HIGH>,
+			<SPI1_TRANSFER_DONE DEFAULT_INT_PRI IRQ_TYPE_LEVEL_HIGH>;
+		dmas = <&dma DMA_CHANNEL_0>,
+			<&dma DMA_CHANNEL_1>;
+		dma-names = "rx", "tx";
+		clocks = <&PBCLK2>, <&REFCLKO1>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&pinctrl_i2s1>;
+		status = "ok";
+	};
+
+	i2s2: i2s@bf821200 {
+		compatible = "microchip,pic32-i2s";
+		reg = <0xbf821200 0x200>;
+		interrupts = <SPI2_RECEIVE_DONE DEFAULT_INT_PRI IRQ_TYPE_LEVEL_HIGH>,
+			<SPI2_TRANSFER_DONE DEFAULT_INT_PRI IRQ_TYPE_LEVEL_HIGH>;
+		dmas = <&dma DMA_CHANNEL_2>,
+			<&dma DMA_CHANNEL_3>;
+		dma-names = "rx", "tx";
+		clocks = <&PBCLK2>, <&REFCLKO1>;
+		status = "disabled";
+	};
+
+	i2s3: i2s@bf821400 {
+		compatible = "microchip,pic32-i2s";
+		reg = <0xbf821400 0x200>;
+		interrupts = <SPI3_RECEIVE_DONE DEFAULT_INT_PRI IRQ_TYPE_LEVEL_HIGH>,
+			<SPI3_TRANSFER_DONE DEFAULT_INT_PRI IRQ_TYPE_LEVEL_HIGH>;
+		dmas = <&dma DMA_CHANNEL_4>,
+			<&dma DMA_CHANNEL_5>;
+		dma-names = "rx", "tx";
+		clocks = <&PBCLK2>, <&REFCLKO1>;
+		status = "disabled";
+	};
+
+	i2s4: i2s@bf821600 {
+		compatible = "microchip,pic32-i2s";
+		reg = <0xbf821600 0x200>;
+		interrupts = <SPI4_RECEIVE_DONE DEFAULT_INT_PRI IRQ_TYPE_LEVEL_HIGH>,
+			<SPI4_TRANSFER_DONE DEFAULT_INT_PRI IRQ_TYPE_LEVEL_HIGH>;
+		dmas = <&dma DMA_CHANNEL_6>,
+			<&dma DMA_CHANNEL_7>;
+		dma-names = "rx", "tx";
+		clocks = <&PBCLK2>, <&REFCLKO1>;
+		status = "disabled";
+	};
+
+	i2s5: i2s@bf821800 {
+		compatible = "microchip,pic32-i2s";
+		reg = <0xbf821800 0x200>;
+		interrupts = <SPI5_RECEIVE_DONE DEFAULT_INT_PRI IRQ_TYPE_LEVEL_HIGH>,
+			<SPI5_TRANSFER_DONE DEFAULT_INT_PRI IRQ_TYPE_LEVEL_HIGH>;
+		dmas = <&dma DMA_CHANNEL_0>,
+			<&dma DMA_CHANNEL_1>;
+		dma-names = "rx", "tx";
+		clocks = <&PBCLK2>, <&REFCLKO1>;
+		status = "disabled";
+	};
+
+	i2s6: i2s@bf821A00 {
+		compatible = "microchip,pic32-i2s";
+		reg = <0xbf821A00 0x200>;
+		interrupts = <SPI6_RECEIVE_DONE DEFAULT_INT_PRI IRQ_TYPE_LEVEL_HIGH>,
+			<SPI6_TRANSFER_DONE DEFAULT_INT_PRI IRQ_TYPE_LEVEL_HIGH>;
+		dmas = <&dma DMA_CHANNEL_2>,
+			<&dma DMA_CHANNEL_3>;
+		dma-names = "rx", "tx";
+		clocks = <&PBCLK2>, <&REFCLKO1>;
+		status = "disabled";
+	};
+};

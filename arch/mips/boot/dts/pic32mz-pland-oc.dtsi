@@ -1,0 +1,111 @@
+/*
+ * Device Tree Source for PIC32MZ Output Compare (OCMP) Module
+ *
+ * Copyright (C) 2014 Microchip Technology, Inc.
+ *               2014 Purna Chandra Mandal <purna.mandal@microchip.com>
+ *
+ * Licensed under GPLv2 or later.
+ */
+
+/ {
+	/* 32-bit time-base and 32-bit compare */
+	OCMP1:oc1 {
+		#oc-cells = <0>;
+		compatible = "microchip,pic32-ocmp";
+		reg = <0xbf844000 0x30>;
+		interrupts = <0>;
+		oc-id = <1>;
+		microchip,oc-32bit;
+		microchip,oc-adc;
+		status = "disabled";
+	};
+
+	/* 16-bit time-base, hence 16-bit count comparision */
+	OCMP2:oc2 {
+		#oc-cells = <0>;
+		compatible = "microchip,pic32-ocmp";
+		reg = <0xbf844200 0x30>;
+		interrupts = <0>;
+		oc-id = <2>;
+		microchip,oc-adc;
+		microchip,oc-32bit;
+		status = "disabled";
+	};
+
+	OCMP3:oc3 {
+		#oc-cells = <0>;
+		compatible = "microchip,pic32-ocmp";
+		reg = <0xbf844400 0x30>;
+		interrupts = <0>;
+		oc-id = <3>;
+		microchip,oc-adc;
+		microchip,oc-32bit;
+		status = "disabled";
+	};
+
+	OCMP4:oc4 {
+		#oc-cells = <0>;
+		compatible = "microchip,pic32-ocmp";
+		reg = <0xbf844600 0x30>;
+		interrupts = <0>;
+		oc-id = <4>;
+		microchip,oc-adc;
+		microchip,oc-32bit;
+		status = "disabled";
+	};
+
+	OCMP5:oc5 {
+		#oc-cells = <0>;
+		compatible = "microchip,pic32-ocmp";
+		reg = <0xbf844800 0x30>;
+		interrupts = <0>;
+		oc-id = <5>;
+		microchip,oc-adc;
+		microchip,oc-32bit;
+		status = "disabled";
+	};
+
+	OCMP6:oc6 {
+		#oc-cells = <0>;
+		compatible = "microchip,pic32-ocmp";
+		reg = <0xbf844A00 0x30>;
+		interrupts = <0>;
+		oc-id = <2>;
+		microchip,oc-adc;
+		microchip,oc-32bit;
+		status = "disabled";
+	};
+
+	OCMP7:oc7 {
+		#oc-cells = <0>;
+		compatible = "microchip,pic32-ocmp";
+		reg = <0xbf844C00 0x30>;
+		interrupts = <0>;
+		oc-id = <7>;
+		microchip,oc-adc;
+		microchip,oc-32bit;
+		status = "disabled";
+	};
+
+	OCMP8:oc8 {
+		#oc-cells = <0>;
+		compatible = "microchip,pic32-ocmp";
+		reg = <0xbf844E00 0x30>;
+		interrupts = <0>;
+		oc-id = <8>;
+		microchip,oc-adc;
+		microchip,oc-32bit;
+		status = "disabled";
+	};
+
+	OCMP9:oc9 {
+		#oc-cells = <0>;
+		compatible = "microchip,pic32-ocmp";
+		reg = <0xbf845000 0x30>;
+		interrupts = <0>;
+		oc-id = <9>;
+		microchip,oc-adc;
+		microchip,oc-32bit;
+		status = "disabled";
+	};
+};

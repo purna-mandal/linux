@@ -1,0 +1,87 @@
+/ {
+	i2c1: i2c@bf820000 {
+		compatible = "microchip,pic32-i2c";
+		reg = <0xbf820000 512>;
+		interrupts = <I2C1_MASTER_EVENT DEFAULT_INT_PRI IRQ_TYPE_EDGE_RISING>;
+		clock-frequency = <100000>;
+		clocks = <&PBCLK2>;
+		#address-cells = <1>;
+		#size-cells = <0>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&pinctrl_i2c1>;
+		status = "ok";
+
+		rtc@6f {
+			compatible = "mcp7940";
+			reg = <0x6f>;
+		};
+
+		at24@50 {
+			compatible = "at24";
+			reg = <0x50>;
+			pagesize = <64>;
+		};
+
+		accelerometer@38 {
+			compatible = "bma150";
+			reg = <0x38>;
+		};
+	};
+
+	i2c2: i2c@bf820200 {
+		compatible = "microchip,pic32-i2c";
+		reg = <0xbf820200 512>;
+		interrupts = <I2C2_MASTER_EVENT DEFAULT_INT_PRI IRQ_TYPE_EDGE_RISING>;
+		clock-frequency = <100000>;
+		clocks = <&PBCLK2>;
+		#address-cells = <1>;
+		#size-cells = <0>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&pinctrl_i2c2>;
+		status = "ok";
+
+		wm8731: wm8731@1a {
+                        compatible = "wlf,wm8731";
+                        reg = <0x1a>;
+                };
+
+		ak4953a: ak4953a@12 {
+			compatible = "asahi-kasei,ak4953a";
+			reg = <0x12>;
+			reset-gpio = <&pioH 3 0>;
+		};
+	};
+
+	i2c3: i2c@bf820400 {
+		compatible = "microchip,pic32-i2c";
+		reg = <0xbf820400 512>;
+		interrupts = <I2C3_MASTER_EVENT DEFAULT_INT_PRI IRQ_TYPE_EDGE_RISING>;
+		clock-frequency = <100000>;
+		clocks = <&PBCLK2>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&pinctrl_i2c3>;
+		status = "disabled";
+	};
+
+	i2c4: i2c@bf820600 {
+		compatible = "microchip,pic32-i2c";
+		reg = <0xbf820600 512>;
+		interrupts = <I2C4_MASTER_EVENT DEFAULT_INT_PRI IRQ_TYPE_EDGE_RISING>;
+		clock-frequency = <100000>;
+		clocks = <&PBCLK2>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&pinctrl_i2c4>;
+		status = "disabled";
+	};
+
+	i2c5: i2c@bf820800 {
+		compatible = "microchip,pic32-i2c";
+		reg = <0xbf820800 512>;
+		interrupts = <I2C5_MASTER_EVENT DEFAULT_INT_PRI IRQ_TYPE_EDGE_RISING>;
+		clock-frequency = <100000>;
+		clocks = <&PBCLK2>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&pinctrl_i2c5>;
+		status = "disabled";
+	};
+};

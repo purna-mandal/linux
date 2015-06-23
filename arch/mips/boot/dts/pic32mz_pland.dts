@@ -1,0 +1,372 @@
+/dts-v1/;
+#include <dt-bindings/interrupt-controller/microchip,pic32mz-evic.h>
+
+#include "pic32mz-clk.dtsi"
+#include "pic32mz-timer.dtsi"
+#include "pic32mz-pland-oc.dtsi"
+#include "pic32mz-pland-pinctrl.dtsi"
+#include "pic32mz-pland-uart.dtsi"
+#include "pic32mz-pland-i2c.dtsi"
+#include "pic32mz-pland-i2s.dtsi"
+
+/ {
+	#address-cells = <1>;
+	#size-cells = <1>;
+	compatible = "mti,pic32";
+	model = "Microchip PIC32MZ Starter Kit";
+	interrupt-parent = <&evic>;
+
+	aliases {
+		usb1 = &usb1;
+		usb1_phy = &usb1_phy;
+		spi1 = &spi1;
+		spi2 = &spi2;
+		spi7 = &sqi1;
+	};
+
+	cpus {
+		cpu@0 {
+			compatible = "mips,mips14KEc";
+		};
+	};
+
+	chosen {
+		bootargs = "console=ttyS1,115200n8";
+	};
+
+	evic: interrupt-controller@bf810000 {
+		compatible = "microchip,evic-v2";
+		interrupt-controller;
+		#interrupt-cells = <3>;
+		reg = <0xbf810000 0x1000>;
+		device_type="evic-v2";
+	};
+
+	pwm_1 {
+		compatible = "microchip,pic32-pwm";
+		microchip,timer = <&PBTIMER23>; /* pbtimer phandle */
+		microchip,ocmp = <&OCMP1>; /* ocmp phandle */
+		pinctrl-names = "default";
+		pinctrl-0 = <&pinctrl_oc1>;
+		status = "ok";
+	};
+
+	pwm_2 {
+		compatible = "microchip,pic32-pwm";
+		microchip,timer = <&PBTIMER23>;
+		microchip,ocmp = <&OCMP2>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&pinctrl_oc2>;
+		status = "ok";
+	};
+
+	pwm_3 {
+		compatible = "microchip,pic32-pwm";
+		microchip,timer = <&PBTIMER23>;
+		microchip,ocmp = <&OCMP3>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&pinctrl_oc3>;
+		status = "ok";
+	};
+
+	pwm_4 {
+		compatible = "microchip,pic32-pwm";
+		microchip,timer = <&PBTIMER23>;
+		microchip,ocmp = <&OCMP4>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&pinctrl_oc4>;
+		status = "ok";
+	};
+
+	pwm_5 {
+		compatible = "microchip,pic32-pwm";
+		microchip,timer = <&PBTIMER23>;
+		microchip,ocmp = <&OCMP5>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&pinctrl_oc5>;
+		status = "ok";
+
+	};
+
+	pwm_6 {
+		compatible = "microchip,pic32-pwm";
+		microchip,timer = <&PBTIMER23>;
+		microchip,ocmp = <&OCMP6>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&pinctrl_oc6>;
+		status = "disabled";
+	};
+
+	pwm_7 {
+		compatible = "microchip,pic32-pwm";
+		microchip,timer = <&PBTIMER23>;
+		microchip,ocmp = <&OCMP7>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&pinctrl_oc7>;
+		status = "ok";
+	};
+
+	pwm_8 {
+		compatible = "microchip,pic32-pwm";
+		microchip,timer = <&PBTIMER23>;
+		microchip,ocmp = <&OCMP8>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&pinctrl_oc8>;
+		status = "disabled";
+	};
+
+	pwm_9 {
+		compatible = "microchip,pic32-pwm";
+		microchip,timer = <&PBTIMER23>;
+		microchip,ocmp = <&OCMP9>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&pinctrl_oc9>;
+		status = "disabled";
+	};
+
+	rtc0@bf800c00 {
+		compatible = "microchip,pic32-rtc";
+		reg = <0xbf800c00 0x60>;
+		interrupts = <REAL_TIME_CLOCK DEFAULT_INT_PRI IRQ_TYPE_EDGE_RISING>;
+		clocks = <&RTCCLK>;
+	};
+
+	pic32_ether: ethernet@bf882000 {
+		compatible = "microchip,pic32-ether";
+		reg = <0xbf882000 0x1000>;
+		interrupts = <ETHERNET_INTERRUPT DEFAULT_INT_PRI IRQ_TYPE_LEVEL_HIGH>;
+		phy-mode = "rmii";
+		mac-address = [00 00 00 00 00 00];
+		clock-names = "eth_clk";
+		clocks = <&PBCLK5>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&pinctrl_eth0>;
+		reset-gpio = <&pioH 11 0>;
+	};
+
+	watchdog: wdt@bf800800 {
+		compatible = "microchip,pic32-wdt";
+		reg = <0xbf800800 0x200>;
+		clocks = <&LPRC>;
+	};
+
+	watchdog2: dmt@bf800a00 {
+		compatible = "microchip,pic32-dmt";
+		reg = <0xbf800a00 0x80>;
+		clocks = <&PBCLK7>;
+	};
+
+	dma: dma-controller@bf811000 {
+		compatible = "microchip,pic32-dma";
+		reg = <0xbf811000 0x2000>;
+		interrupts = <DMA_CHANNEL_0 DEFAULT_INT_PRI IRQ_TYPE_EDGE_RISING>,
+			<DMA_CHANNEL_1 DEFAULT_INT_PRI IRQ_TYPE_EDGE_RISING>,
+			<DMA_CHANNEL_2 DEFAULT_INT_PRI IRQ_TYPE_EDGE_RISING>,
+			<DMA_CHANNEL_3 DEFAULT_INT_PRI IRQ_TYPE_EDGE_RISING>,
+			<DMA_CHANNEL_4 DEFAULT_INT_PRI IRQ_TYPE_EDGE_RISING>,
+			<DMA_CHANNEL_5 DEFAULT_INT_PRI IRQ_TYPE_EDGE_RISING>,
+			<DMA_CHANNEL_6 DEFAULT_INT_PRI IRQ_TYPE_EDGE_RISING>,
+			<DMA_CHANNEL_7 DEFAULT_INT_PRI IRQ_TYPE_EDGE_RISING>;
+		#dma-cells = <1>;
+	};
+
+	rng0: rng@bf8e6000 {
+		compatible = "microchip,pic32-rng";
+		reg = <0xbf8e6000 0x1000>;
+		clocks = <&PBCLK5>;
+	};
+
+	sound0 {
+		compatible = "microchip,snd-pic32-proto";
+
+		microchip,cpu-dai = <&i2s1 &i2s1>;
+		microchip,audio-codec = <&wm8731>;
+		status = "ok";
+	};
+
+	sound1 {
+		compatible = "microchip,snd-pic32-ak4953a";
+
+		microchip,cpu-dai = <&i2s1 &i2s1>;
+		microchip,audio-codec = <&ak4953a>;
+		status = "disabled";
+	};
+
+	sqi1:sqi@0xbf8e2000 {
+		#address-cells = <1>;
+		#size-cells = <0>;
+		compatible = "microchip,pic32-sqi";
+		reg = <0xbf8e2000 0x200>;
+		clocks = <&REFCLKO2>, <&PBCLK5>;
+		clock-names = "spi_ck","reg_ck";
+		interrupt-parent = <&evic>;
+		interrupts = <SQI1_EVENT DEFAULT_INT_PRI IRQ_TYPE_LEVEL_HIGH>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&pinctrl_sqi1>;
+#if 0
+		/* Michigan */
+		microchip,sqi-v1;
+#endif
+		status = "disabled";
+
+		quadflash:m25p80@0 {
+			#address-cells = <1>;
+			#size-cells = <0>;
+			compatible = "sst26vf032b","m25p80";
+			m25p,fast-read;
+			spi-max-frequency = <25000000>;
+			spi-rx-bus-width = <4>;
+			spi-tx-bus-width = <4>;
+			reg = <1>;
+		};
+	};
+
+	spi1:spi@0xbf821000 {
+		#address-cells = <1>;
+		#size-cells = <0>;
+		compatible = "microchip,pic32-spi";
+		reg = <0xbf821000 0x200>;
+		interrupt-parent = <&evic>;
+		interrupts = <SPI1_FAULT DEFAULT_INT_PRI IRQ_TYPE_LEVEL_HIGH>,
+			     <SPI1_RECEIVE_DONE DEFAULT_INT_PRI IRQ_TYPE_LEVEL_HIGH>,
+			     <SPI1_TRANSFER_DONE DEFAULT_INT_PRI IRQ_TYPE_LEVEL_HIGH>;
+		interrupt-names = "fault","rx","tx";
+		pinctrl-names = "default";
+		pinctrl-0 = <&pinctrl_spi1>;
+		cs-gpios = <&pioD 4 0>; /* #gpio-cells = <2>, first cell is pin# and second one unused */
+		clocks = <&PBCLK2>,<&REFCLKO1>;
+		clock-names = "mck0","mck1";
+		status = "disabled";
+
+		flash: m25p80@0 {
+			#address-cells = <1>;
+			#size-cells = <0>;
+			compatible = "sst25vf064c","m25p80";
+			spi-cpol;
+			spi-cpha;
+			spi-max-frequency = <25000000>;
+			reg = <0>;
+			m25p,fast-read;
+			status = "disabled";
+		};
+
+		mmc-slot@0 {
+			compatible = "mmc-spi-slot";
+			reg = <0>;
+			voltage-ranges = <3300 3300>;
+			spi-max-frequency = <10000000>;
+			gpios = <&pioJ 0 0 /* Card Detect */
+				 &pioB 13 0 /* Write Protect*/
+				>;
+			status = "disabled";
+		};
+	};
+
+	spi2:spi@0xbf821200 {
+		#address-cells = <1>;
+		#size-cells = <0>;
+		compatible = "microchip,pic32-spi";
+		reg = <0xbf821200 0x200>;
+		interrupt-parent = <&evic>;
+		interrupts = <SPI2_FAULT DEFAULT_INT_PRI IRQ_TYPE_LEVEL_HIGH>,
+			     <SPI2_RECEIVE_DONE DEFAULT_INT_PRI IRQ_TYPE_LEVEL_HIGH>,
+			     <SPI2_TRANSFER_DONE DEFAULT_INT_PRI IRQ_TYPE_LEVEL_HIGH>;
+		interrupt-names = "fault","rx","tx";
+		pinctrl-names = "default";
+		pinctrl-0 = <&pinctrl_spi2>;
+		cs-gpios = <&pioB 14 1>; /* #gpio-cells = <2>, first cell is pin# and second one unused */
+		clocks = <&PBCLK2>,<&REFCLKO1>;
+		clock-names = "mck0","mck1";
+
+		mmc-slot@0 {
+			compatible = "mmc-spi-slot";
+			reg = <0>;
+			voltage-ranges = <3300 3300>;
+			spi-max-frequency = <10000000>;
+			gpios = <&pioJ 0 0 /* Card Detect */
+				 &pioB 13 0 /* Write Protect*/
+				>;
+			status = "ok";
+		};
+	};
+
+	clk-test {
+		compatible = "microchip,pic32-clk-test";
+		clocks = <&PBCLK2>;
+		microchip,pic32-refclk-test;
+		microchip,pic32-pb2clk-test;
+		microchip,pic32-sclk-test;
+		microchip,pic32-spll-test;
+		status = "disabled";
+	};
+
+	usb1: usb@bf8e3000 {
+		compatible = "microchip,pic32-usb";
+		reg = <0xbf8e3000 0x1000>;
+		reg-names = "mc";
+		interrupts = <USB_GENERAL_EVENT DEFAULT_INT_PRI IRQ_TYPE_LEVEL_HIGH>,
+				<USB_DMA_EVENT DEFAULT_INT_PRI IRQ_TYPE_LEVEL_HIGH>;
+		interrupt-names = "mc", "dma", "over_current";
+		dr_mode = "host";
+		mentor,multipoint = <1>;
+		mentor,num-eps = <8>;
+		mentor,ram-bits = <11>;
+		mentor,power = <500>;
+		phys = <&usb1_phy>;
+		clocks = <&PBCLK5>;
+		clock-names = "usb_clk";
+		/*clock-frequency = <24000000>;*/
+		pinctrl-names = "default";
+		pinctrl-0 = <
+			&pinctrl_usb1_vbus
+			&pinctrl_usb1_usbid>;
+
+		/* VBUS_ON */
+		vbus_on-gpios = <&pioB 5 0>;
+		usb_id-gpios = <&pioF 3 0>;
+
+		usb_overcurrent@0 {
+			interrupt-parent = <&pioB>;
+			interrupts = <2 PIC32_CN_FALLING>; /* GPIO_B_2 */
+		};
+
+		usb_id_pin@0 {
+			interrupt-parent = <&pioF>;
+			interrupts = <3 PIC32_CN_FALLING>; /* GPIO_F_3 */
+		};
+	};
+	usb1_phy: hsusb1_phy@0 {
+		compatible = "usb-nop-xceiv";
+		reg = <0xbf8e4000 0x1000>;
+		clocks = <&UPLL>;
+		clock-names = "main_clk";
+		clock-frequency = <24000000>;
+	};
+
+	leds {
+                pinctrl-names = "default";
+                pinctrl-0 = <&user_leds_s0>;
+
+                compatible = "gpio-leds";
+
+                led@1 {
+                        label = "pic32mz:red:heartbeat";
+                        gpios = <&pioH 0 GPIO_ACTIVE_HIGH>;
+                        linux,default-trigger = "heartbeat";
+                        default-state = "off";
+                };
+
+                led@2 {
+                        label = "pic32mz:yellow:led2";
+                        gpios = <&pioH 1 GPIO_ACTIVE_HIGH>;
+                        default-state = "on";
+                };
+
+                led@3 {
+                        label = "pic32mz:green:led3";
+                        gpios = <&pioH 2 GPIO_ACTIVE_HIGH>;
+                        default-state = "on";
+                };
+
+	};
+};
