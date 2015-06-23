@@ -14,7 +14,7 @@
 
 #ifdef CONFIG_PINCTRL_PIC32MZ
 #include "dt-bindings/pinctrl/pic32.h"
-#elif CONFIG_PINCTRL_PIC32MZDA
+#elif defined(CONFIG_PINCTRL_PIC32MZDA)
 #include "dt-bindings/pinctrl/pic32mzda.h"
 #endif
 
