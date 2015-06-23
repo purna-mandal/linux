@@ -28,6 +28,7 @@
 		};
 	};
 
+#if 0
 	i2c2: i2c@bf820200 {
 		compatible = "microchip,pic32-i2c";
 		reg = <0xbf820200 512>;
@@ -51,6 +52,29 @@
 			reset-gpio = <&pioH 3 0>;
 		};
 	};
+#else
+       i2c2: i2c2@gpio {
+                compatible = "i2c-gpio";
+                gpios = <&pioA 3 GPIO_ACTIVE_HIGH>, <&pioA 2 GPIO_ACTIVE_HIGH>;
+                i2c-gpio,delay-us = <2>;
+                #address-cells = <1>;
+               #size-cells = <0>;
+               status = "okay";
+               pinctrl-names = "default";
+               pinctrl-0 = <&pinctrl_i2c2>;
+
+               wm8731: wm8731@1a {
+                        compatible = "wlf,wm8731";
+                        reg = <0x1a>;
+                };
+
+               ak4953a: ak4953a@12 {
+                       compatible = "asahi-kasei,ak4953a";
+                       reg = <0x12>;
+                       reset-gpio = <&pioH 3 0>;
+               };
+       };
+#endif
 
 	i2c3: i2c@bf820400 {
 		compatible = "microchip,pic32-i2c";
