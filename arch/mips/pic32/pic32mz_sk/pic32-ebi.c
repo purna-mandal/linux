@@ -33,20 +33,22 @@
 
 #define EBI_SRAM	0x20 /* memory type */
 
+#if defined(CONFIG_PIC32MZ_PLANC) || defined(CONFIG_PIC32MZ_PLAND)
+#define CHIP_SIZE SZ_4M
+#define MEMSIZE 7 /* 4MB */
+#else
+#define CHIP_SIZE SZ_2M
+#define MEMSIZE 6 /* 2MB */
+#endif
+
 void __init setup_ebi_sram(void)
 {
 	void __iomem *ebi_base = ioremap(PIC32_BASE_EBI, 0x1000);
 	void __iomem *config_base = ioremap(PIC32_BASE_CONFIG, 0x400);
-	int mem_sz = SZ_2M;
-	int mem_sz_mask = 6;
 
 	BUG_ON(!config_base);
 	BUG_ON(!ebi_base);
 
-#if defined(CONFIG_PIC32MZ_PLANC) || defined(CONFIG_PIC32MZ_PLAND)
-	mem_sz = SZ_4M;
-	mem_sz_mask = 7;
-#endif
 	/*
 	 * Enable address lines [0:23]
 	 * Controls access of pins shared with PMP
@@ -68,28 +70,33 @@ void __init setup_ebi_sram(void)
 	/*
 	 * Connect CS0/CS1/CS2/CS3 to physical address
 	 */
-	__raw_writel(0x20000000, ebi_base + EBICS0);
-	__raw_writel(0x20000000 + (mem_sz * 1), ebi_base + EBICS1);
-	__raw_writel(0x20000000 + (mem_sz * 2), ebi_base + EBICS2);
-	__raw_writel(0x20000000 + (mem_sz * 3), ebi_base + EBICS3);
+	__raw_writel(0x20000000 + (CHIP_SIZE * 0), ebi_base + EBICS0);
+	__raw_writel(0x20000000 + (CHIP_SIZE * 1), ebi_base + EBICS1);
+	__raw_writel(0x20000000 + (CHIP_SIZE * 2), ebi_base + EBICS2);
+	__raw_writel(0x20000000 + (CHIP_SIZE * 3), ebi_base + EBICS3);
 
 	/*
-	 * Memory size is set as 2 MB
+	 * Memory size is set as 2/4 MB
 	 * Memory type is set as SRAM
 	 * Uses timing numbers in EBISMT0
 	 */
-	__raw_writel(EBI_SRAM|mem_sz_mask, ebi_base + EBIMSK0);
-	__raw_writel(EBI_SRAM|mem_sz_mask, ebi_base + EBIMSK1);
-	__raw_writel(EBI_SRAM|mem_sz_mask, ebi_base + EBIMSK2);
-	__raw_writel(EBI_SRAM|mem_sz_mask, ebi_base + EBIMSK3);
+	__raw_writel(1 << 5 | MEMSIZE, ebi_base + EBIMSK0);
+	__raw_writel(1 << 5 | MEMSIZE, ebi_base + EBIMSK1);
+#if defined(CONFIG_PIC32MZ_PLAND)
+	__raw_writel(1 << 8 | 1 << 5 | MEMSIZE, ebi_base + EBIMSK2);
+	__raw_writel(1 << 8 | 1 << 5 | MEMSIZE, ebi_base + EBIMSK3);
+#else
+	__raw_writel(1 << 5 | MEMSIZE, ebi_base + EBIMSK2);
+	__raw_writel(1 << 5 | MEMSIZE, ebi_base + EBIMSK3);
+#endif
 
 	/*
 	 * Configure EBISMT0
-	 * ISSI device has read cycles time of 6 ns
-	 * ISSI device has address setup time of 0ns
-	 * ISSI device has address/data hold time of 2.5 ns
-	 * ISSI device has Write Cycle Time of 6 ns
-	 * Bus turnaround time is 0 ns
+	 * ISSI device has read cycles time
+	 * ISSI device has address setup time
+	 * ISSI device has address/data hold time
+	 * ISSI device has Write Cycle Time
+	 * Bus turnaround time
 	 * No page mode
 	 * No page size
 	 * No RDY pin
@@ -98,8 +105,8 @@ void __init setup_ebi_sram(void)
 	__raw_writel(1 << 10 | 1 << 8 | 1 << 6 | 2, ebi_base + EBISMT0);
 	__raw_writel(0, ebi_base + EBISMT1);
 #elif defined(CONFIG_PIC32MZ_PLAND)
-	__raw_writel(1 << 10 | 1 << 8 | 1 << 6 | 2, ebi_base + EBISMT0);
-	__raw_writel(1 << 10 | 1 << 8 | 1 << 6 | 3, ebi_base + EBISMT1);
+	__raw_writel(1 << 10 | 1 << 8 | 1 << 6 | 3, ebi_base + EBISMT0);
+	__raw_writel(1 << 10 | 1 << 8 | 1 << 6 | 4, ebi_base + EBISMT1);
 #else
 	__raw_writel(2 << 10 | 1 << 8 | 1 << 6 | 7, ebi_base + EBISMT0);
 	__raw_writel(0, ebi_base + EBISMT1);
@@ -110,9 +117,6 @@ void __init setup_ebi_sram(void)
 	 * Keep default data width to 16-bits
 	 */
 	__raw_writel(0x00000000, ebi_base + EBISMCON);
-
-	iounmap(config_base);
-	iounmap(ebi_base);
 }
 
 static __init void write_pattern(u32 p, u32 sram_size)
