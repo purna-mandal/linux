@@ -144,8 +144,13 @@ static void ebi_setup(void)
 	 */
 	__raw_writel(1 << 5 | MEMSIZE, ebi_base + EBIMSK0);
 	__raw_writel(1 << 5 | MEMSIZE, ebi_base + EBIMSK1);
+#if defined(CONFIG_PIC32MZ_PLAND)
 	__raw_writel(1 << 8 | 1 << 5 | MEMSIZE, ebi_base + EBIMSK2);
 	__raw_writel(1 << 8 | 1 << 5 | MEMSIZE, ebi_base + EBIMSK3);
+#else
+	__raw_writel(1 << 5 | MEMSIZE, ebi_base + EBIMSK2);
+	__raw_writel(1 << 5 | MEMSIZE, ebi_base + EBIMSK3);
+#endif
 
 	/*
 	 * Configure EBISMT0
