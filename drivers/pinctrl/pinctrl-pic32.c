@@ -235,6 +235,7 @@ int pic32_pinconf_open_drain_runtime(unsigned pin_id, int value)
 
 	return pic32_pinconf_open_drain(pic32_chip, pin, value);
 }
+EXPORT_SYMBOL(pic32_pinconf_open_drain_runtime);
 
 int pic32_pinconf_pullup_runtime(unsigned pin_id, int value)
 {
@@ -246,6 +247,7 @@ int pic32_pinconf_pullup_runtime(unsigned pin_id, int value)
 
 	return pic32_pinconf_pullup(pic32_chip, pin, value);
 }
+EXPORT_SYMBOL(pic32_pinconf_pullup_runtime);
 
 int pic32_pinconf_pulldown_runtime(unsigned pin_id, int value)
 {
@@ -257,6 +259,7 @@ int pic32_pinconf_pulldown_runtime(unsigned pin_id, int value)
 
 	return pic32_pinconf_pulldown(pic32_chip, pin, value);
 }
+EXPORT_SYMBOL(pic32_pinconf_pulldown_runtime);
 
 int pic32_pinconf_analog_runtime(unsigned pin_id)
 {
@@ -268,6 +271,7 @@ int pic32_pinconf_analog_runtime(unsigned pin_id)
 
 	return pic32_pinconf_analog(pic32_chip, pin);
 }
+EXPORT_SYMBOL(pic32_pinconf_analog_runtime);
 
 int pic32_pinconf_dg_runtime(unsigned pin_id)
 {
@@ -279,6 +283,7 @@ int pic32_pinconf_dg_runtime(unsigned pin_id)
 
 	return pic32_pinconf_dg(pic32_chip, pin);
 }
+EXPORT_SYMBOL(pic32_pinconf_dg_runtime);
 
 static int pic32_gpio_request(struct gpio_chip *chip, unsigned offset)
 {
