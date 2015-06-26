@@ -19,6 +19,7 @@ obj-y			+= pic32-memory-zboot.o
 endif
 
 obj-$(CONFIG_EARLY_PRINTK)	+= pic32-console.o
+obj-$(CONFIG_DEBUG_FS)		+= pic32-pinctrl-debug.o
 
 obj-y += pic32-clk-test.o
 CFLAGS_pic32-clk-test.o := -w
