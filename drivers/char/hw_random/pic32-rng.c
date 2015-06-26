@@ -8,6 +8,7 @@
 
 #include <linux/kernel.h>
 #include <linux/module.h>
+#include <linux/delay.h>
 #include <linux/slab.h>
 #include <linux/err.h>
 #include <linux/io.h>
@@ -15,18 +16,28 @@
 #include <linux/platform_device.h>
 #include <linux/of.h>
 #include <linux/of_device.h>
+#include <linux/clk.h>
+#include <linux/clkdev.h>
 
 #define DRIVER_NAME "pic32-rng"
 
 #define RNGCON		0x04
+#define RNGCON_TRNGEN	BIT(8)
 #define RNGCON_RNGEN	BIT(9)
 #define RNGCON_CONT	BIT(10)
+#define RNGCON_LOAD	BIT(12)
+#define RNGPOLY1	0x08
+#define RNGPOLY2	0x0C
 #define RNGNUMGEN1	0x10
 #define RNGNUMGEN2	0x14
+#define RNGSEED1	0x18
+#define RNGSEED2	0x1C
+#define RNGRCNT		0x20
 
 struct pic32_rng {
 	void __iomem *base;
 	struct hwrng rng;
+	struct clk *clk;
 };
 
 static int pic32_rng_read(struct hwrng *rng, void *buf, size_t max,
@@ -35,16 +46,13 @@ static int pic32_rng_read(struct hwrng *rng, void *buf, size_t max,
 	struct pic32_rng *prng = container_of(rng, struct pic32_rng, rng);
 	u64 *data = buf;
 
-	*data = ((u64)__raw_readl(prng->base + RNGNUMGEN2) << 32) +
-		__raw_readl(prng->base + RNGNUMGEN1);
-
+	*data = ((u64)readl(prng->base + RNGNUMGEN2) << 32) +
+		readl(prng->base + RNGNUMGEN1);
 	return 8;
 }
 
 static const struct of_device_id pic32_rng_of_match[] = {
-	{
-		.compatible	= "microchip,pic32-rng",
-	},
+	{ .compatible	= "microchip,pic32-rng", },
 	{},
 };
 MODULE_DEVICE_TABLE(of, pic32_rng_of_match);
@@ -53,6 +61,7 @@ static int pic32_rng_probe(struct platform_device *pdev)
 {
 	struct pic32_rng *prng;
 	struct resource *res;
+	u32 v;
 	int ret;
 
 	prng = devm_kzalloc(&pdev->dev, sizeof(*prng), GFP_KERNEL);
@@ -64,7 +73,22 @@ static int pic32_rng_probe(struct platform_device *pdev)
 	if (IS_ERR(prng->base))
 		return PTR_ERR(prng->base);
 
-	__raw_writel(RNGCON_RNGEN | RNGCON_CONT | 0xFF, prng->base + RNGCON);
+	prng->clk = devm_clk_get(&pdev->dev, NULL);
+	if (IS_ERR(prng->clk))
+		return PTR_ERR(prng->clk);
+
+	clk_prepare_enable(prng->clk);
+
+	/* enable TRNG & wait for seed */
+	writel(0x7f, prng->base + RNGRCNT);
+	v = readl(prng->base + RNGCON);
+	v |= RNGCON_TRNGEN;
+	writel(v, prng->base + RNGCON);
+	__udelay(1);
+
+	/* load initial seed & start PRNG */
+	v |= 0xff|RNGCON_RNGEN|RNGCON_CONT|RNGCON_LOAD;
+	writel(v, prng->base + RNGCON);
 
 	prng->rng.name = pdev->name;
 	prng->rng.read = pic32_rng_read;
@@ -88,8 +112,8 @@ static int pic32_rng_remove(struct platform_device *pdev)
 	struct pic32_rng *rng = platform_get_drvdata(pdev);
 
 	hwrng_unregister(&rng->rng);
-	__raw_writel(0, rng->base + RNGCON);
-
+	writel(0, rng->base + RNGCON);
+	clk_disable_unprepare(rng->clk);
 	return 0;
 }
 
