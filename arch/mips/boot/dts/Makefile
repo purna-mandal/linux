@@ -15,7 +15,7 @@ dtb-$(CONFIG_MIPS_PIC32MZ)		+= pic32mz_pland.dtb.o
 else
 dtb-$(CONFIG_MIPS_PIC32MZ)		+= pic32mz.dtb.o
 endif
-dtb-$(CONFIG_MIPS_PIC32_EPLATFORM)	+= eplatform.dtb.o
+dtb-$(CONFIG_MIPS_PIC32MZDA)		+= pic32mzda.dtb.o
 
 obj-y		+= $(patsubst %.dtb, %.dtb.o, $(dtb-y))
 

@@ -145,7 +145,7 @@ config COMMON_CLK_CDCE706
 
 config COMMON_CLK_PIC32MZ
 	tristate "Clock drivers for PIC32 SOCs"
-	depends on (MIPS_PIC32MZ || MIPS_PIC32_EPLATFORM) && OF
+	depends on (MACH_PIC32) && OF
 	---help---
           Supports clock drivers for Microchip PIC32MZ based SOCs. These SOCs have
           complex clock tree consisting of oscillators, PLL, dividers, muxes.

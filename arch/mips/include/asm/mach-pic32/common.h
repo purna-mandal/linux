@@ -18,7 +18,7 @@ void __init pic32_init_early_console(void);
 
 #if defined(CONFIG_MIPS_PIC32MZ)
 #define CONSOLE_PORT    2
-#elif defined(CONFIG_MIPS_PIC32_EPLATFORM)
+#elif defined(CONFIG_MIPS_PIC32MZDA)
 #define CONSOLE_PORT    1
 #else
 #error "No Console defined!"

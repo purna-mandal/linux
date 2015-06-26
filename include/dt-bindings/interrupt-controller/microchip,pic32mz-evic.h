@@ -199,7 +199,7 @@
 #define UART6_FAULT 188
 #define UART6_RECEIVE_DONE 189
 #define UART6_TRANSFER_DONE 190
-/* microchip,eplatform-evic */
+/* microchip,pic32mzda-evic */
 #define SDHC_EVENT 191
 #define GLCD_INTERRUPT 192
 #define GPU_INTERRUPT 193

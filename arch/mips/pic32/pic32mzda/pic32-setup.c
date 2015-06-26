@@ -23,7 +23,7 @@
 
 const char *get_system_type(void)
 {
-	return "PIC32 ePlatform";
+	return "PIC32MZDA";
 }
 
 void __init plat_mem_setup(void)

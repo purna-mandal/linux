@@ -9,9 +9,9 @@ endif
 all-$(CONFIG_MIPS_PIC32MZ)	:= $(COMPRESSION_FNAME).bin
 
 #
-# PIC32 ePlatform
+# PIC32MZDA
 #
-platform-$(CONFIG_MIPS_PIC32_EPLATFORM)	+= pic32/
-cflags-$(CONFIG_MIPS_PIC32_EPLATFORM)	+= -I$(srctree)/arch/mips/include/asm/mach-pic32
-load-$(CONFIG_MIPS_PIC32_EPLATFORM)    += 0xffffffff88000000
-all-$(CONFIG_MIPS_PIC32_EPLATFORM)	:= $(COMPRESSION_FNAME).bin
+platform-$(CONFIG_MIPS_PIC32MZDA)	+= pic32/
+cflags-$(CONFIG_MIPS_PIC32MZDA)	+= -I$(srctree)/arch/mips/include/asm/mach-pic32
+load-$(CONFIG_MIPS_PIC32MZDA)    += 0xffffffff88000000
+all-$(CONFIG_MIPS_PIC32MZDA)	:= $(COMPRESSION_FNAME).bin

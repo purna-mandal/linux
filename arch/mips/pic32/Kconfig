@@ -26,7 +26,6 @@ config MIPS_PIC32MZ
 	select LIBFDT
 	select USE_OF
 	select PINCTRL
-	select PINCTRL_PIC32
 	select PINCTRL_PIC32MZ
 	select SERIAL_PIC32 if TTY
 	select BUILTIN_DTB
@@ -36,8 +35,8 @@ config MIPS_PIC32MZ
 	  A starter kit and Plan B development board combo that adds additional
 	  SRAM over the EBI interface.
 
-config MIPS_PIC32_EPLATFORM
-	bool "PIC32 ePlatform"
+config MIPS_PIC32MZDA
+	bool "PIC32MZDA Platform"
 	select PIC32
 	select BOOT_ELF32
 	select BOOT_RAW
@@ -57,15 +56,13 @@ config MIPS_PIC32_EPLATFORM
 	select LIBFDT
 	select USE_OF
 	select PINCTRL
-	select PINCTRL_PIC32
-	select PINCTRL_PIC32MZ
+	select PINCTRL_PIC32MZDA
 	select SERIAL_PIC32 if TTY
 	select BUILTIN_DTB
 	help
-	  Microchip PIC32 ePlatform.
+	  Microchip PIC32MZDA Platform.
 
-	  An in-house simulation platform for development of future generations
-	  of PIC32 platforms.
+	  32-bit microcontroller.
 
 endchoice
 
@@ -109,5 +106,11 @@ config PIC32MZ_PLAND
 	  PIC32MZ With Plan D Board
 
 endchoice
+
+config MIPS_PIC32_EPLATFORM
+	bool "ePlatform Support"
+	depends on MIPS_PIC32MZDA
+	help
+	  PIC32MZDA with ePlatform workarounds.
 
 endif # MACH_PIC32

@@ -41,7 +41,7 @@ static void __init setup_early_console(char port)
 	BUG_ON(!pps_base);
 	BUG_ON(port != 1);
 
-	/* PPS for U1 RX/TX on ePlatform */
+	/* PPS for U1 RX/TX on PIC32MZDA */
 	__raw_writel(0x01, pps_base + REG_RPD3R);
 	__raw_writel(0x00, pps_base + REG_U1RXR);
 

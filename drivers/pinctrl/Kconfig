@@ -208,28 +208,24 @@ config PINCTRL_ZYNQ
 	  This selectes the pinctrl driver for Xilinx Zynq.
 
 config PINCTRL_PIC32
-	bool "Enable PIC32 pinctrl core"
+	bool
 	depends on PIC32
 	select PINMUX
 	select GENERIC_PINCONF
 	select GPIOLIB_IRQCHIP
 	select GENERIC_IRQ_CHIP
-	help
-	  This selectes the pinctrl core for PIC32 family.
 
 config PINCTRL_PIC32MZ
 	bool "Enable PIC32MZ pinctrl"
-	depends on MIPS_PIC32MZ || MIPS_PIC32_EPLATFORM
-	depends on PINCTRL_PIC32
-	depends on USE_OF
+	depends on MIPS_PIC32MZ
+	select PINCTRL_PIC32
 	help
 	  This selectes the pinctrl driver for PIC32mz.
 
 config PINCTRL_PIC32MZDA
 	bool "Enable PIC32MZDA pinctrl"
-	depends on MIPS_PIC32MZ || MIPS_PIC32_EPLATFORM
-	depends on PINCTRL_PIC32
-	depends on USE_OF
+	depends on MIPS_PIC32MZDA
+	select PINCTRL_PIC32
 	help
 	  This selectes the pinctrl driver for PIC32mzda.
 

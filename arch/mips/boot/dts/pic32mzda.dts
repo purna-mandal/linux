@@ -7,7 +7,7 @@
 	#address-cells = <1>;
 	#size-cells = <1>;
 	compatible = "mti,pic32";
-	model = "Microchip ePlatform";
+	model = "Microchip PIC32MZDA";
 	interrupt-parent = <&evic>;
 
 	cpus {
