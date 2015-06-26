@@ -436,7 +436,8 @@ static inline void pic32_spi_cs_deassert(struct pic32_spi *pic32s)
 	gpio_set_value(spi_dev->cs_gpio, !cs_high);
 }
 
-static int pic32_poll_transfer(struct pic32_spi *pic32s, unsigned long timeout)
+static int pic32_spi_poll_transfer(struct pic32_spi *pic32s,
+	unsigned long timeout)
 {
 	unsigned long deadline;
 
@@ -509,7 +510,7 @@ static inline void pic32_spi_dma_abort(struct pic32_spi *pic32s)
 	dev_err(&pic32s->master->dev, "%s, aborted\n", __func__);
 }
 
-static int pic32_dma_transfer(struct pic32_spi *pic32s,
+static int pic32_spi_dma_transfer(struct pic32_spi *pic32s,
 	struct spi_transfer *xfer)
 {
 	dma_cookie_t cookie;
@@ -520,35 +521,15 @@ static int pic32_dma_transfer(struct pic32_spi *pic32s,
 	if (!master->dma_rx || !master->dma_tx)
 		return -ENODEV;
 
-	if (pic32s->mesg->is_dma_mapped) {
-		desc_rx = dmaengine_prep_slave_single(master->dma_rx,
-					xfer->rx_dma,
-					xfer->len,
-					DMA_FROM_DEVICE,
-					DMA_PREP_INTERRUPT | DMA_CTRL_ACK);
-
-		desc_tx = dmaengine_prep_slave_single(master->dma_tx,
-					xfer->tx_dma,
-					xfer->len,
-					DMA_TO_DEVICE,
-					DMA_PREP_INTERRUPT | DMA_CTRL_ACK);
-	} else {
-		desc_rx = dmaengine_prep_slave_sg(master->dma_rx,
-					xfer->rx_sg.sgl,
-					xfer->rx_sg.nents,
-					DMA_FROM_DEVICE,
-					DMA_PREP_INTERRUPT | DMA_CTRL_ACK);
-
-		desc_tx = dmaengine_prep_slave_sg(master->dma_tx,
-					xfer->tx_sg.sgl,
-					xfer->tx_sg.nents,
-					DMA_TO_DEVICE,
-					DMA_PREP_INTERRUPT | DMA_CTRL_ACK);
-	}
-
+	desc_rx = dmaengine_prep_slave_sg(master->dma_rx,
+			xfer->rx_sg.sgl, xfer->rx_sg.nents,
+			DMA_FROM_DEVICE, DMA_PREP_INTERRUPT | DMA_CTRL_ACK);
 	if (!desc_rx)
 		goto err_dma;
 
+	desc_tx = dmaengine_prep_slave_sg(master->dma_tx,
+			xfer->tx_sg.sgl, xfer->tx_sg.nents,
+			DMA_TO_DEVICE, DMA_PREP_INTERRUPT | DMA_CTRL_ACK);
 	if (!desc_tx)
 		goto err_dma;
 
@@ -684,7 +665,7 @@ static int pic32_spi_one_transfer(struct pic32_spi *pic32s,
 
 	/* polling mode? */
 	if (pic32s->flags & SPI_XFER_POLL) {
-		ret = pic32_poll_transfer(pic32s, 2 * HZ);
+		ret = pic32_spi_poll_transfer(pic32s, 2 * HZ);
 		spin_unlock_irqrestore(&pic32s->lock, flags);
 
 		if (ret) {
@@ -701,7 +682,7 @@ static int pic32_spi_one_transfer(struct pic32_spi *pic32s,
 	if (pic32_spi_dma_is_ready(pic32s)) {
 		spin_unlock_irqrestore(&pic32s->lock, flags);
 
-		ret = pic32_dma_transfer(pic32s, transfer);
+		ret = pic32_spi_dma_transfer(pic32s, transfer);
 		if (ret) {
 			dev_err(&master->dev, "dma xfer error\n");
 			message->status = ret;
@@ -928,16 +909,14 @@ static int pic32_spi_dma_prep(struct pic32_spi *pic32s, struct device *dev)
 	dma_cap_zero(mask);
 	dma_cap_set(DMA_SLAVE, mask);
 
-	master->dma_rx = dma_request_slave_channel_compat(mask,
-				spi_dma_filter_fn, pic32s, dev, "spi-rx");
+	master->dma_rx = dma_request_channel(mask, spi_dma_filter_fn, pic32s);
 	if (!master->dma_rx) {
 		dev_err(dev, "RX channel not found, SPI unable to use DMA\n");
 		err = -EBUSY;
 		goto out_err;
 	}
 
-	master->dma_tx = dma_request_slave_channel_compat(mask,
-				spi_dma_filter_fn, pic32s, dev, "spi-tx");
+	master->dma_tx = dma_request_channel(mask, spi_dma_filter_fn, pic32s);
 	if (!master->dma_tx) {
 		dev_err(dev, "TX channel not found, SPI unable to use DMA\n");
 		err = -EBUSY;
@@ -1065,7 +1044,6 @@ static int pic32_spi_hw_probe(struct platform_device *pdev,
 	/* Select clk src */
 	spi_set_clk(pic32s, clk_id);
 
-	spin_lock_init(&pic32s->lock);
 	return 0;
 
 err_unmap_mem:
@@ -1126,6 +1104,7 @@ static int pic32_spi_probe(struct platform_device *pdev)
 		master->can_dma	= pic32_spi_can_dma;
 
 	init_completion(&pic32s->xfer_done);
+	spin_lock_init(&pic32s->lock);
 
 	/* install irq handlers (with irq-disabled) */
 	irq_set_status_flags(pic32s->fault_irq, IRQ_NOAUTOEN);
