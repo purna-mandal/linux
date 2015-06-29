@@ -1,0 +1,17 @@
+
+/ {
+	aliases {
+		serial3 = &usart4;
+	};
+
+	usart4: serial@bf822600 {
+		compatible = "microchip,pic32-usart";
+		reg = <0xbf822600 0x50>;
+		interrupts = <UART4_FAULT DEFAULT_INT_PRI IRQ_TYPE_LEVEL_HIGH>,
+			     <UART4_RECEIVE_DONE DEFAULT_INT_PRI IRQ_TYPE_LEVEL_HIGH>,
+			     <UART4_TRANSFER_DONE DEFAULT_INT_PRI IRQ_TYPE_LEVEL_HIGH>;
+		clocks = <&PBCLK2>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&pinctrl_uart4>;
+	};
+};

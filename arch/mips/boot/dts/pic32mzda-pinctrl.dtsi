@@ -34,16 +34,8 @@
 		reg = <0xbf801400 0x3c>, /* in  */
 		      <0xbf801538 0x57>; /* out */
 		clocks = <&PBCLK1>;
-		pinctrl-0 = <&pinctrl_hog_pins1>;
-		pinctrl-names = "default";
 
 		/* functions */
-		hog_pins1 {
-			/* sw1 - hog pins */
-			pinctrl_hog_pins1: hog_pins1-0 {
-				pic32,single-pins = <PORT_B 12 PIC32_PIN_CONF_PU_IN>;
-			};
-		};
 		oc_pins1 {
 			pinctrl_oc1: ocmp1_pins {
 				pic32,pins = <PIC32_RP_OUT_RPD1 PIC32_PP_OUT_OC1 PIC32_PIN_CONF_DG_OUT>;
@@ -181,39 +173,12 @@
 			};
 		};
 
-		uart1 {
-			/* uart1: pin groups */
-			pinctrl_uart1: uart1-0 {
+		uart4 {
+			/* uart4: pin groups */
+			pinctrl_uart4: uart4-0 {
 				pic32,pins =
-					<PIC32_RP_OUT_RPD3 PIC32_PP_OUT_U1TX PIC32_PIN_CONF_DG_OUT
-					 PIC32_RP_IN_RPD2 PIC32_PP_IN_U1RX PIC32_PIN_CONF_DG_IN>;
-			};
-		};
-
-		uart2 {
-			/* uart2: pin groups */
-			pinctrl_uart2: uart2-0 {
-				pic32,pins =
-					<PIC32_RP_OUT_RPD0 PIC32_PP_OUT_U2TX PIC32_PIN_CONF_DG_OUT
-					 PIC32_RP_IN_RPB0 PIC32_PP_IN_U2RX PIC32_PIN_CONF_DG_IN>;
-			};
-		};
-
-		uart3 {
-			/* uart3: pin groups */
-			pinctrl_uart3: uart3-0 {
-				pic32,pins =
-					<PIC32_RP_OUT_RPA14 PIC32_PP_OUT_U3TX PIC32_PIN_CONF_DG_OUT
-					 PIC32_RP_IN_RPG7 PIC32_PP_IN_U3RX PIC32_PIN_CONF_DG_IN>;
-			};
-
-			pinctrl_uart3_cts: uart3_cts-0 {
-				pic32,pins =
-					<PIC32_RP_IN_RPB14 PIC32_PP_IN_U3CTS PIC32_PIN_CONF_DG_IN>;
-			};
-			pinctrl_uart3_rts: uart3_rts-0 {
-				pic32,pins =
-					<PIC32_RP_OUT_RPE9 PIC32_PP_OUT_U3RTS PIC32_PIN_CONF_DG_OUT>;
+					<PIC32_RP_OUT_RPB0 PIC32_PP_OUT_U4TX PIC32_PIN_CONF_DG_OUT
+					 PIC32_RP_IN_RPG9 PIC32_PP_IN_U4RX PIC32_PIN_CONF_DG_IN>;
 			};
 		};
 

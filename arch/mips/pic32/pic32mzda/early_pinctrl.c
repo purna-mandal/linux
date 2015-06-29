@@ -1,7 +1,7 @@
 /*
- * PIC32 Early pinctrl configurations.
+ * PIC32mzda Early pinctrl configurations.
  *
- * Copyright (C) 2014 Microchip Technology, Inc.
+ * Copyright (C) 2015 Microchip Technology, Inc.
  *
  * Authors:
  *   Sorin-Andrei Pistirica <andrei.pistirica@microchip.com>
@@ -9,7 +9,7 @@
  * Licensed under GPLv2 or later.
  */
 #include <asm/io.h>
-#include <asm/mach-pic32/early_pinctrl.h>
+#include <asm/mach-pic32/pic32mzda_early_pinctrl.h>
 
 enum pic32_ports {
 	PIC32_PORTA = 0,
@@ -31,72 +31,35 @@ static inline struct pic32_pio __iomem *
 		sizeof(struct pic32_pio));
 }
 
-void __init pic32_earlyco_port0_pinctrl(void)
+/* console 3, uart 4 - early pinmux */
+void __init pic32mzda_earlyco_port3_pinctrl(void)
 {
 	struct pic32_ppsinr __iomem *ppsinr =
 		ioremap_nocache(PPSIN_BASE, sizeof(*ppsinr));
 	struct pic32_ppsoutr __iomem *ppsoutr =
 		ioremap_nocache(PPSOUT_BASE, sizeof(*ppsoutr));
 	struct pic32_pio __iomem *piob = pic32_map_port_addr(PIC32_PORTB);
-	struct pic32_pio __iomem *piod = pic32_map_port_addr(PIC32_PORTD);
 	struct pic32_pio __iomem *piog = pic32_map_port_addr(PIC32_PORTG);
 
 	BUG_ON(!ppsinr);
 	BUG_ON(!ppsoutr);
 	BUG_ON(!piob);
-	BUG_ON(!piod);
-	BUG_ON(!piod);
-
-	/* pins linkage */
-	writel(0x01, &ppsinr->u1rxr);     /* RX (RPG8 :J1-81)  */
-	writel(0x03, &ppsinr->u1ctsr);    /* CTS(RPB15:J1-90)  */
-	writel(0x01, &ppsoutr->rpg0r[7]); /* TX (RPG7 :J1-91)  */
-	writel(0x01, &ppsoutr->rpd0r[1]); /* RTS(RPD1 :J1-118) */
-
-	/* pins type: digital */
-	writel((1 << 8), &piog->ansel.clr); /* RX (RPG8 :J1-81)  */
-	writel((1 << 15), &piob->ansel.clr);/* CTS(RPB15:J1-90)  */
-	writel((1 << 7), &piog->ansel.clr); /* TX (RPG7 :J1-91)  */
-	writel((1 << 8), &piod->ansel.clr); /* RTS(RPD1 :J1-118) */
-
-	iounmap(ppsinr);
-	iounmap(ppsoutr);
-	iounmap(piob);
-	iounmap(piod);
-	iounmap(piog);
-}
-
-void __init pic32_earlyco_port1_pinctrl(void)
-{
-	struct pic32_ppsinr __iomem *ppsinr =
-		ioremap_nocache(PPSIN_BASE, sizeof(*ppsinr));
-	struct pic32_ppsoutr __iomem *ppsoutr =
-		ioremap_nocache(PPSOUT_BASE, sizeof(*ppsoutr));
-	struct pic32_pio __iomem *piob = pic32_map_port_addr(PIC32_PORTB);
-	struct pic32_pio __iomem *piod = pic32_map_port_addr(PIC32_PORTD);
-	struct pic32_pio __iomem *piog = pic32_map_port_addr(PIC32_PORTD);
-
-	BUG_ON(!ppsinr);
-	BUG_ON(!ppsoutr);
-	BUG_ON(!piob);
-	BUG_ON(!piod);
 	BUG_ON(!piog);
 
 	/* pins linkage */
-	writel(0x01, &ppsinr->u2rxr);     /* RX (RPG6)         */
-	writel(0x06, &ppsinr->u2ctsr);    /* CTS(RPB10:J1-117) */
-	writel(0x02, &ppsoutr->rpb0r[14]);/* TX (RPB14)        */
-	writel(0x02, &ppsoutr->rpd0r[7]); /* RTS(RPD7:J1-122)  */
+	writel(0x01, &ppsinr->u4rxr);     /* RX (RPG9) */
+	writel(0x02, &ppsoutr->rpb0r[0]); /* TX (RPB0) */
 
 	/* pins type: digital */
-	writel((1 << 6), &piog->ansel.clr); /* RX (RPG6)  */
-	writel((1 << 10), &piob->ansel.clr);/* CTS(RPB10) */
-	writel((1 << 14), &piob->ansel.clr);/* TX (RPB14) */
-	writel((1 << 7), &piod->ansel.clr); /* RTS(RPD7)  */
+	writel((1 << 9), &piog->ansel.clr); /* RX (RPG9) */
+	writel(1, &piob->ansel.clr);        /* TX (RPB0) */
+
+	/* pins direction */
+	writel((1 << 9), &piog->tris.set); /* RX (RPG9): input  */
+	writel(1, &piob->tris.clr);        /* TX (RPB0): output */
 
 	iounmap(ppsinr);
 	iounmap(ppsoutr);
 	iounmap(piob);
-	iounmap(piod);
 	iounmap(piog);
 }
