@@ -42,6 +42,7 @@ static int snd_pic32_proto_hw_params(struct snd_pcm_substream *substream,
 				       struct snd_pcm_hw_params *params)
 {
 	struct snd_soc_pcm_runtime *rtd = substream->private_data;
+	struct snd_soc_codec *codec = rtd->codec;
 	struct snd_soc_dai *codec_dai = rtd->codec_dai;
 	int sysclk = 12288000; /* This is fixed on this board */
 
@@ -49,6 +50,8 @@ static int snd_pic32_proto_hw_params(struct snd_pcm_substream *substream,
 	int ret = snd_soc_dai_set_sysclk(codec_dai, WM8731_SYSCLK_XTAL,
 		sysclk, SND_SOC_CLOCK_IN);
 	if (ret < 0) {
+		dev_err(codec->dev,
+			"Failed to set WM8731 SYSCLK: %d\n", ret);
 		return ret;
 	}
 
@@ -103,7 +106,7 @@ static void snd_pic32_proto_of_node_put(void)
 {
 	int i;
 
-	for (i = 0; i < 2; i++) {
+	for (i = 0; i < ARRAY_SIZE(snd_pic32_proto_dai); i++) {
 		if (snd_pic32_proto_dai[i].cpu_of_node)
 			of_node_put((struct device_node *)
 				snd_pic32_proto_dai[i].cpu_of_node);
@@ -129,12 +132,7 @@ static int snd_pic32_proto_of_probe(struct platform_device *pdev,
 		return -EINVAL;
 	}
 
-#if 0
-	for (i = 0; i < 2; i++) {
-#else
-	/* FIXME: Not setup for seperate playback/capture */
-	for (i = 0; i < 1 /*2*/; i++) {
-#endif
+	for (i = 0; i < ARRAY_SIZE(snd_pic32_proto_dai); i++) {
 		snd_pic32_proto_dai[i].cpu_of_node = msp_np[i];
 		snd_pic32_proto_dai[i].cpu_dai_name = NULL;
 		snd_pic32_proto_dai[i].platform_of_node = msp_np[i];
