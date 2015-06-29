@@ -511,7 +511,7 @@ static int pic32_dma_terminate_all(struct dma_chan *dchan)
 static int pic32_dma_pause(struct dma_chan *dchan)
 {
 	struct pic32_chan *chan = to_pic32_dma_chan(dchan);
-	int ret;
+	int ret = 0;
 
 	/* Pause/Resume only allowed with cyclic mode */
 	if (!chan->cyclic)
