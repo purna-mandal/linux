@@ -30,11 +30,11 @@ struct unionfs_rdutil_callback {
 };
 
 /* This filldir function makes sure only whiteouts exist within a directory. */
-static int readdir_util_callback(void *dirent, const char *oname, int namelen,
+static int readdir_util_callback(struct dir_context * dirent, const char *oname, int namelen,
 				 loff_t offset, u64 ino, unsigned int d_type)
 {
 	int err = 0;
-	struct unionfs_rdutil_callback *buf = dirent;
+	struct unionfs_rdutil_callback *buf = container_of(dirent, struct unionfs_rdutil_callback, ctx);
 	int is_whiteout;
 	struct filldir_node *found;
 	char *name = (char *) oname;

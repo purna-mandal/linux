@@ -36,11 +36,10 @@ struct unionfs_getdents_callback {
 };
 
 /* based on generic filldir in fs/readir.c */
-static int unionfs_filldir(void *__buf, const char *oname, int namelen,
+static int unionfs_filldir(struct dir_context * __buf, const char *oname, int namelen,
 			   loff_t offset, u64 ino, unsigned int d_type)
 {
-	struct unionfs_getdents_callback *buf =
-		(struct unionfs_getdents_callback *) __buf;
+	struct unionfs_getdents_callback *buf = container_of(__buf, struct unionfs_getdents_callback, ctx);
 	struct filldir_node *found = NULL;
 	int err = 0;
 	int is_whiteout;
