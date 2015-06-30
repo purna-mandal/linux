@@ -593,11 +593,6 @@ out:
 	return err;
 }
 
-static bool spi_dma_filter_fn(struct dma_chan *chan, void *pdata)
-{
-	return pdata && chan;
-}
-
 static void pic32_spi_set_word_size(struct pic32_spi *pic32s, u8 bpw)
 {
 	u8 spi_bpw;
@@ -909,14 +904,16 @@ static int pic32_spi_dma_prep(struct pic32_spi *pic32s, struct device *dev)
 	dma_cap_zero(mask);
 	dma_cap_set(DMA_SLAVE, mask);
 
-	master->dma_rx = dma_request_channel(mask, spi_dma_filter_fn, pic32s);
+	master->dma_rx = dma_request_slave_channel_compat(mask, NULL, 0,
+							  dev, "spi-rx");
 	if (!master->dma_rx) {
 		dev_err(dev, "RX channel not found, SPI unable to use DMA\n");
 		err = -EBUSY;
 		goto out_err;
 	}
 
-	master->dma_tx = dma_request_channel(mask, spi_dma_filter_fn, pic32s);
+	master->dma_tx = dma_request_slave_channel_compat(mask, NULL, 0,
+							  dev, "spi-tx");
 	if (!master->dma_tx) {
 		dev_err(dev, "TX channel not found, SPI unable to use DMA\n");
 		err = -EBUSY;
