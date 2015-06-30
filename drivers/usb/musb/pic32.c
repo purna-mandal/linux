@@ -511,8 +511,8 @@ static int get_musb_port_mode(struct device *dev)
 	}
 }
 
-/* Microchip FIFO config - fits in 8KB */
-static struct musb_fifo_cfg microchip_musb_fifo_cfg[] = {
+/* Microchip FIFO config 0 - fits in 8KB */
+static struct musb_fifo_cfg microchip_musb_fifo_cfg0[] = {
 { .hw_ep_num =  1, .style = FIFO_TX,   .maxpacket = 512, },
 { .hw_ep_num =  1, .style = FIFO_RX,   .maxpacket = 512, },
 { .hw_ep_num =  2, .style = FIFO_TX,   .maxpacket = 512, },
@@ -529,6 +529,17 @@ static struct musb_fifo_cfg microchip_musb_fifo_cfg[] = {
 { .hw_ep_num =  7, .style = FIFO_RX,   .maxpacket = 512, },
 };
 
+/* Microchip FIFO config 1 - fits in 8KB */
+static struct musb_fifo_cfg microchip_musb_fifo_cfg1[] = {
+{ .hw_ep_num =  1, .style = FIFO_TX,   .maxpacket = 512, },
+{ .hw_ep_num =  1, .style = FIFO_RX,   .maxpacket = 512, },
+{ .hw_ep_num =  2, .style = FIFO_TX,   .maxpacket = 512, },
+{ .hw_ep_num =  2, .style = FIFO_RX,   .maxpacket = 512, },
+{ .hw_ep_num =  3, .style = FIFO_TX,   .maxpacket = 512, },
+{ .hw_ep_num =  3, .style = FIFO_RX,   .maxpacket = 512, },
+{ .hw_ep_num =  4, .style = FIFO_RXTX,  .maxpacket = 4096, },
+};
+
 int pic32_create_musb_pdev(struct pic32_glue *glue,
 		struct platform_device *parent)
 {
@@ -540,6 +551,7 @@ int pic32_create_musb_pdev(struct pic32_glue *glue,
 	struct platform_device *musb;
 	struct device_node *dn = parent->dev.of_node;
 	int ret;
+	int fifo_mode;
 
 	memset(resources, 0, sizeof(resources));
 	res = platform_get_resource_byname(parent, IORESOURCE_MEM, "mc");
@@ -600,8 +612,18 @@ int pic32_create_musb_pdev(struct pic32_glue *glue,
 	config->num_eps = get_int_prop(dn, "mentor,num-eps");
 	config->ram_bits = get_int_prop(dn, "mentor,ram-bits");
 	config->host_port_deassert_reset_at_resume = 1;
-	config->fifo_cfg = microchip_musb_fifo_cfg;
-	config->fifo_cfg_size = ARRAY_SIZE(microchip_musb_fifo_cfg);
+	fifo_mode = get_int_prop(dn, "microchip,fifo-mode");
+	dev_info(dev, "using fifo mode %d\n", fifo_mode);
+	switch (fifo_mode) {
+	case 1:
+		config->fifo_cfg = microchip_musb_fifo_cfg1;
+		config->fifo_cfg_size = ARRAY_SIZE(microchip_musb_fifo_cfg1);
+		break;
+	default:
+		config->fifo_cfg = microchip_musb_fifo_cfg0;
+		config->fifo_cfg_size = ARRAY_SIZE(microchip_musb_fifo_cfg0);
+		break;
+	}
 	pdata.mode = get_musb_port_mode(dev);
 
 	/* DT keeps this entry in mA, musb expects it as per USB spec */
