@@ -318,6 +318,7 @@
 		mentor,num-eps = <8>;
 		mentor,ram-bits = <11>;
 		mentor,power = <500>;
+		microchip,fifo-mode = <1>;
 		phys = <&usb1_phy>;
 		clocks = <&PBCLK5>;
 		clock-names = "usb_clk";
