@@ -156,6 +156,7 @@ static inline void pic32_chan_writel(struct pic32_chan *chan,
 static void pic32_dma_desc_free(struct virt_dma_desc *vdesc)
 {
 	struct pic32_desc *desc = container_of(vdesc, struct pic32_desc, vdesc);
+
 	kfree(desc);
 }
 
@@ -258,7 +259,7 @@ static irqreturn_t pic32_dma_isr(int irq, void *data)
 			"DMA block transfer complete\n");
 
 		if (chan->desc) {
-			if ((chan->desc->dir != DMA_MEM_TO_MEM) && chan->cyclic) {
+			if (chan->cyclic) {
 				vchan_cyclic_callback(&chan->desc->vdesc);
 			} else if (chan->next_sg == chan->desc->num_sgs) {
 				list_del(&chan->desc->vdesc.node);
@@ -587,6 +588,33 @@ static void pic32_dma_free(struct pic32_dma_dev *od)
 	}
 }
 
+static struct dma_chan *
+pic32_dma_xlate_of(struct of_phandle_args *dma_spec, struct of_dma *ofdma)
+{
+	struct dma_device *dev = ofdma->of_dma_data;
+	struct dma_chan *dchan, *match = NULL;
+	struct pic32_chan *chan;
+
+	if (!dev || dma_spec->args_count != 1)
+		return NULL;
+
+	list_for_each_entry(dchan, &dev->channels, device_node) {
+		chan = to_pic32_dma_chan(dchan);
+		if (chan->irq == dma_spec->args[0]) {
+			match = dchan;
+			break;
+		}
+	}
+
+	if (!match)
+		return NULL;
+
+	pr_debug("chan: %s (%s)\n", dma_chan_name(match),
+		match->client_count ? "busy" : "free");
+
+	return dma_get_slave_channel(match);
+}
+
 #define PIC32_DMA_BUSWIDTHS	(BIT(DMA_SLAVE_BUSWIDTH_1_BYTE) |	\
 				BIT(DMA_SLAVE_BUSWIDTH_2_BYTES) |	\
 				BIT(DMA_SLAVE_BUSWIDTH_4_BYTES))
@@ -671,7 +699,7 @@ static int pic32_dma_probe(struct platform_device *pdev)
 		return ret;
 
 	if (np) {
-		ret = of_dma_controller_register(np, of_dma_simple_xlate, NULL);
+		ret = of_dma_controller_register(np, pic32_dma_xlate_of, dd);
 		if (ret)
 			dev_err(&pdev->dev,
 				"could not register of_dma_controller\n");
