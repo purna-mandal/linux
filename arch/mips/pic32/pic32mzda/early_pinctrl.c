@@ -31,7 +31,7 @@ static inline struct pic32_pio __iomem *
 		sizeof(struct pic32_pio));
 }
 
-/* console 3, uart 4 - early pinmux */
+/* console, uart 2 - early pinmux */
 void __init pic32mzda_earlyco_port3_pinctrl(void)
 {
 	struct pic32_ppsinr __iomem *ppsinr =
@@ -47,16 +47,16 @@ void __init pic32mzda_earlyco_port3_pinctrl(void)
 	BUG_ON(!piog);
 
 	/* pins linkage */
-	writel(0x01, &ppsinr->u4rxr);     /* RX (RPG9) */
-	writel(0x02, &ppsoutr->rpb0r[0]); /* TX (RPB0) */
+	writel(0x02, &ppsoutr->rpg0r[9]);   /* TX (RPG9) */
+	writel(0x05, &ppsinr->u2rxr);       /* RX (RPB0) */
 
 	/* pins type: digital */
-	writel((1 << 9), &piog->ansel.clr); /* RX (RPG9) */
-	writel(1, &piob->ansel.clr);        /* TX (RPB0) */
+	writel((1 << 9), &piog->ansel.clr); /* TX (RPG9) */
+	writel(1, &piob->ansel.clr);        /* RX (RPB0) */
 
 	/* pins direction */
-	writel((1 << 9), &piog->tris.set); /* RX (RPG9): input  */
-	writel(1, &piob->tris.clr);        /* TX (RPB0): output */
+	writel((1 << 9), &piog->tris.clr); /* TX (RPG9): output  */
+	writel(1, &piob->tris.set);        /* RX (RPB0): input */
 
 	iounmap(ppsinr);
 	iounmap(ppsoutr);

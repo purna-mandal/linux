@@ -1,7 +1,8 @@
 /dts-v1/;
 #include <dt-bindings/interrupt-controller/microchip,pic32mz-evic.h>
-#include "pic32mz-clk.dtsi"
-#include "pic32mz-pinctrl.dtsi"
+#include "pic32mzda-clk.dtsi"
+#include "pic32mzda-pinctrl.dtsi"
+#include "pic32mzda-uart.dtsi"
 
 / {
 	#address-cells = <1>;
@@ -65,21 +66,6 @@
 		pinctrl-names = "default";
 		pinctrl-0 = <&pinctrl_eth0>;
 	};
-
-        usart0: serial@bf822000 {
-                compatible = "microchip,pic32-usart";
-                reg = <0xbf822000 0x50>;
-                interrupts = <UART1_FAULT DEFAULT_INT_PRI IRQ_TYPE_LEVEL_HIGH>,
-                             <UART1_RECEIVE_DONE DEFAULT_INT_PRI IRQ_TYPE_LEVEL_HIGH>,
-                             <UART1_TRANSFER_DONE DEFAULT_INT_PRI IRQ_TYPE_LEVEL_HIGH>;
-                clocks = <&PBCLK2>;
-                pinctrl-names = "default";
-                pinctrl-0 = < &pinctrl_uart1>;
-        };
-
-        aliases {
-                serial0 = &usart0;
-        };
 
 	dma: dma-controller@bf811000 {
 		compatible = "microchip,pic32-dma";

@@ -13,6 +13,7 @@
  */
 #include <asm/mach-pic32/pic32.h>
 #include <asm/mach-pic32/common.h>
+#include <asm/mach-pic32/pic32mzda_early_pinctrl.h>
 
 #define UART_ENABLE           (1<<15)
 #define UART_ENABLE_RX        (1<<12)
@@ -35,15 +36,22 @@ extern u32 pic32_get_pbclk(int bus);
 
 static void __init setup_early_console(char port)
 {
-	u32 pbclk = 25000000;
 	void __iomem *pps_base = ioremap(PIC32_BASE_PPS, 0x400);
+#ifdef CONFIG_MIPS_PIC32_EPLATFORM
+	u32 pbclk = 25000000;
+#else
+	u32 pbclk = pic32_get_pbclk(2);
+#endif
 
 	BUG_ON(!pps_base);
-	BUG_ON(port != 1);
 
-	/* PPS for U1 RX/TX on PIC32MZDA */
+	/* PPS for U2 RX/TX on PIC32MZDA */
+#ifdef CONFIG_MIPS_PIC32_EPLATFORM
 	__raw_writel(0x01, pps_base + REG_RPD3R);
 	__raw_writel(0x00, pps_base + REG_U1RXR);
+#else
+	pic32mzda_earlyco_port3_pinctrl();
+#endif
 
 	__raw_writel(0, uart_base + UxMODE(port));
 	__raw_writel(((pbclk / DEFAULT_BAUDRATE) / 16) - 1,

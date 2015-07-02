@@ -1,17 +1,20 @@
 
 / {
 	aliases {
-		serial3 = &usart4;
+		serial3 = &usart2;
 	};
 
-	usart4: serial@bf822600 {
-		compatible = "microchip,pic32-usart";
-		reg = <0xbf822600 0x50>;
-		interrupts = <UART4_FAULT DEFAULT_INT_PRI IRQ_TYPE_LEVEL_HIGH>,
-			     <UART4_RECEIVE_DONE DEFAULT_INT_PRI IRQ_TYPE_LEVEL_HIGH>,
-			     <UART4_TRANSFER_DONE DEFAULT_INT_PRI IRQ_TYPE_LEVEL_HIGH>;
-		clocks = <&PBCLK2>;
-		pinctrl-names = "default";
-		pinctrl-0 = <&pinctrl_uart4>;
-	};
+        usart2: serial@bf822200 {
+                compatible = "microchip,pic32-usart";
+                reg = <0xbf822200 0x50>;
+                interrupts = <UART2_FAULT DEFAULT_INT_PRI IRQ_TYPE_LEVEL_HIGH>,
+                             <UART2_RECEIVE_DONE DEFAULT_INT_PRI IRQ_TYPE_LEVEL_HIGH>,
+                             <UART2_TRANSFER_DONE DEFAULT_INT_PRI IRQ_TYPE_LEVEL_HIGH>;
+                clocks = <&PBCLK2>;
+                pinctrl-names = "default";
+                pinctrl-0 = <
+                        &pinctrl_uart2>;
+                status = "ok";
+        };
+
 };
