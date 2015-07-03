@@ -236,6 +236,9 @@
 		cs-gpios = <&pioD 4 0>; /* #gpio-cells = <2>, first cell is pin# and second one unused */
 		clocks = <&PBCLK2>,<&REFCLKO1>;
 		clock-names = "mck0","mck1";
+	        dmas = <&dma DMA_CHANNEL_0>,
+                       <&dma DMA_CHANNEL_1>;
+                dma-names = "spi-rx", "spi-tx";
 		status = "disabled";
 
 		flash: m25p80@0 {
@@ -277,6 +280,9 @@
 		cs-gpios = <&pioB 14 1>; /* #gpio-cells = <2>, first cell is pin# and second one unused */
 		clocks = <&PBCLK2>,<&REFCLKO1>;
 		clock-names = "mck0","mck1";
+	        dmas = <&dma DMA_CHANNEL_2>,
+                       <&dma DMA_CHANNEL_3>;
+                dma-names = "spi-rx", "spi-tx";
 
 		mmc-slot@0 {
 			compatible = "mmc-spi-slot";
