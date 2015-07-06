@@ -117,7 +117,7 @@
 
 		/* Peripheral bus1 clock */
 		PBCLK1:pb1_clk {
-			reg = <0xbf801300 0x10>;
+			reg = <0xbf801340 0x10>;
 			#clock-cells = <0>;
 			compatible = "microchip,pic32-pbclk";
 			clocks = <&SYSCLK>;
@@ -127,7 +127,7 @@
 
 		/* Peripheral bus2(APB) clock */
 		PBCLK2:pb2_clk {
-			reg = <0xbf801310 0x10>;
+			reg = <0xbf801350 0x10>;
 			#clock-cells = <0>;
 			compatible = "microchip,pic32-pbclk";
 			clocks = <&SYSCLK>;
@@ -137,7 +137,7 @@
 
 		/* Peripheral bus3 clock */
 		PBCLK3:pb3_clk {
-			reg = <0xbf801320 0x10>;
+			reg = <0xbf801360 0x10>;
 			#clock-cells = <0>;
 			compatible = "microchip,pic32-pbclk";
 			clocks = <&SYSCLK>;
@@ -146,7 +146,7 @@
 
 		/* Peripheral bus4 clock(I/O ports, GPIO) */
 		PBCLK4:pb4_clk {
-			reg = <0xbf801330 0x10>;
+			reg = <0xbf801370 0x10>;
 			#clock-cells = <0>;
 			compatible = "microchip,pic32-pbclk";
 			clocks = <&SYSCLK>;
@@ -157,7 +157,7 @@
 
 		/* Peripheral AHB bus clock */
 		PBCLK5:pb5_clk {
-			reg = <0xbf801340 0x10>;
+			reg = <0xbf801380 0x10>;
 			#clock-cells = <0>;
 			compatible = "microchip,pic32-pbclk";
 			clocks = <&SYSCLK>;
@@ -167,7 +167,7 @@
 
 		/* Peripheral Bus7 clock; */
 		PBCLK7:pb7_clk {
-			reg = <0xbf801360 0x10>;
+			reg = <0xbf8013A0 0x10>;
 			compatible = "microchip,pic32-pbclk";
 			clocks = <&SYSCLK>;
 			#clock-cells = <0>;

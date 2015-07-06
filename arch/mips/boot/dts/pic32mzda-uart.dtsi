@@ -1,7 +1,7 @@
 
 / {
 	aliases {
-		serial3 = &usart2;
+		serial1 = &usart2;
 	};
 
         usart2: serial@bf822200 {
