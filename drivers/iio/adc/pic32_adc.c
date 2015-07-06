@@ -310,7 +310,7 @@ static int pic32_adc_channel_init(struct iio_dev *idev)
 {
 	struct pic32_adc_state *st = iio_priv(idev);
 	struct iio_chan_spec *chan_array, *timestamp;
-	int bit, idx = 0;
+	int bit = 0, idx = 0;
 
 	idev->num_channels = st->num_channels + 1;
 
@@ -409,7 +409,7 @@ static int pic32_adc_configure_trigger(struct iio_trigger *trig, bool state)
 	struct iio_dev *idev = iio_trigger_get_drvdata(trig);
 	struct pic32_adc_state *st = iio_priv(idev);
 	struct pic32_adc_trigger *active_trigger;
-	int value, ret, bit, reg1, reg2, reg3 = 0;
+	int value, ret, bit = 0, reg1 = 0, reg2 = 0, reg3 = 0;
 
 	active_trigger = pic32_adc_get_trigger_by_name(idev, st->trigger_list,
 							idev->trig->name);
@@ -555,7 +555,7 @@ static void pic32_adc_buffer_remove(struct iio_dev *idev)
 static int pic32_init_hardware(struct iio_dev *idev)
 {
 	struct pic32_adc_state *st = iio_priv(idev);
-	u32 ADCCON3_mask, ADCANCON_mask;
+	u32 ADCCON3_mask = 0, ADCANCON_mask = 0;
 	u32 reg = 0;
 	int res;
 
@@ -570,35 +570,35 @@ static int pic32_init_hardware(struct iio_dev *idev)
 	pic32_adc_writel(st, PIC32_ADCTRG3, 0);
 
 	/* Check which ADC cores are to be activated */
-	if ((st->channel_mask >> (0)) & 1) {
+	if (st->channel_mask & BIT(0)) {
 		ADCCON3_mask |= PIC32_ADCCON3_DIGEN0;
 		ADCANCON_mask |= PIC32_ADCANCON_ANEN0;
 		pic32_adc_writel(st, PIC32_ADC0TIME, PIC32_ADCTIME_SELRES |
 			PIC32_ADCTIME_SAMC(15) | PIC32_ADCTIME_ADCDIV(1));
 		reg |= PIC32_ADCANCON_WKRDY0;
 	}
-	if ((st->channel_mask >> (1)) & 1) {
+	if (st->channel_mask & BIT(1)) {
 		ADCCON3_mask |= PIC32_ADCCON3_DIGEN1;
 		ADCANCON_mask |= PIC32_ADCANCON_ANEN1;
 		pic32_adc_writel(st, PIC32_ADC1TIME, PIC32_ADCTIME_SELRES |
 			PIC32_ADCTIME_SAMC(15) | PIC32_ADCTIME_ADCDIV(1));
 		reg |= PIC32_ADCANCON_WKRDY1;
 	}
-	if ((st->channel_mask >> (2)) & 1) {
+	if (st->channel_mask & BIT(2)) {
 		ADCCON3_mask |= PIC32_ADCCON3_DIGEN2;
 		ADCANCON_mask |= PIC32_ADCANCON_ANEN2;
 		pic32_adc_writel(st, PIC32_ADC2TIME, PIC32_ADCTIME_SELRES |
 			PIC32_ADCTIME_SAMC(15) | PIC32_ADCTIME_ADCDIV(1));
 		reg |= PIC32_ADCANCON_WKRDY2;
 	}
-	if ((st->channel_mask >> (3)) & 1) {
+	if (st->channel_mask & BIT(3)) {
 		ADCCON3_mask |= PIC32_ADCCON3_DIGEN3;
 		ADCANCON_mask |= PIC32_ADCANCON_ANEN3;
 		pic32_adc_writel(st, PIC32_ADC3TIME, PIC32_ADCTIME_SELRES |
 			PIC32_ADCTIME_SAMC(15) | PIC32_ADCTIME_ADCDIV(1));
 		reg |= PIC32_ADCANCON_WKRDY3;
 	}
-	if ((st->channel_mask >> (4)) & 1) {
+	if (st->channel_mask & BIT(4)) {
 		ADCCON3_mask |= PIC32_ADCCON3_DIGEN4;
 		ADCANCON_mask |= PIC32_ADCANCON_ANEN4;
 		pic32_adc_writel(st, PIC32_ADC4TIME, PIC32_ADCTIME_SELRES |
@@ -673,7 +673,7 @@ static int pic32_adc_read_raw(struct iio_dev *idev, struct iio_chan_spec
 				const *chan, int *val, int *val2, long mask)
 {
 	struct pic32_adc_state *st = iio_priv(idev);
-	int ret, reg;
+	int ret, reg = 0;
 
 	switch (mask) {
 	case IIO_CHAN_INFO_RAW:
