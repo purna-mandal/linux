@@ -79,15 +79,27 @@ static int pic32_rng_probe(struct platform_device *pdev)
 
 	clk_prepare_enable(prng->clk);
 
-	/* enable TRNG & wait for seed */
-	writel(0x7f, prng->base + RNGRCNT);
+	/* enable TRNG */
 	v = readl(prng->base + RNGCON);
-	v |= RNGCON_TRNGEN;
-	writel(v, prng->base + RNGCON);
-	__udelay(1);
+	v &= ~(RNGCON_TRNGEN|RNGCON_RNGEN|0xff);
+	writel(v|RNGCON_TRNGEN, prng->base + RNGCON);
 
-	/* load initial seed & start PRNG */
-	v |= 0xff|RNGCON_RNGEN|RNGCON_CONT|RNGCON_LOAD;
+	/* wait for valid seed */
+	for (;;) {
+		if (readl(prng->base + RNGRCNT) >= 0x2A)
+			break;
+		udelay(1);
+	}
+
+	/* stop TRNG and load initial seed */
+	writel(v|RNGCON_LOAD, prng->base + RNGCON);
+
+	/* load initial polynomial: 42bit poly */
+	writel(0x00c00003, prng->base + RNGPOLY1);
+	writel(0x00000000, prng->base + RNGPOLY2);
+
+	/* start PRNG to generate 42bit random */
+	v |= 0x2A|RNGCON_CONT|RNGCON_RNGEN;
 	writel(v, prng->base + RNGCON);
 
 	prng->rng.name = pdev->name;
