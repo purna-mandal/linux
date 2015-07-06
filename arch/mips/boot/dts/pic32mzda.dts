@@ -65,6 +65,8 @@
 		clocks = <&PBCLK5>;
 		pinctrl-names = "default";
 		pinctrl-0 = <&pinctrl_eth0>;
+		reset-gpio = <&pioJ 15 0>;
+		status = "ok";
 	};
 
 	dma: dma-controller@bf811000 {
