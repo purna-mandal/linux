@@ -170,6 +170,8 @@
 #define CLKSEL_DIV20 6
 #define CLKSEL_DIV28 7
 #define CLKSEL_DIV40 8
+#define CLKSEL_DIV48 9
+#define CLKSEL_DIV50 10
 
 /* EMAC1MIND Offsets/Sizes */
 #define EMAC1MIND_LINKFAIL 3

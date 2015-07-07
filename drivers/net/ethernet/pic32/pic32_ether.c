@@ -391,8 +391,12 @@ static u32 pic32ether_mdc_clk_div(struct pic32ether *bp)
 		config = CLKSEL_DIV20;
 	else if (pclk_hz <= MHZ(70))
 		config = CLKSEL_DIV28;
-	else
+	else if (pclk_hz <= MHZ(100))
 		config = CLKSEL_DIV40;
+	else if (pclk_hz <= MHZ(120))
+		config = CLKSEL_DIV48;
+	else
+		config = CLKSEL_DIV50;
 
 	return config;
 }
