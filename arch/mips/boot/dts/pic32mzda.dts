@@ -11,6 +11,11 @@
 	model = "Microchip PIC32MZDA";
 	interrupt-parent = <&evic>;
 
+	aliases {
+		usb1 = &usb1;
+		usb1_phy = &usb1_phy;
+	};
+
 	cpus {
 		cpu@0 {
 			compatible = "mips,mips14KEc";
@@ -121,5 +126,41 @@
 				vsync-len = <23>;
 			};
 		};
+	};
+
+	usb1: usb@bf8e3000 {
+		compatible = "microchip,pic32-usb";
+		reg = <0xbf8e3000 0x1000>,
+		      <0xbf884000 0x1000>;
+		reg-names = "mc";
+		interrupts = <USB_GENERAL_EVENT DEFAULT_INT_PRI IRQ_TYPE_LEVEL_HIGH>,
+				<USB_DMA_EVENT DEFAULT_INT_PRI IRQ_TYPE_LEVEL_HIGH>;
+		interrupt-names = "mc", "dma", "over_current";
+		dr_mode = "host";
+		mentor,multipoint = <1>;
+		mentor,num-eps = <8>;
+		mentor,ram-bits = <11>;
+		mentor,power = <500>;
+		phys = <&usb1_phy>;
+		clocks = <&PBCLK5>;
+		clock-names = "usb_clk";
+		/*clock-frequency = <24000000>;*/
+		pinctrl-names = "default";
+		pinctrl-0 = <&pinctrl_usb1_vbus>;
+
+		/* VBUS_ON */
+		vbus_on-gpios = <&pioB 5 0>;
+
+		usb_overcurrent@0 {
+			interrupt-parent = <&pioB>;
+			interrupts = <11 PIC32_CN_FALLING>; /* GPIO_B_11 */
+		};
+	};
+	usb1_phy: hsusb1_phy@0 {
+		compatible = "usb-nop-xceiv";
+		reg = <0xbf8e4000 0x1000>;
+		clocks = <&UPLL>;
+		clock-names = "main_clk";
+		clock-frequency = <24000000>;
 	};
 };
