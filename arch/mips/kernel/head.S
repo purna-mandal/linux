@@ -97,7 +97,12 @@ FEXPORT(__kernel_entry)
 
 NESTED(kernel_entry, 16, sp)			# kernel entry point
 
-	kernel_entry_setup			# cpu specific setup
+	kernel_entry_setup 			# cpu specific setup
+
+	/* PJT: hack to clear WP bit (avoids Watch exception) on startup */
+	mfc0 t1, CP0_CAUSE
+	and t1, 0xFFBFFFFF
+	mtc0 t1, CP0_CAUSE
 
 	setup_c0_status_pri
 
@@ -132,6 +137,12 @@ NESTED(kernel_entry, 16, sp)			# kernel entry point
 	PTR_ADDIU	t0, LONGSIZE
 	LONG_S		zero, (t0)
 	bne		t0, t1, 1b
+
+	/* PJT: hack until we get U-Boot running */
+	li	a0, 0
+	li	a1, 0
+	li	a2, 0
+	li	a3, 0
 
 	LONG_S		a0, fw_arg0		# firmware arguments
 	LONG_S		a1, fw_arg1
