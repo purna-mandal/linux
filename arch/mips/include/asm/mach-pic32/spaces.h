@@ -22,11 +22,6 @@
 #define PHYS_OFFSET		UPPERMEM_START
 #endif
 
-#ifdef CONFIG_MIPS_PIC32MZDA
-#define PHYS_OFFSET	_AC(0x08000000, UL)
-#define UNCAC_BASE	_AC(0xa8000000, UL)
-#endif
-
 #include <asm/mach-generic/spaces.h>
 
 #endif /* __ASM_PIC32_SPACES_H */

@@ -24,8 +24,10 @@
 
         memory {
                 device_type = "memory";
-                reg = <0x08000000 0x08000000>;
+                reg = <0x00000000 0x000A0000>,
+		<0x08000000 0x08000000>;
         };
+
 
 	chosen {
 		bootargs = "console=ttyS1,115200n8";
