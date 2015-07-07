@@ -58,7 +58,7 @@ static dma_addr_t tx_mapping;
 
 #endif
 
-#define MAC_RX_BUFFER_SIZE	128
+#define MAC_RX_BUFFER_SIZE	128 /* must be a multiple of 16 */
 #define RX_RING_SIZE	512 /* must be power of 2 */
 #define RX_RING_BYTES	(sizeof(struct pic32ether_dma_desc) * RX_RING_SIZE)
 
@@ -245,11 +245,6 @@ static int pic32ether_mdio_reset(struct mii_bus *bus)
 	return 0;
 }
 
-/**
- * pic32ether_set_tx_clk() - Set a clock to a new frequency
- * @rate	New frequency in Hz
- * @dev		Pointer to the struct net_device
- */
 static void pic32ether_set_tx_clk(int speed, struct net_device *dev)
 {
 	struct pic32ether *bp = netdev_priv(dev);
@@ -1107,8 +1102,8 @@ static void pic32ether_reset_mac(struct pic32ether *bp)
 	netdev_vdbg(bp->dev, "pic32ether_reset_mac\n");
 
 	/* Reset the MAC */
-	mac_writel(bp, PIC32_SET(EMAC1CFG1), EMAC1CFG1_SOFTRESET);
-	mac_writel(bp, PIC32_CLR(EMAC1CFG1), EMAC1CFG1_SOFTRESET);
+	mac_writel(bp, PIC32_SET(EMAC1CFG1), MAC_BIT(EMAC1CFG1_SOFTRESET));
+	mac_writel(bp, PIC32_CLR(EMAC1CFG1), MAC_BIT(EMAC1CFG1_SOFTRESET));
 
 	if (bp->phy_interface == PHY_INTERFACE_MODE_RMII) {
 		/* Reset RMII module */
