@@ -245,7 +245,7 @@ static int pic32ether_mdio_reset(struct mii_bus *bus)
 	return 0;
 }
 
-static void pic32ether_set_tx_clk(int speed, struct net_device *dev)
+static void pic32ether_set_tx_speed(int speed, struct net_device *dev)
 {
 	struct pic32ether *bp = netdev_priv(dev);
 
@@ -259,9 +259,8 @@ static void pic32ether_set_tx_clk(int speed, struct net_device *dev)
 			MAC_BIT(EMAC1SUPP_SPEEDRMII));
 		break;
 	default:
-		netdev_warn(dev, "unsupported speed: %d\n",
-				speed);
-		return;
+		netdev_warn(dev, "unsupported speed: %d\n", speed);
+		break;
 	}
 }
 
@@ -283,7 +282,7 @@ static void pic32ether_handle_link_change(struct net_device *dev)
 							EMAC1CFG2),
 				MAC_BIT(EMAC1CFG2_FULLDPLX));
 
-			pic32ether_set_tx_clk(phydev->speed, dev);
+			pic32ether_set_tx_speed(phydev->speed, dev);
 
 			if (phydev->duplex == DUPLEX_FULL)
 				mac_writel(bp, EMAC1IPGT, 0x15);
@@ -516,14 +515,33 @@ static int pic32ether_halt_tx(struct pic32ether *bp)
 	return -ETIMEDOUT;
 }
 
+static void pic32ether_tx_unmap(struct pic32ether *bp, struct pic32ether_tx_skb *tx_skb)
+{
+#ifndef USE_KSEG1_DMA_MEM
+	if (tx_skb->mapping) {
+		dma_unmap_single(&bp->pdev->dev, tx_skb->mapping, tx_skb->size,
+			DMA_TO_DEVICE);
+		tx_skb->mapping = 0;
+	}
+#endif
+
+	if (tx_skb->skb) {
+		dev_kfree_skb_any(tx_skb->skb);
+		tx_skb->skb = NULL;
+	}
+}
 
 static void pic32ether_tx_error_task(struct work_struct *work)
 {
 	struct pic32ether *bp = container_of(work, struct pic32ether,
 					tx_error_task);
 	struct pic32ether_tx_skb *tx_skb;
+	struct pic32ether_dma_desc *desc;
 	struct sk_buff *skb;
 	unsigned int tail;
+	unsigned long flags;
+
+	spin_lock_irqsave(&bp->lock, flags);
 
 	netdev_err(bp->dev, "pic32ether_tx_error_task: t = %u, h = %u\n",
 		    bp->tx_tail, bp->tx_head);
@@ -535,43 +553,34 @@ static void pic32ether_tx_error_task(struct work_struct *work)
 	 * (in case we have just queued new packets)
 	 */
 	if (pic32ether_halt_tx(bp))
-		/* Just complain for now, reinitializing TX path can be good */
 		netdev_err(bp->dev, "BUG: halt tx timed out\n");
-
-	/* No need for the lock here as nobody will interrupt us anymore */
 
 	/* Treat frames in TX queue including the ones that caused the error.
 	 * Free transmit buffers in upper layer.
 	 */
 	for (tail = bp->tx_tail; tail != bp->tx_head; tail++) {
-		struct pic32ether_dma_desc	*desc;
-		u32			ctrl;
+		u32 ctrl;
 
 		desc = pic32ether_tx_desc(bp, tail);
-
 		ctrl = desc->ctrl;
 		tx_skb = pic32ether_tx_skb(bp, tail);
 		skb = tx_skb->skb;
 
 		if (!(ctrl & MAC_BIT(EOWN))) {
-			netdev_vdbg(bp->dev,
-				"txerr skb %u (data %p) TX complete\n",
-				pic32ether_tx_ring_wrap(tail), skb->data);
-			bp->stats.tx_packets++;
-			bp->stats.tx_bytes += skb->len;
+			if (skb) {
+				netdev_vdbg(bp->dev,
+					"txerr skb %u (data %p) TX complete\n",
+					pic32ether_tx_ring_wrap(tail), skb->data);
+				bp->stats.tx_packets++;
+				bp->stats.tx_bytes += skb->len;
+			}
 		} else {
 			desc->stat0 = desc->stat1 = 0;
 			desc->addr = 0;
 			desc->ctrl = MAC_BIT(NPV);
 		}
 
-#ifndef USE_KSEG1_DMA_MEM
-		dma_unmap_single(&bp->pdev->dev, tx_skb->mapping, skb->len,
-				DMA_TO_DEVICE);
-#endif
-
-		tx_skb->skb = NULL;
-		dev_kfree_skb(skb);
+		pic32ether_tx_unmap(bp, tx_skb);
 	}
 
 	/* Reinitialize the TX desc queue */
@@ -580,12 +589,14 @@ static void pic32ether_tx_error_task(struct work_struct *work)
 	/* Make TX ring reflect state of hardware */
 	bp->tx_head = bp->tx_tail = 0;
 
-	/* Now we are ready to start transmission again */
-	netif_wake_queue(bp->dev);
-
 	/* Housework before enabling TX IRQ */
 	mac_writel(bp, PIC32_CLR(ETHIRQ), -1);
 	mac_writel(bp, PIC32_SET(ETHIEN), MAC_TX_EN_FLAGS);
+
+	/* Now we are ready to start transmission again */
+	netif_wake_queue(bp->dev);
+
+	spin_unlock_irqrestore(&bp->lock, flags);
 }
 
 static void pic32ether_tx_interrupt(struct pic32ether *bp)
@@ -612,17 +623,14 @@ static void pic32ether_tx_interrupt(struct pic32ether *bp)
 		tx_skb = pic32ether_tx_skb(bp, tail);
 		skb = tx_skb->skb;
 
-		netdev_vdbg(bp->dev, "skb %u (data %p) TX complete\n",
-			pic32ether_tx_ring_wrap(tail), skb->data);
+		if (skb) {
+			netdev_vdbg(bp->dev, "skb %u (data %p) TX complete\n",
+				pic32ether_tx_ring_wrap(tail), skb->data);
+			bp->stats.tx_packets++;
+			bp->stats.tx_bytes += skb->len;
+		}
 
-#ifndef USE_KSEG1_DMA_MEM
-		dma_unmap_single(&bp->pdev->dev, tx_skb->mapping, skb->len,
-				DMA_TO_DEVICE);
-#endif
-		bp->stats.tx_packets++;
-		bp->stats.tx_bytes += skb->len;
-		tx_skb->skb = NULL;
-		dev_kfree_skb_irq(skb);
+		pic32ether_tx_unmap(bp, tx_skb);
 
 		desc->stat0 = desc->stat1 = 0;
 		desc->addr = 0;
@@ -745,9 +753,8 @@ static int pic32ether_rx(struct pic32ether *bp, int budget)
 
 		ctrl = desc->ctrl;
 
-		if (ctrl & MAC_BIT(EOWN)) {
+		if (ctrl & MAC_BIT(EOWN))
 			break;
-		}
 
 		if (ctrl & MAC_BIT(SOP)) {
 			if (first_frag != -1)
@@ -938,6 +945,8 @@ static int pic32ether_start_xmit(struct sk_buff *skb, struct net_device *dev)
 	tx_skb = &bp->tx_skb[entry];
 	tx_skb->skb = skb;
 	tx_skb->mapping = mapping;
+	tx_skb->size = len;
+
 #ifdef USE_KSEG1_DMA_MEM
 	tx_skb->virt = data;
 	netdev_vdbg(bp->dev, "Mapped skb data %p to DMA addr %08lx\n",
