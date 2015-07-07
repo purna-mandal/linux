@@ -112,7 +112,7 @@ config USB_MUSB_JZ4740
 
 config USB_MUSB_PIC32
 	tristate "Microchip platforms"
-	depends on MIPS_PIC32MZ
+	depends on MACH_PIC32
 	help
 	  MUSB glue code for PIC32 devices
 
