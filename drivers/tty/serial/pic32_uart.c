@@ -122,6 +122,11 @@ static void pic32_uart_stop_tx(struct uart_port *port)
 {
 	struct pic32_sport *sport = to_pic32_sport(port);
 
+	/* wait for tx empty */
+	while (!(pic32_uart_read(sport, PIC32_UART_STA)
+		& PIC32_UART_STA_TRMT))
+			udelay(1);
+
 	pic32_uart_rclr(PIC32_UART_STA_UTXEN, sport, PIC32_UART_STA);
 	pic32_uart_irqtxen(sport, 0);
 }
@@ -611,11 +616,9 @@ static struct uart_ops pic32_uart_ops = {
 static void pic32_console_putchar(struct uart_port *port, int ch)
 {
 	struct pic32_sport *sport = to_pic32_sport(port);
-	u32 timeout = 10000;
 
 	/* wait for tx empty */
-	while (!(pic32_uart_read(sport, PIC32_UART_STA) & PIC32_UART_STA_TRMT)
-			&& --timeout)
+	while (!(pic32_uart_read(sport, PIC32_UART_STA) & PIC32_UART_STA_TRMT))
 		udelay(1);
 
 	pic32_uart_write(ch & 0xff, sport, PIC32_UART_TX);
