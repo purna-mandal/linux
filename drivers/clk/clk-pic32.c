@@ -2115,7 +2115,7 @@ static irqreturn_t pic32_fscm_isr_handler(int irq, void *data)
 static int pic32_fscm_nmi(struct notifier_block *nb,
 			unsigned long action, void *data)
 {
-	pic32_fscm_isr_handler(0, 0);
+	pic32_fscm_isr_handler(0, NULL);
 	return NOTIFY_OK;
 }
 
@@ -2123,21 +2123,21 @@ static struct notifier_block failsafe_clk_notifier = {
 	.notifier_call = pic32_fscm_nmi,
 };
 
-void __init of_pic32_soc_clock_init(struct device_node *np)
+static void __init of_pic32_soc_clock_init(struct device_node *np)
 {
 	int ret, nmi = 0, irq;
-	struct resource res;
+	struct resource r;
 	struct device_node *childnp;
 	const struct of_device_id *clk_id;
 	void (*clk_setup)(struct device_node *);
 
-	if (of_address_to_resource(np, 0, &res))
+	if (of_address_to_resource(np, 0, &r))
 		panic("Failed to get clk-pll memory region\n");
 
-	if (request_mem_region(res.start, resource_size(&res), res.name) < 0)
+	if (request_mem_region(r.start, resource_size(&r), r.name) == NULL)
 		panic("%s: request_region failed\n", np->name);
 
-	pic32_clk_regbase = ioremap_nocache(res.start, resource_size(&res));
+	pic32_clk_regbase = ioremap_nocache(r.start, resource_size(&r));
 	if (!pic32_clk_regbase)
 		panic("pic32-clk: failed to map registers\n");
 
