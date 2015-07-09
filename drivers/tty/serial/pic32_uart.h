@@ -107,7 +107,7 @@ static inline u32 pic32_uart_rval(struct pic32_sport *sport,
 				  enum pic32_uart_regs reg)
 {
 	void __iomem *addr = pic32_uart_get_reg(sport, reg);
-	struct pic32_reg __iomem *reg_addr = (struct pic32_reg *)addr;
+	struct pic32_reg __iomem *reg_addr = (struct pic32_reg __iomem *)addr;
 
 	return readl(&reg_addr->val);
 }
@@ -117,7 +117,7 @@ static inline void pic32_uart_rset(u32 val,
 				   enum pic32_uart_regs reg)
 {
 	void __iomem *addr = pic32_uart_get_reg(sport, reg);
-	struct pic32_reg __iomem *reg_addr = (struct pic32_reg *)addr;
+	struct pic32_reg __iomem *reg_addr = (struct pic32_reg __iomem *)addr;
 
 	writel(val, &reg_addr->set);
 }
@@ -127,7 +127,7 @@ static inline void pic32_uart_rclr(u32 val,
 				   enum pic32_uart_regs reg)
 {
 	void __iomem *addr = pic32_uart_get_reg(sport, reg);
-	struct pic32_reg __iomem *reg_addr = (struct pic32_reg *)addr;
+	struct pic32_reg __iomem *reg_addr = (struct pic32_reg __iomem *)addr;
 
 	writel(val, &reg_addr->clr);
 }
@@ -137,7 +137,7 @@ static inline void pic32_uart_rinv(u32 val,
 				   enum pic32_uart_regs reg)
 {
 	void __iomem *addr = pic32_uart_get_reg(sport, reg);
-	struct pic32_reg __iomem *reg_addr = (struct pic32_reg *)addr;
+	struct pic32_reg __iomem *reg_addr = (struct pic32_reg __iomem *)addr;
 
 	writel(val, &reg_addr->inv);
 }
