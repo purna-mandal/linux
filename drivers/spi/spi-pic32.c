@@ -567,7 +567,7 @@ static int pic32_spi_dma_config(struct pic32_spi *pic32s, u32 dma_width)
 	struct spi_master *master = pic32s->master;
 	dma_addr_t phys;
 
-	phys = (dma_addr_t)virt_to_phys(pic32s->regs);
+	phys = (dma_addr_t)virt_to_phys((void const volatile *)pic32s->regs);
 	cfg.device_fc		= true;
 	cfg.dst_addr		= phys + SPIxBUF;
 	cfg.src_addr		= phys + SPIxBUF;
@@ -681,7 +681,7 @@ static int pic32_spi_one_transfer(struct pic32_spi *pic32s,
 		if (ret) {
 			dev_err(&master->dev, "dma xfer error\n");
 			message->status = ret;
-			/*goto err_xfer_done;*/
+			spin_lock_irqsave(&pic32s->lock, flags);
 		} else {
 			goto out_wait_for_xfer;
 		}
@@ -779,7 +779,7 @@ static int pic32_spi_one_message(struct spi_master *master,
 		}
 	}
 
-	msg->state = 0;
+	msg->state = NULL;
 	msg->status = 0;
 
 xfer_done:
@@ -904,7 +904,7 @@ static int pic32_spi_dma_prep(struct pic32_spi *pic32s, struct device *dev)
 	dma_cap_zero(mask);
 	dma_cap_set(DMA_SLAVE, mask);
 
-	master->dma_rx = dma_request_slave_channel_compat(mask, NULL, 0,
+	master->dma_rx = dma_request_slave_channel_compat(mask, NULL, NULL,
 							  dev, "spi-rx");
 	if (!master->dma_rx) {
 		dev_err(dev, "RX channel not found, SPI unable to use DMA\n");
@@ -912,7 +912,7 @@ static int pic32_spi_dma_prep(struct pic32_spi *pic32s, struct device *dev)
 		goto out_err;
 	}
 
-	master->dma_tx = dma_request_slave_channel_compat(mask, NULL, 0,
+	master->dma_tx = dma_request_slave_channel_compat(mask, NULL, NULL,
 							  dev, "spi-tx");
 	if (!master->dma_tx) {
 		dev_err(dev, "TX channel not found, SPI unable to use DMA\n");
