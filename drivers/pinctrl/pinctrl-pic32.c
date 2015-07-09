@@ -95,7 +95,7 @@ static void __iomem *pic32_pio_get_reg(struct pic32_gpio_chip *pic32_chip,
 static int pic32_pinconf_open_drain(struct pic32_gpio_chip *pic32_chip,
 				    unsigned pin, int value)
 {
-	struct pic32_reg *odc_reg = (struct pic32_reg *)
+	struct pic32_reg __iomem *odc_reg = (struct pic32_reg __iomem *)
 			pic32_pio_get_reg(pic32_chip, PIC32_ODC);
 	u32 mask = BIT(pin);
 
@@ -115,7 +115,7 @@ static int pic32_pinconf_open_drain(struct pic32_gpio_chip *pic32_chip,
 static int pic32_pinconf_pullup(struct pic32_gpio_chip *pic32_chip,
 				unsigned pin, int value)
 {
-	struct pic32_reg *cnpu_reg = (struct pic32_reg *)
+	struct pic32_reg __iomem *cnpu_reg = (struct pic32_reg __iomem *)
 			pic32_pio_get_reg(pic32_chip, PIC32_CNPU);
 	u32 mask = BIT(pin);
 
@@ -134,7 +134,7 @@ static int pic32_pinconf_pullup(struct pic32_gpio_chip *pic32_chip,
 static int pic32_pinconf_pulldown(struct pic32_gpio_chip *pic32_chip,
 				  unsigned pin, int value)
 {
-	struct pic32_reg *cnpd_reg = (struct pic32_reg *)
+	struct pic32_reg __iomem *cnpd_reg = (struct pic32_reg __iomem *)
 			pic32_pio_get_reg(pic32_chip, PIC32_CNPD);
 	u32 mask = BIT(pin);
 
@@ -153,7 +153,7 @@ static int pic32_pinconf_pulldown(struct pic32_gpio_chip *pic32_chip,
 static int pic32_pinconf_analog(struct pic32_gpio_chip *pic32_chip,
 				unsigned pin)
 {
-	struct pic32_reg *ansel_reg = (struct pic32_reg *)
+	struct pic32_reg __iomem *ansel_reg = (struct pic32_reg __iomem *)
 				pic32_pio_get_reg(pic32_chip, PIC32_ANSEL);
 	u32 mask = BIT(pin);
 
@@ -171,7 +171,7 @@ static int pic32_pinconf_analog(struct pic32_gpio_chip *pic32_chip,
 /* set pin as digital */
 static int pic32_pinconf_dg(struct pic32_gpio_chip *pic32_chip, unsigned pin)
 {
-	struct pic32_reg *ansel_reg = (struct pic32_reg *)
+	struct pic32_reg __iomem *ansel_reg = (struct pic32_reg __iomem *)
 				pic32_pio_get_reg(pic32_chip, PIC32_ANSEL);
 	u32 mask = BIT(pin);
 
@@ -191,7 +191,7 @@ static int pic32_pinconf_set_dir(struct pic32_gpio_chip *pic32_chip,
 				 unsigned pin, unsigned long conf)
 {
 	struct pin_conf *pinconf = (struct pin_conf *)&conf;
-	struct pic32_reg *tris_reg = (struct pic32_reg *)
+	struct pic32_reg __iomem *tris_reg = (struct pic32_reg __iomem *)
 				pic32_pio_get_reg(pic32_chip, PIC32_TRIS);
 
 	u32 mask = BIT(pin);
@@ -310,7 +310,7 @@ static void pic32_gpio_free(struct gpio_chip *chip, unsigned offset)
 static void pic32_gpio_set(struct gpio_chip *chip, unsigned gpio, int val)
 {
 	struct pic32_gpio_chip *pic32_chip = to_pic32_gpio_chip(chip);
-	struct pic32_reg *port_reg = (struct pic32_reg *)
+	struct pic32_reg __iomem *port_reg = (struct pic32_reg __iomem *)
 				pic32_pio_get_reg(pic32_chip, PIC32_PORT);
 
 	u32 mask = BIT(gpio);
@@ -327,7 +327,7 @@ static void pic32_gpio_set(struct gpio_chip *chip, unsigned gpio, int val)
 static int pic32_gpio_get(struct gpio_chip *chip, unsigned gpio)
 {
 	struct pic32_gpio_chip *pic32_chip = to_pic32_gpio_chip(chip);
-	struct pic32_reg *port_reg = (struct pic32_reg *)
+	struct pic32_reg __iomem *port_reg = (struct pic32_reg __iomem *)
 				pic32_pio_get_reg(pic32_chip, PIC32_PORT);
 
 	u32 mask = BIT(gpio);
@@ -341,7 +341,7 @@ static int pic32_gpio_get(struct gpio_chip *chip, unsigned gpio)
 static int pic32_gpio_get_dir(struct gpio_chip *chip, unsigned offset)
 {
 	struct pic32_gpio_chip *pic32_chip = to_pic32_gpio_chip(chip);
-	struct pic32_reg *tris_reg = (struct pic32_reg *)
+	struct pic32_reg __iomem *tris_reg = (struct pic32_reg __iomem *)
 				pic32_pio_get_reg(pic32_chip, PIC32_TRIS);
 
 	u32 mask = BIT(offset);
@@ -352,7 +352,7 @@ static int pic32_gpio_get_dir(struct gpio_chip *chip, unsigned offset)
 static int pic32_gpio_set_dir(struct gpio_chip *chip, unsigned gpio, int dir)
 {
 	struct pic32_gpio_chip *pic32_chip = to_pic32_gpio_chip(chip);
-	struct pic32_reg *tris_reg = (struct pic32_reg *)
+	struct pic32_reg __iomem *tris_reg = (struct pic32_reg __iomem *)
 				pic32_pio_get_reg(pic32_chip, PIC32_TRIS);
 
 	u32 mask = BIT(gpio);
@@ -380,9 +380,9 @@ static int pic32_gpio_dir_out(struct gpio_chip *chip,
 			      unsigned gpio, int value)
 {
 	struct pic32_gpio_chip *pic32_chip = to_pic32_gpio_chip(chip);
-	struct pic32_reg *cnpu_reg = (struct pic32_reg *)
+	struct pic32_reg __iomem *cnpu_reg = (struct pic32_reg __iomem *)
 				pic32_pio_get_reg(pic32_chip, PIC32_CNPU);
-	struct pic32_reg *cnpd_reg = (struct pic32_reg *)
+	struct pic32_reg __iomem *cnpd_reg = (struct pic32_reg __iomem *)
 				pic32_pio_get_reg(pic32_chip, PIC32_CNPD);
 
 	u32 mask = BIT(gpio);
@@ -544,11 +544,11 @@ static int pic32_gpio_irq_map(struct irq_domain *d,
 	struct pic32_gpio_chip *pic32_chip = d->host_data;
 	struct pic32_gpio_irq *gpio_irq = &pic32_chip->gpio_irq;
 	struct irq_chip *irqchip = &gpio_irq->gpio_irqchip;
-	struct pic32_reg *port_reg = (struct pic32_reg *)
+	struct pic32_reg __iomem *port_reg = (struct pic32_reg __iomem *)
 				pic32_pio_get_reg(pic32_chip, PIC32_PORT);
-	struct pic32_reg *cncon_reg = (struct pic32_reg *)
+	struct pic32_reg __iomem *cncon_reg = (struct pic32_reg __iomem *)
 				pic32_pio_get_reg(pic32_chip, PIC32_CNCON);
-	struct pic32_reg *cnen_reg = (struct pic32_reg *)
+	struct pic32_reg __iomem *cnen_reg = (struct pic32_reg __iomem *)
 				pic32_pio_get_reg(pic32_chip, PIC32_CNEN);
 	u32 cn_en = BIT(PIC32_CNCON_BIT);
 	u32 cnpin_mask = BIT(virq); /* virq is actually the pin */
@@ -651,9 +651,9 @@ static void gpio_irq_handler(unsigned irq, struct irq_desc *desc)
 	struct irq_data *idata = irq_desc_get_irq_data(desc);
 	struct pic32_gpio_chip *pic32_chip = irq_data_get_irq_chip_data(idata);
 	struct pic32_gpio_irq *gpio_irq = &pic32_chip->gpio_irq;
-	struct pic32_reg *cnstat_reg = (struct pic32_reg *)
+	struct pic32_reg __iomem *cnstat_reg = (struct pic32_reg __iomem *)
 				pic32_pio_get_reg(pic32_chip, PIC32_CNSTAT);
-	struct pic32_reg *port_reg = (struct pic32_reg *)
+	struct pic32_reg __iomem *port_reg = (struct pic32_reg __iomem *)
 				pic32_pio_get_reg(pic32_chip, PIC32_PORT);
 	int cnstat;
 	int portval;
@@ -982,7 +982,7 @@ _out:
 static u32 pic32_pinconf_is_open_drain(struct pic32_gpio_chip *pic32_chip,
 				       unsigned pin)
 {
-	struct pic32_reg *odc_reg = (struct pic32_reg *)
+	struct pic32_reg __iomem *odc_reg = (struct pic32_reg __iomem *)
 			pic32_pio_get_reg(pic32_chip, PIC32_ODC);
 	u32 mask = BIT(pin);
 
@@ -993,7 +993,7 @@ static u32 pic32_pinconf_is_open_drain(struct pic32_gpio_chip *pic32_chip,
 static u32 pic32_pinconf_is_pullup(struct pic32_gpio_chip *pic32_chip,
 				   unsigned pin)
 {
-	struct pic32_reg *cnpu_reg = (struct pic32_reg *)
+	struct pic32_reg __iomem *cnpu_reg = (struct pic32_reg __iomem *)
 			pic32_pio_get_reg(pic32_chip, PIC32_CNPU);
 	u32 mask = BIT(pin);
 
@@ -1004,7 +1004,7 @@ static u32 pic32_pinconf_is_pullup(struct pic32_gpio_chip *pic32_chip,
 static u32 pic32_pinconf_is_pulldown(struct pic32_gpio_chip *pic32_chip,
 				     unsigned pin)
 {
-	struct pic32_reg *cnpd_reg = (struct pic32_reg *)
+	struct pic32_reg __iomem *cnpd_reg = (struct pic32_reg __iomem *)
 			pic32_pio_get_reg(pic32_chip, PIC32_CNPD);
 	u32 mask = BIT(pin);
 
@@ -1015,7 +1015,7 @@ static u32 pic32_pinconf_is_pulldown(struct pic32_gpio_chip *pic32_chip,
 static u32 pic32_pinconf_is_analog(struct pic32_gpio_chip *pic32_chip,
 				   unsigned pin)
 {
-	struct pic32_reg *ansel_reg = (struct pic32_reg *)
+	struct pic32_reg __iomem *ansel_reg = (struct pic32_reg __iomem *)
 				pic32_pio_get_reg(pic32_chip, PIC32_ANSEL);
 	u32 mask = BIT(pin);
 
@@ -1264,7 +1264,7 @@ static int pic32_gpio_request_enable(struct pinctrl_dev *pctldev,
 	struct pic32_pinctrl_data *data = pinctrl_dev_get_drvdata(pctldev);
 	struct gpio_chip *chip = range->gc;
 	struct pic32_gpio_chip *pic32_chip = to_pic32_gpio_chip(chip);
-	struct pic32_reg *ansel_reg = (struct pic32_reg *)
+	struct pic32_reg __iomem *ansel_reg = (struct pic32_reg __iomem *)
 				pic32_pio_get_reg(pic32_chip, PIC32_ANSEL);
 	int pin = offset - chip->base;
 	u32 mask = BIT(pin);
