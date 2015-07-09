@@ -491,7 +491,7 @@ static int sqi_desc_fill(struct sqi_desc *desc,
 
 	desc->xfer_len = min_t(u32, remaining, SQI_BD_BUF_SIZE);
 	desc->x = xfer;
-	desc->xfer_buf = 0;
+	desc->xfer_buf = NULL;
 
 	/* Buffer Descriptor */
 	bd = desc->bd;
@@ -641,7 +641,7 @@ static int pic32_sqi_one_message(struct spi_master *master,
 		ret = pic32_sqi_one_transfer(sqi, msg, xfer);
 		if (ret) {
 			dev_err(&spi->dev, "xfer %p err\n", xfer);
-			goto xfer_done;
+			goto xfer_out;
 		}
 	}
 
@@ -753,7 +753,7 @@ static int pic32_sqi_one_message(struct spi_master *master,
 	}
 #endif
 	/* update msg status */
-	msg->state = 0;
+	msg->state = NULL;
 	msg->status = 0;
 	ret = 0;
 
@@ -767,6 +767,10 @@ xfer_done:
 	/* disable chip */
 	sqi_disable_spi(sqi);
 
+	/* interrupt unlock */
+	sqi_spin_unlock(sqi);
+
+xfer_out:
 	/* unmap dma memory, if there */
 	list_for_each_entry(xfer, &msg->transfers, transfer_list) {
 		if (xfer->tx_buf && xfer->tx_dma)
@@ -798,9 +802,6 @@ xfer_done:
 		pic32_sqi_hw_init(sqi);
 	}
 #endif
-
-	/* interrupt unlock */
-	sqi_spin_unlock(sqi);
 
 	spi_finalize_current_message(spi->master);
 
