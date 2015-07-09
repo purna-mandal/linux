@@ -349,7 +349,8 @@ static int pic32_adc_channel_init(struct iio_dev *idev)
 	return idev->num_channels;
 }
 
-struct pic32_adc_trigger *pic32_adc_get_trigger_by_name(struct iio_dev *idev,
+static struct pic32_adc_trigger *
+pic32_adc_get_trigger_by_name(struct iio_dev *idev,
 					struct pic32_adc_trigger *triggers,
 					const char *trigger_name)
 {
@@ -361,7 +362,7 @@ struct pic32_adc_trigger *pic32_adc_get_trigger_by_name(struct iio_dev *idev,
 					idev->name, idev->id,
 					triggers[i].name);
 		if (!name)
-			return 0;
+			return NULL;
 
 		if (strcmp(trigger_name, name) == 0) {
 			kfree(name);
@@ -372,7 +373,7 @@ struct pic32_adc_trigger *pic32_adc_get_trigger_by_name(struct iio_dev *idev,
 		kfree(name);
 	}
 
-	return 0;
+	return NULL;
 }
 
 static int pic32_adc_start_trigger(struct iio_dev *idev,
@@ -413,7 +414,7 @@ static int pic32_adc_configure_trigger(struct iio_trigger *trig, bool state)
 
 	active_trigger = pic32_adc_get_trigger_by_name(idev, st->trigger_list,
 							idev->trig->name);
-	if (active_trigger == 0) {
+	if (active_trigger == NULL) {
 		dev_err(&idev->dev, "Couldn't get trigger.\n");
 		return -EINVAL;
 	}
@@ -422,7 +423,7 @@ static int pic32_adc_configure_trigger(struct iio_trigger *trig, bool state)
 
 	if (state) {
 		st->buffer = kmalloc(idev->scan_bytes, GFP_KERNEL);
-		if (st->buffer == 0)
+		if (st->buffer == NULL)
 			return -ENOMEM;
 
 		/* Set channels to be scanned when trigger activates */
@@ -453,8 +454,8 @@ static int pic32_adc_configure_trigger(struct iio_trigger *trig, bool state)
 		pic32_adc_stop_trigger(idev, active_trigger);
 
 		reg2 = pic32_adc_readl(st, PIC32_ADCCON2);
-		pic32_adc_writel(st, PIC32_ADCCON2, reg2 &
-							!PIC32_ADCCON2_EOSIEN);
+		reg2 &= ~PIC32_ADCCON2_EOSIEN;
+		pic32_adc_writel(st, PIC32_ADCCON2, reg2);
 
 		reg1 = pic32_adc_readl(st, PIC32_ADCCON1) & 0xFFE0FFFF;
 		pic32_adc_writel(st, PIC32_ADCCON1, reg1);
@@ -480,8 +481,8 @@ static struct iio_trigger *pic32_adc_allocate_trigger(struct iio_dev *idev,
 
 	trig = iio_trigger_alloc("%s-dev%d-%s", idev->name,
 				idev->id, trigger->name);
-	if (trig == 0)
-		return 0;
+	if (trig == NULL)
+		return NULL;
 
 	trig->dev.parent = idev->dev.parent;
 	iio_trigger_set_drvdata(trig, idev);
@@ -489,7 +490,7 @@ static struct iio_trigger *pic32_adc_allocate_trigger(struct iio_dev *idev,
 
 	ret = iio_trigger_register(trig);
 	if (ret)
-		return 0;
+		return NULL;
 
 	return trig;
 }
@@ -503,7 +504,7 @@ static int pic32_adc_trigger_init(struct iio_dev *idev)
 				st->trigger_number * sizeof(*st->trig),
 				GFP_KERNEL);
 
-	if (st->trig == 0) {
+	if (st->trig == NULL) {
 		ret = -ENOMEM;
 		goto error_ret;
 	}
@@ -511,7 +512,7 @@ static int pic32_adc_trigger_init(struct iio_dev *idev)
 	for (i = 0; i < st->trigger_number; i++) {
 		st->trig[i] = pic32_adc_allocate_trigger(idev,
 					st->trigger_list + i);
-		if (st->trig[i] == 0) {
+		if (st->trig[i] == NULL) {
 			dev_err(&idev->dev,
 				"Could not allocate trigger %d\n", i);
 			ret = -ENOMEM;
@@ -544,7 +545,7 @@ static void pic32_adc_trigger_remove(struct iio_dev *idev)
 static int pic32_adc_buffer_init(struct iio_dev *idev)
 {
 	return iio_triggered_buffer_setup(idev, &iio_pollfunc_store_time,
-					&pic32_adc_trigger_handler, 0);
+					&pic32_adc_trigger_handler, NULL);
 }
 
 static void pic32_adc_buffer_remove(struct iio_dev *idev)
@@ -817,7 +818,7 @@ static int pic32_adc_probe_dt(struct pic32_adc_state *st,
 		}
 		trig->value = prop;
 
-		if (of_find_property(trig_node, "microchip,timer", 0)) {
+		if (of_find_property(trig_node, "microchip,timer", NULL)) {
 			trig->is_a_timer = true;
 			trig->pic32_trig_data =
 				pic32_pb_timer_request_by_node(trig_node);
@@ -828,7 +829,7 @@ static int pic32_adc_probe_dt(struct pic32_adc_state *st,
 			}
 		} else {
 			trig->is_a_timer = false;
-			trig->pic32_trig_data = 0;
+			trig->pic32_trig_data = NULL;
 		}
 
 		i++;
