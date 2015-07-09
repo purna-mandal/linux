@@ -256,7 +256,7 @@ static struct phy_driver smsc_phy_driver[] = {
 /* EPLATFORM has an issue with 100Mb that needs to be resolved.  For now, limit
  * to 10Mb.
  */
-#ifdef CONFIG_MIPS_PIC32_EPLATFORM
+#if defined(CONFIG_MIPS_PIC32_EPLATFORM) || defined(CONFIG_MIPS_PIC32MZDA)
 	.features	= (PHY_10BT_FEATURES | PHY_DEFAULT_FEATURES | SUPPORTED_Pause
 				| SUPPORTED_Asym_Pause),
 #else
