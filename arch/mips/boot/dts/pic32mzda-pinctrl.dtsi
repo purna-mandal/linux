@@ -173,6 +173,17 @@
 			};
 		};
 
+		/* EPLAT */
+		uart1 {
+			/* uart1: pin groups */
+			pinctrl_uart1: uart1-0 {
+				pic32,pins =
+					<PIC32_RP_OUT_RPD3 PIC32_PP_OUT_U1TX PIC32_PIN_CONF_DG_OUT
+					 PIC32_RP_IN_RPD2 PIC32_PP_IN_U1RX PIC32_PIN_CONF_DG_IN>;
+			};
+		};
+
+		/* MZDA */
                 uart2 {
                         /* uart2: pin groups */
                         pinctrl_uart2: uart2-0 {

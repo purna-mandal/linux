@@ -122,6 +122,13 @@ static void pic32_uart_stop_tx(struct uart_port *port)
 {
 	struct pic32_sport *sport = to_pic32_sport(port);
 
+	if (!(pic32_uart_read(sport, PIC32_UART_MODE) &
+		PIC32_UART_MODE_ON))
+			return;
+	if (!(pic32_uart_read(sport, PIC32_UART_STA) &
+		PIC32_UART_STA_UTXEN))
+			return;
+
 	/* wait for tx empty */
 	while (!(pic32_uart_read(sport, PIC32_UART_STA)
 		& PIC32_UART_STA_TRMT))
@@ -616,6 +623,13 @@ static struct uart_ops pic32_uart_ops = {
 static void pic32_console_putchar(struct uart_port *port, int ch)
 {
 	struct pic32_sport *sport = to_pic32_sport(port);
+
+	if (!(pic32_uart_read(sport, PIC32_UART_MODE) &
+		PIC32_UART_MODE_ON))
+			return;
+	if (!(pic32_uart_read(sport, PIC32_UART_STA) &
+		PIC32_UART_STA_UTXEN))
+			return;
 
 	/* wait for tx empty */
 	while (!(pic32_uart_read(sport, PIC32_UART_STA) & PIC32_UART_STA_TRMT))

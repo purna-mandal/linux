@@ -1,9 +1,26 @@
 
 / {
 	aliases {
+		/* EPLAT */
+		serial2 = &usart0;
+
+		/* MZDA */
 		serial1 = &usart2;
 	};
 
+	/* EPLAT */
+        usart0: serial@bf822000 {
+                compatible = "microchip,pic32-usart";
+                reg = <0xbf822000 0x50>;
+                interrupts = <UART1_FAULT DEFAULT_INT_PRI IRQ_TYPE_LEVEL_HIGH>,
+                             <UART1_RECEIVE_DONE DEFAULT_INT_PRI IRQ_TYPE_LEVEL_HIGH>,
+                             <UART1_TRANSFER_DONE DEFAULT_INT_PRI IRQ_TYPE_LEVEL_HIGH>;
+                clocks = <&PBCLK2>;
+                pinctrl-names = "default";
+                pinctrl-0 = <&pinctrl_uart1>;
+        };
+
+	/* MZDA */
         usart2: serial@bf822200 {
                 compatible = "microchip,pic32-usart";
                 reg = <0xbf822200 0x50>;
