@@ -21,6 +21,7 @@
 #include <asm/irq.h>
 #include <asm/traps.h>
 #include <asm/mach-pic32/pic32.h>
+#include <asm/mach-pic32/common.h>
 #include <dt-bindings/interrupt-controller/microchip,pic32mz-evic.h>
 
 #include "irqchip.h"
@@ -276,7 +277,7 @@ microchip_evic_of_init(struct device_node *node, struct device_node *parent)
 		panic("Failed to get evic memory range");
 
 	if (request_mem_region(res.start, resource_size(&res),
-				res.name) < 0)
+				res.name) == NULL)
 		panic("Failed to request evic memory");
 
 	evic_base = ioremap_nocache(res.start, resource_size(&res));
