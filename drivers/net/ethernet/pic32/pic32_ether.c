@@ -40,9 +40,9 @@
 
 #include "pic32_ether.h"
 
-#if defined(CONFIG_PIC32MZ_PLANB) || defined(CONFIG_PIC32MZ_PLANC) || defined(CONFIG_PIC32_EPLATFORM) || defined(CONFIG_PIC32MZ_PLAND)
+#if defined(CONFIG_MACH_PIC32)
 /*
- * PLAN B/C boards have slow SRAM. The ethernet controller can't DMA to or from
+ * PIC32 has slow RAM. The ethernet controller can't DMA to or from
  * this memory. This enabled a hack, at a major performance cost, to move DMA
  * buffers into KSEG1. The reason this is a huge performance hit is because the
  * net core allocates tx sk buffers from system RAM and doesn't use
