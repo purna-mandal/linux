@@ -301,6 +301,11 @@
 		clock-frequency = <24000000>;
 	};
 
+	bluetooth0 {
+		compatible = "csr,8811";
+		bluetooth_nrst-gpios = <&pioB 4 0>;
+	};
+
 	leds {
                 pinctrl-names = "default";
                 pinctrl-0 = <&user_leds_s0>;
