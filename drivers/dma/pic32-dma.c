@@ -232,19 +232,30 @@ static int pic32_dma_start_desc(struct pic32_chan *chan)
 	chan->next_sg++;
 
 	/* Set and enable start transfer IRQ */
-	if (chan->cfg.direction != DMA_MEM_TO_MEM)
+	if (chan->cfg.direction != DMA_MEM_TO_MEM) {
 		conf = (chan->cfg.slave_id << 8) | PIC32_DCHECON_SIRQEN;
-	else
+		pic32_chan_writel(chan, PIC32_DCHECON, conf);
+
+		/* Enable interrupts */
+		pic32_chan_writel(chan, PIC32_DCHINT, PIC32_IRQ_INT_MASK);
+
+		/* Enable the channel */
+		pic32_chan_writel(chan, PIC32_SET(PIC32_DCHCON), PIC32_DCHCON_CHEN);
+	}
+	else {
+		pic32_chan_writel(chan, PIC32_DCHECON, 0);
+
+		/* Enable interrupts */
+		pic32_chan_writel(chan, PIC32_DCHINT, PIC32_IRQ_INT_MASK);
+
+		/* Enable the channel */
+		pic32_chan_writel(chan, PIC32_SET(PIC32_DCHCON), PIC32_DCHCON_CHEN);
+
 		/* Force start the transfer if not in cyclic mode. */
-		conf = PIC32_DCHECON_CFORCE;
+		pic32_chan_writel(chan, PIC32_DCHECON, PIC32_DCHECON_CFORCE);
+	}
 
-	pic32_chan_writel(chan, PIC32_DCHECON, conf);
 
-	/* Enable interrupts */
-	pic32_chan_writel(chan, PIC32_DCHINT, PIC32_IRQ_INT_MASK);
-
-	/* Enable the channel */
-	pic32_chan_writel(chan, PIC32_SET(PIC32_DCHCON), PIC32_DCHCON_CHEN);
 
 	return 0;
 }
