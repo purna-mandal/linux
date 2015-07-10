@@ -98,6 +98,7 @@
 
 struct pic32_dma_sg {
 	dma_addr_t addr;
+	dma_addr_t addr_dest; /* Only used by DMA_MEM_TO_MEM */
 	unsigned int len;
 };
 
@@ -156,7 +157,6 @@ static inline void pic32_chan_writel(struct pic32_chan *chan,
 static void pic32_dma_desc_free(struct virt_dma_desc *vdesc)
 {
 	struct pic32_desc *desc = container_of(vdesc, struct pic32_desc, vdesc);
-
 	kfree(desc);
 }
 
@@ -178,9 +178,7 @@ static int pic32_dma_start_desc(struct pic32_chan *chan)
 			return 0;
 		chan->desc = to_pic32_dma_desc(vdesc);
 		chan->next_sg = 0;
-	}
-
-	if (chan->next_sg == chan->desc->num_sgs)
+	} else if (chan->next_sg == chan->desc->num_sgs)
 		chan->next_sg = 0;
 
 	sg = &chan->desc->sg[chan->next_sg];
@@ -214,6 +212,15 @@ static int pic32_dma_start_desc(struct pic32_chan *chan)
 				chan->cfg.src_addr_width);
 
 		break;
+	case DMA_MEM_TO_MEM:
+		pic32_chan_writel(chan, PIC32_DCHSSA, sg->addr);
+		pic32_chan_writel(chan, PIC32_DCHDSA, sg->addr_dest);
+
+		/* Set src/dst/cell length */
+		pic32_chan_writel(chan, PIC32_DCHSSIZ, sg->len);
+		pic32_chan_writel(chan, PIC32_DCHDSIZ, sg->len);
+		pic32_chan_writel(chan, PIC32_DCHCSIZ, sg->len);
+		break;
 	default:
 		dev_err(chan->vchan.chan.device->dev,
 			"%s channel %d: invalid case %d\n",
@@ -223,16 +230,20 @@ static int pic32_dma_start_desc(struct pic32_chan *chan)
 
 	chan->next_sg++;
 
-	/* Set and enable start transfer IRQ */
-	conf = (chan->cfg.slave_id << 8) | PIC32_DCHECON_SIRQEN;
-
-	pic32_chan_writel(chan, PIC32_DCHECON, conf);
-
 	/* Enable interrupts */
 	pic32_chan_writel(chan, PIC32_DCHINT, PIC32_IRQ_INT_MASK);
 
 	/* Enable the channel */
 	pic32_chan_writel(chan, PIC32_SET(PIC32_DCHCON), PIC32_DCHCON_CHEN);
+
+	/* Set and enable start transfer IRQ */
+	if (chan->cfg.direction != DMA_MEM_TO_MEM)
+		conf = (chan->cfg.slave_id << 8) | PIC32_DCHECON_SIRQEN;
+	else
+		/* Force start the transfer if not in cyclic mode. */
+		conf = PIC32_DCHECON_CFORCE;
+
+	pic32_chan_writel(chan, PIC32_DCHECON, conf);
 
 	return 0;
 }
@@ -259,7 +270,7 @@ static irqreturn_t pic32_dma_isr(int irq, void *data)
 			"DMA block transfer complete\n");
 
 		if (chan->desc) {
-			if (chan->cyclic) {
+			if ((chan->desc->dir != DMA_MEM_TO_MEM) && chan->cyclic) {
 				vchan_cyclic_callback(&chan->desc->vdesc);
 			} else if (chan->next_sg == chan->desc->num_sgs) {
 				list_del(&chan->desc->vdesc.node);
@@ -346,6 +357,51 @@ static void pic32_dma_issue_pending(struct dma_chan *dchan)
 	if (vchan_issue_pending(&chan->vchan) && !chan->desc)
 		pic32_dma_start_desc(chan);
 	spin_unlock_irqrestore(&chan->vchan.lock, flags);
+}
+
+static struct dma_async_tx_descriptor *pic32_prep_dma_memcpy(
+	struct dma_chan *dchan, dma_addr_t dest,
+	dma_addr_t src, size_t len, unsigned long flags)
+{
+	struct pic32_chan *chan = to_pic32_dma_chan(dchan);
+	struct pic32_desc *desc;
+	unsigned int num_periods, i;
+	size_t block;
+
+	dev_dbg(dchan->device->dev,
+		"%s channel %d: src=%#llx dest=%#llx len=%zu\n",
+		__func__, chan->id, (u64)src, (u64)dest, len);
+
+	if (unlikely(!len)) {
+		dev_warn(dchan->device->dev,
+			"pic32_prep_dma_memcpy: length is zero!\n");
+		return NULL;
+	}
+
+	num_periods = (len / PIC32_MAX_TRANSFER_SIZE);
+	if (len % PIC32_MAX_TRANSFER_SIZE)
+		num_periods++;
+
+	desc = pic32_dma_alloc_desc(num_periods);
+	if (!desc)
+		return NULL;
+
+	for (i = 0; i < num_periods; i++) {
+		block = (len > PIC32_MAX_TRANSFER_SIZE) ?
+			PIC32_MAX_TRANSFER_SIZE : len;
+		desc->sg[i].addr = src;
+		desc->sg[i].addr_dest = dest;
+		desc->sg[i].len = block;
+		src += block;
+		dest += block;
+		len -= block;
+	}
+
+	desc->num_sgs = num_periods;
+	desc->dir = DMA_MEM_TO_MEM;
+	chan->cyclic = false;
+
+	return vchan_tx_prep(&chan->vchan, &desc->vdesc, flags);
 }
 
 static struct dma_async_tx_descriptor *pic32_dma_prep_slave_sg(
@@ -486,13 +542,11 @@ static int pic32_dma_terminate_all(struct dma_chan *dchan)
 	dev_dbg(chan->vchan.chan.device->dev, "%s\n", __func__);
 
 	spin_lock_irqsave(&chan->vchan.lock, flags);
-
 	ret = pic32_dma_abort(chan);
 	if (ret) {
 		spin_unlock_irqrestore(&chan->vchan.lock, flags);
 		return ret;
 	}
-
 	chan->desc = NULL;
 
 	if (chan->cyclic) {
@@ -502,7 +556,6 @@ static int pic32_dma_terminate_all(struct dma_chan *dchan)
 
 	vchan_get_all_descriptors(&chan->vchan, &head);
 	spin_unlock_irqrestore(&chan->vchan.lock, flags);
-
 	vchan_dma_desc_free_list(&chan->vchan, &head);
 
 	return 0;
@@ -658,6 +711,7 @@ static int pic32_dma_probe(struct platform_device *pdev)
 
 	dma_cap_set(DMA_SLAVE, dd->cap_mask);
 	dma_cap_set(DMA_CYCLIC, dd->cap_mask);
+	dma_cap_set(DMA_MEMCPY, dd->cap_mask);
 	dma_cap_set(DMA_PRIVATE, dd->cap_mask);
 	dd->device_alloc_chan_resources = pic32_dma_alloc_chan_resources;
 	dd->device_free_chan_resources = pic32_dma_free_chan_resources;
@@ -665,15 +719,20 @@ static int pic32_dma_probe(struct platform_device *pdev)
 	dd->device_issue_pending = pic32_dma_issue_pending;
 	dd->device_prep_slave_sg = pic32_dma_prep_slave_sg;
 	dd->device_prep_dma_cyclic = pic32_dma_prep_dma_cyclic;
+	dd->device_prep_dma_memcpy = pic32_prep_dma_memcpy;
 	dd->device_config = pic32_dma_slave_config;
 	dd->device_terminate_all = pic32_dma_terminate_all;
 	dd->device_pause = pic32_dma_pause;
 	dd->device_resume = pic32_dma_resume;
 	dd->src_addr_widths = PIC32_DMA_BUSWIDTHS;
 	dd->dst_addr_widths = PIC32_DMA_BUSWIDTHS;
-	dd->directions = BIT(DMA_DEV_TO_MEM) | BIT(DMA_MEM_TO_DEV);
+	dd->directions = BIT(DMA_MEM_TO_MEM) |
+		BIT(DMA_DEV_TO_MEM) |
+		BIT(DMA_MEM_TO_DEV);
 	dd->residue_granularity = DMA_RESIDUE_GRANULARITY_BURST;
 
+
+	dd->chancnt = 0;
 	dd->dev = &pdev->dev;
 
 	INIT_LIST_HEAD(&dd->channels);
@@ -688,6 +747,8 @@ static int pic32_dma_probe(struct platform_device *pdev)
 		if (ret)
 			goto err;
 
+		dd->chancnt++;
+
 		vchan_init(&chan->vchan, dd);
 	}
 
@@ -699,7 +760,7 @@ static int pic32_dma_probe(struct platform_device *pdev)
 		return ret;
 
 	if (np) {
-		ret = of_dma_controller_register(np, pic32_dma_xlate_of, dd);
+		ret = of_dma_controller_register(np, of_dma_simple_xlate, NULL);
 		if (ret)
 			dev_err(&pdev->dev,
 				"could not register of_dma_controller\n");
