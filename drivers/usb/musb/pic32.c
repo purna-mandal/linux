@@ -34,6 +34,17 @@
 #include <linux/gpio.h>
 #include "musb_core.h"
 
+#define USBCRCON		0x0
+#define USBCRCON_USBIF		BIT(24)
+#define USBCRCON_USBRF		BIT(25)
+#define USBCRCON_USBWK		BIT(26)
+#define USBCRCON_USBIDOVEN	BIT(9)
+#define USBCRCON_USBIDVAL	BIT(8)
+#define USBCRCON_PHYIDEN	BIT(7)
+#define USBCRCON_USBIE		BIT(2)
+#define USBCRCON_USBRIE		BIT(1)
+#define USBCRCON_USBWKUPEN	BIT(0)
+
 #define PIC32_TX_EP_MASK	0xffff		/* EP0 + 15 Tx EPs */
 #define PIC32_RX_EP_MASK	0xfffe		/* 15 Rx EPs */
 
@@ -45,16 +56,12 @@ struct pic32_glue {
 	struct clk		*clk;
 	int			oc_irq;
 	int			vbus_on_pin;
-	int			usb_id_pin;
-	int			usb_id_irq;
-	struct of_phandle_args	usb_id_oirq;
 	struct timer_list	timer;		/* otg_workaround timer */
 	unsigned long		last_timer;	/* last timer data for */
+	void __iomem		*ctrl;
 };
 
 static irqreturn_t pic32_over_current(int irq, void *d);
-
-static irqreturn_t pic32_usb_id_change(int irq, void *d);
 
 /*
  * pic32_musb_enable - enable interrupts
@@ -66,9 +73,6 @@ static void pic32_musb_enable(struct musb *musb)
 
 	/* Enable additional interrupts */
 	enable_irq(glue->oc_irq);
-
-	if (musb->port_mode == MUSB_PORT_MODE_DUAL_ROLE)
-		enable_irq(glue->usb_id_irq);
 }
 
 /*
@@ -83,9 +87,6 @@ static void pic32_musb_disable(struct musb *musb)
 
 	/* Disable additional interrupts */
 	disable_irq(glue->oc_irq);
-
-	if (musb->port_mode == MUSB_PORT_MODE_DUAL_ROLE)
-		disable_irq(glue->usb_id_irq);
 }
 
 static void pic32_musb_set_vbus(struct musb *musb, int is_on)
@@ -115,7 +116,7 @@ static void otg_timer(unsigned long _musb)
 	spin_lock_irqsave(&musb->lock, flags);
 	switch (musb->xceiv->otg->state) {
 	case OTG_STATE_A_WAIT_BCON:
-		musb_writeb(musb->mregs, MUSB_DEVCTL, 0);
+		musb_writeb(mregs, MUSB_DEVCTL, 0);
 		skip_session = 1;
 		/* fall */
 
@@ -280,23 +281,23 @@ static int pic32_musb_set_mode(struct musb *musb, u8 mode)
 {
 	struct device *dev = musb->controller;
 	struct pic32_glue *glue = dev_get_drvdata(dev->parent);
+	u32 crcon;
 
 	switch (mode) {
 	case MUSB_HOST:
 
-		/* if we're setting mode to host-only or device-only, we're
-		 * going to force ID pin status by SW */
-		pic32_pinconf_pullup_runtime(glue->usb_id_pin, 0);
-		pic32_pinconf_pulldown_runtime(glue->usb_id_pin, 1);
+		crcon = musb_readl(glue->ctrl, USBCRCON);
+		musb_writel(glue->ctrl, USBCRCON,
+			(crcon | USBCRCON_USBIDOVEN) & ~USBCRCON_USBIDVAL);
+
 		dev_dbg(dev, "MUSB Host mode enabled\n");
 
 		break;
 	case MUSB_PERIPHERAL:
 
-		/* if we're setting mode to host-only or device-only, we're
-		 * going to force ID pin status by SW */
-		pic32_pinconf_pulldown_runtime(glue->usb_id_pin, 0);
-		pic32_pinconf_pullup_runtime(glue->usb_id_pin, 1);
+		crcon = musb_readl(glue->ctrl, USBCRCON);
+		musb_writel(glue->ctrl, USBCRCON,
+			crcon | USBCRCON_USBIDOVEN | USBCRCON_USBIDVAL);
 
 		dev_dbg(dev, "MUSB Device mode enabled\n");
 
@@ -314,18 +315,11 @@ static int pic32_musb_set_mode(struct musb *musb, u8 mode)
 	return 0;
 }
 
-static inline void pic32_musb_init_control(void)
-{
-	void __iomem *base = (void __iomem *)(unsigned long)(0xbf884000);
-	__raw_writel(0x1ff, base);
-}
-
 static int pic32_musb_init(struct musb *musb)
 {
 	struct device *dev = musb->controller;
 	struct pic32_glue *glue = dev_get_drvdata(dev->parent);
 	int ret;
-
 	u16 hwvers;
 
 	/* Returns zero if e.g. not clocked */
@@ -355,41 +349,24 @@ static int pic32_musb_init(struct musb *musb)
 
 	switch (musb->port_mode) {
 	case MUSB_PORT_MODE_DUAL_ROLE:
-
-		glue->usb_id_irq = irq_create_of_mapping(&glue->usb_id_oirq);
-		irq_set_status_flags(glue->usb_id_irq, IRQ_NOAUTOEN);
-		ret = devm_request_irq(dev, glue->usb_id_irq,
-				pic32_usb_id_change, 0, dev_name(dev), dev);
-		if (ret) {
-			dev_err(dev, "failed to request irq: %d\n", ret);
-			return ret;
-		}
 		break;
 
 	case MUSB_PORT_MODE_HOST:
 	case MUSB_PORT_MODE_GADGET:
-		if (gpio_is_valid(glue->usb_id_pin)) {
-
-			ret = devm_gpio_request(dev, glue->usb_id_pin,
-					"usb_id");
-			if (ret) {
-				dev_err(dev, "error requesting USB_ID GPIO\n");
-				return -EINVAL;
-			}
-
-			ret = gpio_direction_input(glue->usb_id_pin);
-			if (ret) {
-				dev_err(dev, "error setting USB_ID GPIO\n");
-				return -EINVAL;
-			}
-		}
 		break;
 	default:
 		dev_err(dev, "unsupported mode %d\n", musb->port_mode);
 		return -EINVAL;
 	}
 
-	pic32_musb_init_control();
+	musb_writel(glue->ctrl, USBCRCON, USBCRCON_USBIF |
+		USBCRCON_USBRF |
+		USBCRCON_USBWK |
+		USBCRCON_USBIDOVEN |
+		USBCRCON_PHYIDEN |
+		USBCRCON_USBIE |
+		USBCRCON_USBRIE |
+		USBCRCON_USBWKUPEN);
 
 	return 0;
 }
@@ -412,14 +389,6 @@ static irqreturn_t pic32_over_current(int irq, void *d)
 {
 	struct device *dev = d;
 	dev_info(dev, "USB Host over-current detected !\n");
-
-	return IRQ_HANDLED;
-}
-
-static irqreturn_t pic32_usb_id_change(int irq, void *d)
-{
-	struct device *dev = d;
-	dev_info(dev, "USB ID Changed !\n");
 
 	return IRQ_HANDLED;
 }
@@ -696,7 +665,7 @@ static int pic32_musb_probe(struct platform_device *pdev)
 	struct pic32_glue		*glue;
 	struct device_node		*dev_node_id, *dev_node_oc;
 	const struct of_device_id	*match;
-
+	struct resource			*iomem;
 
 	if (!pdev->dev.of_node) {
 		dev_err(&pdev->dev, "MUSB device tree configuration is needed !\n");
@@ -742,9 +711,6 @@ static int pic32_musb_probe(struct platform_device *pdev)
 		gpio_set_value(glue->vbus_on_pin, 1);
 	}
 
-	glue->usb_id_pin = of_get_named_gpio(pdev->dev.of_node,
-			"usb_id-gpios", 0);
-
 	dev_node_oc = of_get_child_by_name(pdev->dev.of_node,
 			"usb_overcurrent");
 	if (!dev_node_oc) {
@@ -760,18 +726,11 @@ static int pic32_musb_probe(struct platform_device *pdev)
 		goto err_put_oc;
 	}
 
-	dev_node_id = of_get_child_by_name(pdev->dev.of_node, "usb_id_pin");
-	if (!dev_node_id) {
-		dev_err(&pdev->dev, "error usb_id property missing\n");
-		ret = -EINVAL;
+	iomem = platform_get_resource(pdev, IORESOURCE_MEM, 1);
+	glue->ctrl = devm_ioremap_resource(&pdev->dev, iomem);
+	if (IS_ERR(glue->ctrl)) {
+		ret = PTR_ERR(glue->ctrl);
 		goto err_put_oc;
-	}
-
-	ret = of_irq_parse_one(dev_node_id, 0, &glue->usb_id_oirq);
-	if (ret) {
-		dev_err(&pdev->dev, "cannot get usb id irq!\n");
-		ret = -EINVAL;
-		goto err_put_id;
 	}
 
 	/* Set the glue code */

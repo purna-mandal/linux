@@ -165,22 +165,21 @@
 			clock-output-names = "pb5_clk", "pic32-ether","pic32-rng";
 		};
 
-		/* Peripheral Bus7 clock; */
-		PBCLK7:pb7_clk {
-			reg = <0xbf8013A0 0x10>;
+		/* Peripheral Bus6 clock; */
+		PBCLK6:pb6_clk {
+			reg = <0xbf801390 0x10>;
 			compatible = "microchip,pic32-pbclk";
 			clocks = <&SYSCLK>;
 			#clock-cells = <0>;
-			clock-output-names = "cpu_clk"; /* CPU is driven by this clock; so named */
 		};
 
-		/* Peripheral bus-8(EBI) clock */
-		PBCLK8:pb8_clk {
-			reg = <0xbf801370 0x10>;
+		/* Peripheral bus7 clock */
+		PBCLK7:pb7_clk {
+			reg = <0xbf8013A0 0x10>;
 			#clock-cells = <0>;
 			compatible = "microchip,pic32-pbclk";
+			clock-output-names = "cpu_clk"; /* CPU is driven by this clock; so named */
 			clocks = <&SYSCLK>;
-			clock-output-names = "pb8_clk";
 			/* EBI drives SRAM in SK+MEB setup, so avoid gating even if unused */
 			microchip,ignore-unused;
 		};

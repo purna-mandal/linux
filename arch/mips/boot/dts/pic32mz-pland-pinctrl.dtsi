@@ -77,11 +77,6 @@
 			pinctrl_usb1_vbus: usb1_vbus-0 {
 				pic32,single-pins = <PORT_B 5 PIC32_PIN_CONF_DG_OUT>;
 			};
-
-			pinctrl_usb1_usbid: usb1_usbid-0 {
-				pic32,single-pins = <PORT_F 3 PIC32_PIN_CONF_NONE>;
-			};
-
 		};
 
 		spi1 {
