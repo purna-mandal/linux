@@ -23,7 +23,7 @@
 
 #define RNGCON		0x04
 #define RNGCON_TRNGEN	BIT(8)
-#define RNGCON_RNGEN	BIT(9)
+#define RNGCON_PRNGEN	BIT(9)
 #define RNGCON_CONT	BIT(10)
 #define RNGCON_LOAD	BIT(12)
 #define RNGPOLY1	0x08
@@ -33,6 +33,7 @@
 #define RNGSEED1	0x18
 #define RNGSEED2	0x1C
 #define RNGRCNT		0x20
+#define RCNT_MASK	0x7F
 
 struct pic32_rng {
 	void __iomem *base;
@@ -81,15 +82,14 @@ static int pic32_rng_probe(struct platform_device *pdev)
 
 	/* enable TRNG */
 	v = readl(prng->base + RNGCON);
-	v &= ~(RNGCON_TRNGEN|RNGCON_RNGEN|0xff);
+	v &= ~(RNGCON_TRNGEN|RNGCON_PRNGEN|0xff);
 	writel(v|RNGCON_TRNGEN, prng->base + RNGCON);
 
 	/* wait for valid seed */
-	for (;;) {
-		if (readl(prng->base + RNGRCNT) >= 0x2A)
-			break;
-		udelay(1);
-	}
+	usleep_range(100, 200);
+	v = readl(prng->base + RNGRCNT) & RCNT_MASK;
+	if (v < 0x2A)
+		dev_warn(&pdev->dev, "seed not generated.\n");
 
 	/* stop TRNG and load initial seed */
 	writel(v|RNGCON_LOAD, prng->base + RNGCON);
@@ -99,7 +99,7 @@ static int pic32_rng_probe(struct platform_device *pdev)
 	writel(0x00000000, prng->base + RNGPOLY2);
 
 	/* start PRNG to generate 42bit random */
-	v |= 0x2A|RNGCON_CONT|RNGCON_RNGEN;
+	v |= 0x2A|RNGCON_CONT|RNGCON_PRNGEN;
 	writel(v, prng->base + RNGCON);
 
 	prng->rng.name = pdev->name;
