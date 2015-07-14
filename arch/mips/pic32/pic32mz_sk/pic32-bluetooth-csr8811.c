@@ -111,7 +111,7 @@ static const struct of_device_id csr8811_bluetooth_id[] = {
 	{ .compatible = "csr,8811",},
 	{ },
 };
-MODULE_DEVICE_TABLE(of, pic32_clk_tests_id);
+MODULE_DEVICE_TABLE(of, csr8811_bluetooth_id);
 
 static struct platform_driver csr8811_bluetooth_driver = {
 	.driver = {
