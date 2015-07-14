@@ -348,9 +348,9 @@ static int pic32_i2c_master_xfer(struct i2c_adapter *adap, struct i2c_msg *msgs,
 		ret = wait_for_completion_timeout(&id->xfer_done,
 						adap->timeout);
 		if (!ret) {
-
 			dev_dbg(id->adap.dev.parent,
 				"timeout waiting on completion\n");
+			ret = -ETIMEDOUT;
 			goto xfer_send_stop;
 		}
 
