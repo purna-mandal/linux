@@ -141,10 +141,11 @@ struct sqi_desc {
 };
 
 /* Global constants */
-#define SQI_BD_BUF_SIZE		SZ_256 /* 256-byte */
-#define SQI_BD_COUNT		(SZ_64K / SQI_BD_BUF_SIZE)
+#define SQI_BD_BUF_LEN_MAX	SZ_256
+#define SQI_BD_BUF_DMA_THRES	SZ_32
+#define SQI_BD_BUF_LEN		SQI_BD_BUF_DMA_THRES
+#define SQI_BD_COUNT		(PAGE_SIZE / SQI_BD_BUF_LEN)
 #define SQI_BD_COUNT_MASK	(SQI_BD_COUNT - 1)
-#define SQI_MIN_LEN_DMA		32
 
 #define SQI_VERBOSE	0
 
@@ -489,7 +490,7 @@ static int sqi_desc_fill(struct sqi_desc *desc,
 	struct hw_bd *bd;
 	int offset = xfer->len - remaining;
 
-	desc->xfer_len = min_t(u32, remaining, SQI_BD_BUF_SIZE);
+	desc->xfer_len = min_t(u32, remaining, SQI_BD_BUF_LEN_MAX);
 	desc->x = xfer;
 	desc->xfer_buf = NULL;
 
@@ -524,6 +525,43 @@ static int sqi_desc_fill(struct sqi_desc *desc,
 	return desc->xfer_len;
 }
 
+static inline dma_addr_t sqi_map_buf(struct pic32_sqi *sqi,
+					const void *buf, size_t len, int tx)
+{
+	dma_addr_t dma_buf;
+	struct device *dev = &sqi->master->dev;
+	enum dma_data_direction dir = tx ? DMA_TO_DEVICE : DMA_FROM_DEVICE;
+
+	if (is_vmalloc_addr(buf))
+		dma_buf = dma_map_page(dev, vmalloc_to_page(buf),
+					offset_in_page(buf), len, dir);
+	else
+		dma_buf = dma_map_single(dev, (void *)buf, len, dir);
+
+	if (dma_mapping_error(dev, dma_buf))
+		dma_buf = 0;
+
+	dev_dbg(dev, "%s: buf %p, len %u, dma_buf %p, tx %d\n", __func__,
+			buf, len, (void *)dma_buf, tx);
+	return dma_buf;
+}
+
+static inline void sqi_unmap_buf(struct pic32_sqi *sqi, const void *buf,
+					dma_addr_t dma_buf, size_t len, int tx)
+{
+	struct device *dev = &sqi->master->dev;
+	enum dma_data_direction dir = tx ? DMA_TO_DEVICE : DMA_FROM_DEVICE;
+
+	dev_dbg(dev, "%s: buf %p, len %u, dma_buf %p, tx %d\n", __func__,
+			buf, len, (void *)dma_buf, tx);
+
+	if (is_vmalloc_addr(buf))
+		dma_unmap_page(dev, dma_buf, len, dir);
+	else
+		dma_unmap_single(dev, dma_buf, len, dir);
+
+}
+
 static int pic32_sqi_one_transfer(struct pic32_sqi *sqi,
 	struct spi_message *mesg, struct spi_transfer *xfer)
 {
@@ -544,26 +582,16 @@ static int pic32_sqi_one_transfer(struct pic32_sqi *sqi,
 	if (xfer->rx_buf) {
 		nbits = xfer->rx_nbits;
 		bd_ctrl |= BD_DATA_RECV;
-		if (xfer->len >= SQI_MIN_LEN_DMA) {
-			dma_buf = dma_map_single(&sqi->master->dev,
-						(void *)xfer->rx_buf,
-						xfer->len, DMA_TO_DEVICE);
-			if (dma_mapping_error(sqi->dev, dma_buf))
-				dma_buf = 0;
-
+		if (xfer->len >= SQI_BD_BUF_DMA_THRES) {
+			dma_buf = sqi_map_buf(sqi, xfer->rx_buf, xfer->len, 0);
 			xfer->rx_dma = dma_buf;
 		}
 		goto mapping_done;
 	}
 
 	nbits = xfer->tx_nbits;
-	if (xfer->len >= SQI_MIN_LEN_DMA) {
-		dma_buf = dma_map_single(&sqi->master->dev,
-					(void *)xfer->tx_buf,
-					xfer->len, DMA_FROM_DEVICE);
-		if (dma_mapping_error(sqi->dev, dma_buf))
-			dma_buf = 0;
-
+	if (xfer->len >= SQI_BD_BUF_DMA_THRES) {
+		dma_buf = sqi_map_buf(sqi, xfer->tx_buf, xfer->len, 1);
 		xfer->tx_dma = dma_buf;
 	}
 
@@ -774,11 +802,11 @@ xfer_out:
 	/* unmap dma memory, if there */
 	list_for_each_entry(xfer, &msg->transfers, transfer_list) {
 		if (xfer->tx_buf && xfer->tx_dma)
-			dma_unmap_single(&sqi->master->dev,
-				xfer->tx_dma, xfer->len, DMA_FROM_DEVICE);
+			sqi_unmap_buf(sqi, xfer->tx_buf,
+					xfer->tx_dma, xfer->len, 1);
 		else if (xfer->rx_dma)
-			dma_unmap_single(&sqi->master->dev,
-				xfer->rx_dma, xfer->len, DMA_TO_DEVICE);
+			sqi_unmap_buf(sqi, xfer->rx_buf,
+					xfer->rx_dma, xfer->len, 0);
 	}
 
 	/* release all used bds */
@@ -870,7 +898,7 @@ static int sqi_desc_ring_alloc(struct pic32_sqi *sqi)
 	/* allocate h/w descriptor and bounce-buffer */
 	size = sizeof(struct hw_bd) * SQI_BD_COUNT;
 	sqi->buffer = dma_zalloc_coherent(sqi->dev,
-				size + (SQI_BD_COUNT * SQI_BD_BUF_SIZE),
+				size + (SQI_BD_COUNT * SQI_BD_BUF_LEN),
 				&sqi->buffer_dma, GFP_DMA32);
 	if (!sqi->buffer) {
 		dev_err(sqi->dev, "error: allocating hw-bd\n");
@@ -881,7 +909,7 @@ static int sqi_desc_ring_alloc(struct pic32_sqi *sqi)
 	tmp_buf_dma = sqi->buffer_dma + size;
 
 	/* allocate descriptor to manage hw_bd and linked bounce_buffer */
-	desc = devm_kzalloc(sqi->dev, sizeof(*d) * SQI_BD_COUNT, GFP_KERNEL);
+	desc = devm_kcalloc(sqi->dev, SQI_BD_COUNT, sizeof(*d), GFP_KERNEL);
 	if (!desc) {
 		dma_free_coherent(sqi->dev, size, sqi->buffer, sqi->buffer_dma);
 		return -ENOMEM;
@@ -895,8 +923,8 @@ static int sqi_desc_ring_alloc(struct pic32_sqi *sqi)
 		INIT_LIST_HEAD(&d->list);
 		d->bd = &hw_bd[i];
 		d->bd_dma = sqi->buffer_dma + ((void *)d->bd - (void *)hw_bd);
-		d->buf = tmp_buf + (i * SQI_BD_BUF_SIZE);
-		d->buf_dma = tmp_buf_dma + (i * SQI_BD_BUF_SIZE);
+		d->buf = tmp_buf + (i * SQI_BD_BUF_LEN);
+		d->buf_dma = tmp_buf_dma + (i * SQI_BD_BUF_LEN);
 		list_add_tail(&d->list, &sqi->bd_list);
 	}
 
@@ -917,7 +945,7 @@ static void sqi_desc_ring_free(struct pic32_sqi *sqi)
 
 	/* remove DMA buffer & DMA descriptor */
 	size = sizeof(struct hw_bd) * SQI_BD_COUNT;
-	size += (SQI_BD_COUNT * SQI_BD_BUF_SIZE);
+	size += (SQI_BD_COUNT * SQI_BD_BUF_LEN);
 	dma_free_coherent(sqi->dev, size, sqi->buffer, sqi->buffer_dma);
 
 	/* remove buffer desc */
