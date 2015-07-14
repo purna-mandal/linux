@@ -77,6 +77,18 @@
 		status = "ok";
 	};
 
+	watchdog: wdt@bf800800 {
+		compatible = "microchip,pic32-wdt";
+		reg = <0xbf800800 0x200>;
+		clocks = <&LPRC>;
+	};
+
+	watchdog2: dmt@bf800a00 {
+		compatible = "microchip,pic32-dmt";
+		reg = <0xbf800a00 0x80>;
+		clocks = <&PBCLK7>;
+	};
+
 	dma: dma-controller@bf811000 {
 		compatible = "microchip,pic32-dma";
 		reg = <0xbf811000 0x2000>;
