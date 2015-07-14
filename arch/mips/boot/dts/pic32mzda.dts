@@ -5,6 +5,8 @@
 #include "pic32mzda-pinctrl.dtsi"
 #include "pic32mzda-uart.dtsi"
 #include "pic32mzda-timer.dtsi"
+#include "pic32mzda-i2c.dtsi"
+#include "pic32mzda-i2s.dtsi"
 
 / {
 	#address-cells = <1>;
@@ -115,6 +117,13 @@
 		#dma-cells = <1>;
 	};
 
+	sound0 {
+		compatible = "microchip,snd-pic32-proto";
+
+		microchip,cpu-dai = <&i2s1 &i2s1>;
+		microchip,audio-codec = <&wm8731>;
+	};
+
         /* AHB:   base virtual address: 0xbf8e_0000 : _ffff
          * SDIOC: base virtual address:       _c000 : _cfff
          * ! Bus matrix - AHB address range.
@@ -223,15 +232,32 @@
                 led@2 {
                         label = "pic32mz:yellow:led2";
                         gpios = <&pioH 1 GPIO_ACTIVE_HIGH>;
-                        default-state = "off";
+                        default-state = "on";
                 };
 
                 led@3 {
                         label = "pic32mz:green:led3";
                         gpios = <&pioH 2 GPIO_ACTIVE_HIGH>;
-                        default-state = "off";
+                        default-state = "on";
                 };
 
+	};
+
+	i2c2: i2c2@gpio {
+                #address-cells = <1>;
+		#size-cells = <0>;
+		status = "okay";
+
+		wm8731: wm8731@1a {
+                        compatible = "wlf,wm8731";
+                        reg = <0x1a>;
+                };
+
+		ak4953a: ak4953a@12 {
+			compatible = "asahi-kasei,ak4953a";
+			reg = <0x12>;
+			reset-gpio = <&pioH 3 0>;
+		};
 	};
 
 	adc1: adc@bf84b000 {

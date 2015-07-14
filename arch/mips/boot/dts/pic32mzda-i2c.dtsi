@@ -1,0 +1,70 @@
+/ {
+	i2c1: i2c@bf820000 {
+		compatible = "microchip,pic32-i2c";
+		reg = <0xbf820000 512>;
+		interrupts = <I2C1_MASTER_EVENT DEFAULT_INT_PRI IRQ_TYPE_LEVEL_HIGH>;
+		clock-frequency = <100000>;
+		clocks = <&PBCLK2>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&pinctrl_i2c1>;
+		status = "disabled";
+	};
+
+#if 0
+	i2c2: i2c@bf820200 {
+		compatible = "microchip,pic32-i2c";
+		reg = <0xbf820200 512>;
+		interrupts = <I2C2_MASTER_EVENT DEFAULT_INT_PRI IRQ_TYPE_LEVEL_HIGH>;
+		clock-frequency = <100000>;
+		clocks = <&PBCLK2>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&pinctrl_i2c2>;
+		status = "disabled";
+	};
+#else
+	/* Use i2c-gpio instead of pic32-i2c to avoid any possible issue with
+	 * I2C peripheral errata for audio demo.
+	 */
+	i2c2: i2c2@gpio {
+                compatible = "i2c-gpio";
+                gpios = <&pioA 3 GPIO_ACTIVE_HIGH>, <&pioA 2 GPIO_ACTIVE_HIGH>;
+                i2c-gpio,delay-us = <5>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&pinctrl_i2c2>;
+		status = "disabled";
+	};
+#endif
+
+	i2c3: i2c@bf820400 {
+		compatible = "microchip,pic32-i2c";
+		reg = <0xbf820400 512>;
+		interrupts = <I2C3_MASTER_EVENT DEFAULT_INT_PRI IRQ_TYPE_LEVEL_HIGH>;
+		clock-frequency = <100000>;
+		clocks = <&PBCLK2>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&pinctrl_i2c3>;
+		status = "disabled";
+	};
+
+	i2c4: i2c@bf820600 {
+		compatible = "microchip,pic32-i2c";
+		reg = <0xbf820600 512>;
+		interrupts = <I2C4_MASTER_EVENT DEFAULT_INT_PRI IRQ_TYPE_LEVEL_HIGH>;
+		clock-frequency = <100000>;
+		clocks = <&PBCLK2>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&pinctrl_i2c4>;
+		status = "disabled";
+	};
+
+	i2c5: i2c@bf820800 {
+		compatible = "microchip,pic32-i2c";
+		reg = <0xbf820800 512>;
+		interrupts = <I2C5_MASTER_EVENT DEFAULT_INT_PRI IRQ_TYPE_LEVEL_HIGH>;
+		clock-frequency = <100000>;
+		clocks = <&PBCLK2>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&pinctrl_i2c5>;
+		status = "disabled";
+	};
+};

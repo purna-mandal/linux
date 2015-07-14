@@ -73,28 +73,6 @@
 			};
 		};
 
-		spi1 {
-			pinctrl_spi1: spi1_0 {
-				pic32,pins = <PIC32_RP_IN_RPG8 PIC32_PP_IN_SDI1 PIC32_PIN_CONF_DG_IN
-					PIC32_RP_OUT_RPB10 PIC32_PP_OUT_SDO1 PIC32_PIN_CONF_DG_OUT>;
-				pic32,single-pins = <PORT_D 4 PIC32_PIN_CONF_DG>; /* spi1_cs */
-			};
-		};
-
-		sqi1 {
-			pinctrl_sqi1: sqi1_pins0 {
-				pic32,single-pins =
-					<PORT_G 13 PIC32_PIN_CONF_DG>, /* D0 */
-					<PORT_G 12 PIC32_PIN_CONF_DG>, /* D1 */
-					<PORT_G 14 PIC32_PIN_CONF_DG>, /* D2 */
-					<PORT_A 7 PIC32_PIN_CONF_DG>, /* D3 */
-					<PORT_A 6 PIC32_PIN_CONF_DG>, /* CLK */
-					/*<PORT_D 4 PIC32_PIN_CONF_DG>, *//* CS0 */
-					<PORT_D 5 PIC32_PIN_CONF_DG> /* CS1 */
-				;
-			};
-		};
-
 		i2c1 {
 			pinctrl_i2c1: i2c1_0 {
 				pic32,single-pins = <PORT_A 15 PIC32_PIN_CONF_DG>,
@@ -134,9 +112,9 @@
 			pinctrl_i2s1: i2s1_0 {
 				pic32,single-pins = <PORT_D 1 PIC32_PIN_CONF_DG>;
 
-				pic32,pins = <PIC32_RP_OUT_RPD15 PIC32_PP_OUT_REFCLKO1 PIC32_PIN_CONF_DG
-				PIC32_RP_IN_RPD14 PIC32_PP_IN_SDI1 PIC32_PIN_CONF_DG
+				pic32,pins = <PIC32_RP_IN_RPD14 PIC32_PP_IN_SDI1 PIC32_PIN_CONF_DG
 				PIC32_RP_OUT_RPB10 PIC32_PP_OUT_SDO1 PIC32_PIN_CONF_DG
+				PIC32_RP_IN_RPB15 PIC32_PP_IN_SS1 PIC32_PIN_CONF_DG
 				PIC32_RP_OUT_RPB15 PIC32_PP_OUT_SS1 PIC32_PIN_CONF_DG>;
 			};
 		};
