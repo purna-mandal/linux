@@ -21,8 +21,8 @@
 		gpio5 = &pioF;
 		gpio6 = &pioG;
 		gpio7 = &pioH;
-		gpio8 = &pioI; /*J*/
-		gpio9 = &pioJ; /*K*/
+		gpio8 = &pioJ;
+		gpio9 = &pioK;
 	};
 
 	pic32_pinctrl: pinctrl@bf800000{
@@ -285,7 +285,9 @@
 			clocks = <&PBCLK4>;
 		};
 
-		pioI: gpio@bf860800 { /* H + 1 = I -> J */
+		/* There is no pioI */
+
+		pioJ: gpio@bf860800 {
 			compatible = "microchip,pic32-gpio";
 			reg = <0xbf860800 0x24>;
 			interrupts = <PORTJ_INPUT_CHANGE_INTERRUPT DEFAULT_INT_PRI IRQ_TYPE_LEVEL_HIGH>;
@@ -297,9 +299,9 @@
 			clocks = <&PBCLK4>;
 		};
 
-		pioJ: gpio@bf860910 { /* I + 1 = J -> K */
+		pioK: gpio@bf860900 {
 			compatible = "microchip,pic32-gpio";
-			reg = <0xbf860910 0x20>;
+			reg = <0xbf860900 0x24>;
 			interrupts = <PORTK_INPUT_CHANGE_INTERRUPT DEFAULT_INT_PRI IRQ_TYPE_LEVEL_HIGH>;
 			#gpio-cells = <2>;
 			gpio-controller;
