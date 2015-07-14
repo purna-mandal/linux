@@ -107,7 +107,7 @@
 	lcd0: fb@bf8ea000 {
                 compatible = "microchip,pic32-lcd";
                 reg = <0xbf8ea000 0x1000>;
-		interrupts = <GLCD_INTERRUPT DEFAULT_INT_PRI IRQ_TYPE_EDGE_RISING>;
+		interrupts = <GLCD_INTERRUPT DEFAULT_INT_PRI IRQ_TYPE_LEVEL_HIGH>;
                 status = "okay";
 		bits-per-pixel = <32>;
 		pic32,transp-length = <0>;
