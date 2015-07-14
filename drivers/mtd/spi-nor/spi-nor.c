@@ -1054,30 +1054,27 @@ int spi_nor_scan(struct spi_nor *nor, const char *name, enum read_mode mode)
 		mtd->_unlock = spi_nor_unlock;
 	}
 
-	if (info->flags & SST_UNLOCK) {
-		u8 *command, cmd_len = 10;
+	if ((JEDEC_MFR(info) == CFI_MFR_SST) && (info->flags & SST_UNLOCK)) {
+		u8 *bp_buf, bp_len = 18;
 
-		command = devm_kzalloc(dev, cmd_len, GFP_KERNEL);
-		if (!command)
+		bp_buf = devm_kzalloc(dev, bp_len, GFP_KERNEL);
+		if (!bp_buf)
 			return -ENOMEM;
 
 		/* Disable Write Protection (enabled by default) */
 		write_enable(nor);
-		ret = nor->write_reg(nor, SPINOR_OP_WRBP, NULL, 0, 0);
+		ret = nor->write_reg(nor, SPINOR_OP_WRBP, bp_buf, bp_len, 0);
 		if (ret)
 			dev_err(dev, "disabling block protection failed\n");
 
-
 		/* read back to confirm protection is disabled, */
-		ret = nor->read_reg(nor, SPINOR_OP_RDBP, command, cmd_len);
+		ret = nor->read_reg(nor, SPINOR_OP_RDBP, bp_buf, bp_len);
 		if (ret)
 			dev_err(dev, "block protection read failed\n");
 
-		ret = (command[0] << 24)|(command[1] << 16);
-		ret |= (command[2] << 8)|command[3];
+		ret = (bp_buf[0] << 24)|(bp_buf[1] << 16)|(bp_buf[2] << 8)|bp_buf[3];
 		dev_info(dev, "block-protect stat 0x%08x\n", ret);
-
-		devm_kfree(dev, command);
+		devm_kfree(dev, bp_buf);
 	}
 
 	/* sst nor chips use AAI word program */
