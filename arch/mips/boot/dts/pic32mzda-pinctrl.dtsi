@@ -168,6 +168,14 @@
 			};
 		};
 
+		buttons {
+			user_buttons_s0: user_buttons_s0 {
+				pic32,single-pins = <PORT_B 12 PIC32_PIN_CONF_PU_IN
+				PORT_B 13 PIC32_PIN_CONF_PU_IN
+				PORT_B 14 PIC32_PIN_CONF_PU_IN>;
+			};
+		};
+
 		/* EPLAT */
 		uart1 {
 			/* uart1: pin groups */

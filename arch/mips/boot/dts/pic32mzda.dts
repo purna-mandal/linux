@@ -1,5 +1,6 @@
 /dts-v1/;
 #include <dt-bindings/interrupt-controller/microchip,pic32mz-evic.h>
+#include <dt-bindings/input/input.h>
 #include "pic32mzda-clk.dtsi"
 #include "pic32mzda-pinctrl.dtsi"
 #include "pic32mzda-uart.dtsi"
@@ -165,6 +166,21 @@
 		clock-names = "main_clk";
 		clock-frequency = <24000000>;
 	};
+
+	gpio-keys {
+                compatible = "gpio-keys-polled";
+                pinctrl-0 = <&user_buttons_s0>;
+                pinctrl-names = "default";
+		poll-interval = <500>;
+
+                power-button {
+                        /* On the back */
+			label = "Power Button";
+                        linux,code = <KEY_POWER>;
+                        gpios = <&pioB 12 GPIO_ACTIVE_HIGH>;
+                };
+        };
+
 
 	leds {
                 pinctrl-names = "default";
