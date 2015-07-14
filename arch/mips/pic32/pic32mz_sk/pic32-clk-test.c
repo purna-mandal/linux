@@ -47,6 +47,7 @@ static void uart_set_baud_clk(unsigned long new_rate)
 	int port = CONSOLE_UART;
 	void __iomem *iobase = (void __iomem *)PIC32_BASE_UART;
 	unsigned long flags;
+
 	local_irq_save(flags);
 
 	writel(0, iobase + UxMODE(port));
@@ -54,6 +55,7 @@ static void uart_set_baud_clk(unsigned long new_rate)
 	writel(v, iobase + UxBRG(port));
 	writel(UART_ENABLE, iobase + UxMODE(port));
 	writel(UART_ENABLE_TX|UART_ENABLE_RX, iobase + PIC32_SET(UxSTA(port)));
+
 	local_irq_restore(flags);
 }
 
@@ -61,6 +63,7 @@ static int pic32_serial_clk_notifier(struct notifier_block *nb,
 				     unsigned long action, void *data)
 {
 	struct clk_notifier_data *cnd = (struct clk_notifier_data *)data;
+
 	switch (action) {
 	case PRE_RATE_CHANGE:
 		pr_info("serial: pre-rate, old_rate %lu, new_rate %lu\n\n",
@@ -86,11 +89,12 @@ static struct notifier_block notify_serial = {
 	.priority = U16_MAX,
 };
 
-static const struct clk *uart_clk;
+static struct clk *uart_clk;
 static int pic32_serial_init(struct device_node *np)
 {
 	struct clk *clk;
-	uart_clk = clk = of_clk_get(np, NULL);
+
+	uart_clk = clk = of_clk_get(np, 0);
 	if (IS_ERR(clk))
 		goto out;
 
@@ -115,6 +119,7 @@ static inline int dbg_clk_sw_rate(struct clk *c, unsigned long new_rate,
 	const char *fname, const unsigned long line)
 {
 	int rate;
+
 	clk_set_rate(c, new_rate);
 	rate = clk_get_rate(c);
 	if (rate != new_rate) {
@@ -465,48 +470,6 @@ static int pic32_test_few_clks(struct platform_device *pdev)
 		testcode = BIT(0)|BIT(1)|BIT(2)|BIT(3)|BIT(4)|BIT(5);
 	}
 
-#if 0
-	if ((testcode & BIT(0))) {
-		/* Configure PPS */
-		unsigned long flags;
-		uint32_t v;
-
-		local_irq_save(flags);
-
-		/* sysunlock */
-		pic32_syskey_unlock();
-
-		/* iounlock */
-		writel(BIT(13), (void __iomem *)PIC32_CLR(0xbf800000));
-
-		/* PortA_ANSEL: digital */
-		writel(BIT(15)|BIT(14), (void __iomem *)PIC32_CLR(0xbf860000));
-		/* PortA_TRIS: output */
-		writel(BIT(14)|BIT(15), (void __iomem *)PIC32_CLR(0xbf860010));
-		/* PORTA_ODC: normal digital output */
-		writel(BIT(15)|BIT(14), (void __iomem *)PIC32_SET(0xbf860040));
-
-		/* REFCLKO1 -> SoC 96(RPA15) -> J1-126 -> MEB J4 (5-6) */
-		writel(0xf, (void __iomem *)0xbf80153c);
-		v = readl((void __iomem *)0xbf80153c);
-		if (v != 0xf)
-			pr_info("PPS(RPA15) is not working 0x%x\n", v);
-
-		/* REFCLKO4 -> SoC 95(RPA14) -> J1-124 -> MEB J4(3-4) */
-		writel(0xd, (void __iomem *)0xbf801538);
-		v = readl((void __iomem *)0xbf801538);
-		if (v != 0xd)
-			pr_info("PPS(RPA14) is not working 0x%x\n", v);
-
-		/* OC1 -> SoC-23(RPE8) -> J1-93 -> MEB J10 (13-14) */
-		writel(BIT(8), (void __iomem *)PIC32_CLR(0xbf860500));/*ANSEL5*/
-		writel(BIT(8), (void __iomem *)PIC32_CLR(0xbf860510)); /*TRIS5*/
-		writel(0xc, (void __iomem *)0xbf801620);
-
-		/*writel(BIT(13), (void __iomem *)PIC32_SET(0xbf800000));*/
-		local_irq_restore(flags);
-	}
-#endif
 	/* testcode */
 	if (testcode & BIT(0)) {
 		pic32_test_refoclk(1);
@@ -539,7 +502,7 @@ static int pic32_test_few_clks(struct platform_device *pdev)
 	return 0;
 }
 
-static struct of_device_id pic32_clk_tests_id[] = {
+static const struct of_device_id pic32_clk_tests_id[] = {
 	{ .compatible = "microchip,pic32-clk-test",},
 	{ },
 };
