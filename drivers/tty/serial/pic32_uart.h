@@ -1,7 +1,7 @@
 /*
  * PIC32 Integrated Serial Driver.
  *
- * Copyright (C) 2014 Microchip Technology, Inc.
+ * Copyright (C) 2015 Microchip Technology, Inc.
  *
  * Authors:
  *   Sorin-Andrei Pistirica <andrei.pistirica@microchip.com>
@@ -56,6 +56,7 @@ struct pic32_sport {
 	bool hw_flow_ctrl;
 	int cts_gpio;
 
+	int ref_clk;
 	struct clk *clk;
 
 	struct device *dev;
@@ -194,19 +195,5 @@ static inline u32 pic32_uart_read(struct pic32_sport *sport,
 #define PIC32_UART_STA_FERR       (1 << 2)
 #define PIC32_UART_STA_OERR       (1 << 1)
 #define PIC32_UART_STA_URXDA      (1 << 0)
-
-#if defined(PIC32UART_LOG_DBG)
-#define DBUFSIZE 1048
-static uint32_t d_bufidx = 0;
-static char d_buf[DBUFSIZE];
-
-#define pic32uart_log(format, arg...) \
-	do { \
-		d_bufidx += snprintf(&d_buf[d_bufidx], DBUFSIZE - d_bufidx, \
-		"(%s,%u):" format, __func__, __LINE__, ##arg); \
-	} while(0)
-#else
-#define pic32uart_log(format, arg...)
-#endif
 
 #endif /* __DT_PIC32_UART_H__ */

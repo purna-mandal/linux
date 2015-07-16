@@ -1,7 +1,7 @@
 /*
  * PIC32 Integrated Serial Driver.
  *
- * Copyright (C) 2014 Microchip Technology, Inc.
+ * Copyright (C) 2015 Microchip Technology, Inc.
  *
  * Authors:
  *   Steve Scott <steve.scott@microchip.com>,
@@ -43,6 +43,19 @@
 
 /* pic32_sport pointer for console use */
 static struct pic32_sport *pic32_sports[PIC32_MAX_UARTS];
+
+static inline int pic32_enable_clock(struct pic32_sport *sport)
+{
+	sport->ref_clk++;
+
+	return clk_prepare_enable(sport->clk);
+}
+
+static inline void pic32_disable_clock(struct pic32_sport *sport)
+{
+	sport->ref_clk--;
+	clk_disable_unprepare(sport->clk);
+}
 
 /* serial core request to check if uart tx buffer is empty */
 static unsigned int pic32_uart_tx_empty(struct uart_port *port)
@@ -375,6 +388,10 @@ static int pic32_uart_startup(struct uart_port *port)
 	 *  handle an 'unexpected' interrupt. */
 	local_irq_save(flags);
 
+	ret = pic32_enable_clock(sport);
+	if (ret)
+		goto _restore_irq_ret;
+
 	/* clear status and mode registers */
 	pic32_uart_write(0, sport, PIC32_UART_MODE);
 	pic32_uart_write(0, sport, PIC32_UART_STA);
@@ -433,10 +450,6 @@ static int pic32_uart_startup(struct uart_port *port)
 	/* set interrupt on empty */
 	pic32_uart_rclr(PIC32_UART_STA_UTXISEL1, sport, PIC32_UART_STA);
 
-	ret = clk_prepare_enable(sport->clk);
-	if (ret)
-		goto _restore_irq_ret;
-
 	/* enable all interrupts and eanable uart */
 	pic32_uart_en_and_unmask(port);
 
@@ -455,8 +468,7 @@ static void pic32_uart_shutdown(struct uart_port *port)
 	spin_lock_irqsave(&port->lock, flags);
 	pic32_uart_dsbl_and_mask(port);
 	spin_unlock_irqrestore(&port->lock, flags);
-
-	clk_disable_unprepare(sport->clk);
+	pic32_disable_clock(sport);
 
 	/* free all 3 interrupts for this UART */
 	free_irq(sport->irq_fault, port);
@@ -669,7 +681,7 @@ static int pic32_console_setup(struct console *co, char *options)
 		return -ENODEV;
 	port = pic32_get_port(sport);
 
-	ret = clk_prepare_enable(sport->clk);
+	ret = pic32_enable_clock(sport);
 	if (ret)
 		return ret;
 
@@ -689,7 +701,7 @@ static struct console pic32_console = {
 	.index		= -1,
 	.data		= &pic32_uart_driver,
 };
-#define PIC32_SCONSOLE   (&pic32_console)
+#define PIC32_SCONSOLE (&pic32_console)
 
 static int __init pic32_console_init(void)
 {
@@ -697,6 +709,12 @@ static int __init pic32_console_init(void)
 	return 0;
 }
 console_initcall(pic32_console_init);
+
+static inline bool is_pic32_console_port(struct uart_port *port)
+{
+	return (port->cons && port->cons->index == port->line);
+}
+
 #else
 #define PIC32_SCONSOLE NULL
 #endif
@@ -756,17 +774,20 @@ static int pic32_uart_probe(struct platform_device *pdev)
 	sport->cts_gpio		= -EINVAL;
 	sport->dev		= &pdev->dev;
 
-	ret = clk_prepare_enable(sport->clk);
+	ret = pic32_enable_clock(sport);
 	if (ret) {
 		dev_err(&pdev->dev, "clk enable ?\n");
 		goto err;
 	}
+	/* The peripheral clock be disabled till the port is used */
+	clk_disable_unprepare(sport->clk);
+
 	sport->hw_flow_ctrl = of_property_read_bool(np,
 					"microchip,uart-has-rtscts");
 	if (!sport->hw_flow_ctrl)
 		goto uart_no_flow_ctrl;
 
-	/* CTS/RTS gpios
+	/* Hardware flow control: gpios
 	 * !Note: Basically, CTS is needed for reading the status. */
 	sport->cts_gpio = of_get_named_gpio(np, "cts-gpios", 0);
 	if (gpio_is_valid(sport->cts_gpio)) {
@@ -775,33 +796,16 @@ static int pic32_uart_probe(struct platform_device *pdev)
 		if (ret) {
 			dev_err(&pdev->dev,
 				"error requesting CTS GPIO\n");
-			goto err;
+			goto err_disable_clk;
 		}
 
 		ret = gpio_direction_input(sport->cts_gpio);
 		if (ret) {
 			dev_err(&pdev->dev, "error setting CTS GPIO\n");
-			goto err;
+			goto err_disable_clk;
 		}
 	}
-#if 0
-	sport->rts_gpio = of_get_named_gpio(np, "rts-gpios", 0);
-	if (gpio_is_valid(sport->rts_gpio)) {
-		ret = devm_gpio_request(sport->dev,
-					sport->rts_gpio, "RTS");
-		if (ret) {
-			dev_err(&pdev->dev,
-				"error requesting RTS GPIO\n");
-			goto err;
-		}
 
-		ret = gpio_direction_output(sport->rts_gpio, 1);
-		if (ret) {
-			dev_err(&pdev->dev, "error setting RTS GPIO\n");
-			goto err;
-		}
-	}
-#endif
 uart_no_flow_ctrl:
 	pic32_sports[uart_idx] = sport;
 	port = &sport->port;
@@ -823,14 +827,33 @@ uart_no_flow_ctrl:
 	if (ret) {
 		port->membase = 0;
 		dev_err(port->dev, "%s: uart add port error!\n", __func__);
-		goto err;
+		goto err_disable_clk;
 	}
+
+#ifdef CONFIG_SERIAL_PIC32_CONSOLE
+	if (is_pic32_console_port(port) &&
+		PIC32_SCONSOLE->flags & CON_ENABLED) {
+
+		/* The peripheral clock has been enabled by console_setup,
+		 * so disable it till the port is used. */
+		pic32_disable_clock(sport);
+	}
+#endif
 
 	platform_set_drvdata(pdev, port);
 
 	dev_info(&pdev->dev, "%s: uart(%d) driver initialized.\n",
 							__func__, uart_idx);
+
+	/* The peripheral clock has to be disabled till the port is used:
+	 * _setup() is called. */
+	pic32_disable_clock(sport);
+
 	return 0;
+
+err_disable_clk:
+	/* clock has been enabled before the err, so disable it. */
+	pic32_disable_clock(sport);
 err:
 	/* automatic unroll of sport and gpios */
 	return ret;
@@ -842,7 +865,7 @@ static int pic32_uart_remove(struct platform_device *pdev)
 	struct pic32_sport *sport = to_pic32_sport(port);
 
 	uart_remove_one_port(&pic32_uart_driver, port);
-	clk_disable_unprepare(sport->clk);
+	pic32_disable_clock(sport);
 	platform_set_drvdata(pdev, NULL);
 	pic32_sports[sport->idx] = NULL;
 
