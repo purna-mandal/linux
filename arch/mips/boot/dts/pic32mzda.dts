@@ -8,7 +8,7 @@
 / {
 	#address-cells = <1>;
 	#size-cells = <1>;
-	compatible = "mti,pic32";
+	compatible = "microchip,pic32mzda";
 	model = "Microchip PIC32MZDA";
 	interrupt-parent = <&evic>;
 
