@@ -35,9 +35,9 @@
 #include "musb_core.h"
 
 #define USBCRCON		0x0
-#define USBCRCON_USBIF		BIT(24)
+#define USBCRCON_USBIF		BIT(26)
 #define USBCRCON_USBRF		BIT(25)
-#define USBCRCON_USBWK		BIT(26)
+#define USBCRCON_USBWKUP	BIT(24)
 #define USBCRCON_USBIDOVEN	BIT(9)
 #define USBCRCON_USBIDVAL	BIT(8)
 #define USBCRCON_PHYIDEN	BIT(7)
@@ -359,9 +359,7 @@ static int pic32_musb_init(struct musb *musb)
 		return -EINVAL;
 	}
 
-	musb_writel(glue->ctrl, USBCRCON, USBCRCON_USBIF |
-		USBCRCON_USBRF |
-		USBCRCON_USBWK |
+	musb_writel(glue->ctrl, USBCRCON,
 		USBCRCON_USBIDOVEN |
 		USBCRCON_PHYIDEN |
 		USBCRCON_USBIE |
@@ -546,8 +544,6 @@ int pic32_create_musb_pdev(struct pic32_glue *glue,
 		resources[2] = *res;
 		resources[2].name = "dma";
 	}
-	resources[2] = *res;
-	resources[2].name = "dma";
 
 	/* Allocate the child platform device */
 	musb = platform_device_alloc("musb-hdrc", PLATFORM_DEVID_AUTO);
