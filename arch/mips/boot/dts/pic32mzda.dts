@@ -135,7 +135,7 @@
 		reg = <0xbf8e3000 0x1000>,
 		      <0xbf884000 0x1000>;
 		reg-names = "mc";
-		interrupts = <USB_GENERAL_EVENT DEFAULT_INT_PRI IRQ_TYPE_LEVEL_HIGH>,
+		interrupts = <USB_GENERAL_EVENT DEFAULT_INT_PRI IRQ_TYPE_EDGE_RISING>,
 				<USB_DMA_EVENT DEFAULT_INT_PRI IRQ_TYPE_LEVEL_HIGH>;
 		interrupt-names = "mc", "dma", "over_current";
 		dr_mode = "host";
