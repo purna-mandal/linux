@@ -64,6 +64,13 @@
                 timer-id = <4>;
         };
 
+	rtc0@bf8c0000 {
+		compatible = "microchip,pic32-rtc";
+		reg = <0xbf8c0000 0x60>;
+		interrupts = <REAL_TIME_CLOCK DEFAULT_INT_PRI IRQ_TYPE_EDGE_RISING>;
+		clocks = <&RTCCLK>;
+	};
+
 	pic32_ether: ethernet@bf882000 {
 		compatible = "microchip,pic32-ether";
 		reg = <0xbf882000 0x1000>;
