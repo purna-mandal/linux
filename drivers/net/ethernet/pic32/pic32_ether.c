@@ -51,15 +51,10 @@
  */
 #define USE_KSEG1_DMA_MEM
 
-#ifdef USE_KSEG1_DMA_MEM
-static unsigned char *tx_data;
-static dma_addr_t tx_mapping;
 #endif
 
-#endif
-
-#define MAC_RX_BUFFER_SIZE	128 /* must be a multiple of 16 */
-#define RX_RING_SIZE	512 /* must be power of 2 */
+#define MAC_RX_BUFFER_SIZE	256 /* must be a multiple of 16 */
+#define RX_RING_SIZE	256 /* must be power of 2 */
 #define RX_RING_BYTES	(sizeof(struct pic32ether_dma_desc) * RX_RING_SIZE)
 
 #define TX_RING_SIZE	128 /* must be power of 2 */
@@ -523,6 +518,13 @@ static void pic32ether_tx_unmap(struct pic32ether *bp, struct pic32ether_tx_skb 
 			DMA_TO_DEVICE);
 		tx_skb->mapping = 0;
 	}
+#else
+	if (tx_skb->mapping) {
+		dma_free_coherent(&bp->pdev->dev,
+				  tx_skb->size,
+				  tx_skb->virt, tx_skb->mapping);
+		tx_skb->mapping = 0;
+	}
 #endif
 
 	if (tx_skb->skb) {
@@ -681,7 +683,7 @@ static int pic32ether_rx_frame(struct pic32ether *bp, unsigned int first_frag,
 		pic32ether_rx_ring_wrap(first_frag),
 		pic32ether_rx_ring_wrap(last_frag), len);
 
-	skb = netdev_alloc_skb(bp->dev, len);
+	skb = netdev_alloc_skb(bp->dev, len + NET_IP_ALIGN);
 	if (!skb) {
 		netdev_dbg(bp->dev, "pic32ether_rx_frame dropped\n");
 
@@ -690,6 +692,8 @@ static int pic32ether_rx_frame(struct pic32ether *bp, unsigned int first_frag,
 
 		return 1;
 	}
+
+	skb_reserve(skb, NET_IP_ALIGN);
 
 	offset = 0;
 	skb_checksum_none_assert(skb);
@@ -716,22 +720,22 @@ static int pic32ether_rx_frame(struct pic32ether *bp, unsigned int first_frag,
 
 		offset += frag_len;
 
-		if (frag == last_frag)
-			break;
-	}
-
-	for (frag = last_frag; ; frag--) {
-
 		desc = pic32ether_rx_desc(bp, frag);
 		desc->stat0 = desc->stat1 = 0;
 		desc->ctrl = MAC_BIT(EOWN) | MAC_BIT(NPV);
 
 		mac_writel(bp, PIC32_SET(ETHCON1), MAC_BIT(ETHCON1_BUFCDEC));
-		if (frag == first_frag)
+
+		if (frag == last_frag)
 			break;
 	}
 
 	skb->protocol = eth_type_trans(skb, bp->dev);
+
+	skb_checksum_none_assert(skb);
+	if (bp->dev->features & NETIF_F_RXCSUM &&
+		!(bp->dev->flags & IFF_PROMISC))
+		skb->ip_summed = CHECKSUM_UNNECESSARY;
 
 	bp->stats.rx_packets++;
 	bp->stats.rx_bytes += skb->len;
@@ -777,9 +781,8 @@ static int pic32ether_rx(struct pic32ether *bp, int budget)
 		}
 	}
 
-	if (first_frag != -1) {
+	if (first_frag != -1)
 		bp->rx_tail = first_frag;
-	}
 	else
 		bp->rx_tail = tail;
 
@@ -891,9 +894,11 @@ static int pic32ether_start_xmit(struct sk_buff *skb, struct net_device *dev)
 	unsigned long flags;
 #ifdef USE_KSEG1_DMA_MEM
 	unsigned char *data;
+	static unsigned char *tx_data;
+	static dma_addr_t tx_mapping;
 #endif
 
-	netdev_vdbg(bp->dev,
+	netdev_dbg(bp->dev,
 		   "start_xmit: len %u head %p data %p tail %p end %p\n",
 		   skb->len, skb->head, skb->data,
 		   skb_tail_pointer(skb), skb_end_pointer(skb));
@@ -920,11 +925,11 @@ static int pic32ether_start_xmit(struct sk_buff *skb, struct net_device *dev)
 	netdev_vdbg(bp->dev, "Allocated ring entry %u\n", entry);
 
 #ifdef USE_KSEG1_DMA_MEM
+	tx_data = dma_alloc_coherent(&bp->pdev->dev, len,
+				&tx_mapping, GFP_KERNEL);
 	if (!tx_data) {
-		tx_data = dma_alloc_coherent(&bp->pdev->dev, len,
-					&tx_mapping, GFP_KERNEL);
-		if (!tx_data)
-			goto unlock;
+		printk("no mem\n");
+		goto unlock;
 	}
 
 	data = tx_data;
@@ -973,8 +978,10 @@ static int pic32ether_start_xmit(struct sk_buff *skb, struct net_device *dev)
 	/* ship it */
 	mac_writel(bp, PIC32_SET(ETHCON1), MAC_BIT(ETHCON1_TXRTS));
 
-	if (CIRC_SPACE(bp->tx_head, bp->tx_tail, TX_RING_SIZE) < 1)
+	if (CIRC_SPACE(bp->tx_head, bp->tx_tail, TX_RING_SIZE) < 1) {
+		netdev_err(bp->dev, "TX queue full\n");
 		netif_stop_queue(dev);
+	}
 
 unlock:
 	spin_unlock_irqrestore(&bp->lock, flags);
@@ -1489,6 +1496,8 @@ static int __init pic32ether_probe(struct platform_device *pdev)
 		goto err_out;
 
 	SET_NETDEV_DEV(dev, &pdev->dev);
+
+	dev->features |= NETIF_F_RXCSUM; /* RX checksum offload */
 
 	bp = netdev_priv(dev);
 	bp->pdev = pdev;
