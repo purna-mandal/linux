@@ -95,6 +95,12 @@
 		clocks = <&PBCLK7>;
 	};
 
+	rng0: rng@bf8e6000 {
+		compatible = "microchip,pic32-rng";
+		reg = <0xbf8e6000 0x1000>;
+		clocks = <&PBCLK5>;
+	};
+
 	dma: dma-controller@bf811000 {
 		compatible = "microchip,pic32-dma";
 		reg = <0xbf811000 0x2000>;
