@@ -7,6 +7,7 @@
 #include "pic32mzda-timer.dtsi"
 #include "pic32mzda-i2c.dtsi"
 #include "pic32mzda-i2s.dtsi"
+#include "pic32mzda-oc.dtsi"
 
 / {
 	#address-cells = <1>;
@@ -293,4 +294,87 @@
 				microchip,timer = <&PBTIMER5>;
 		};
 	};
+
+	pwm_1 {
+		compatible = "microchip,pic32-pwm";
+		microchip,timer = <&PBTIMER23>; /* pbtimer phandle */
+		microchip,ocmp = <&OCMP1>; /* ocmp phandle */
+		pinctrl-names = "default";
+		pinctrl-0 = <&pinctrl_oc1>;
+		status = "ok";
+	};
+
+	pwm_2 {
+		compatible = "microchip,pic32-pwm";
+		microchip,timer = <&PBTIMER23>;
+		microchip,ocmp = <&OCMP2>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&pinctrl_oc2>;
+		status = "ok";
+	};
+
+	pwm_3 {
+		compatible = "microchip,pic32-pwm";
+		microchip,timer = <&PBTIMER23>;
+		microchip,ocmp = <&OCMP3>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&pinctrl_oc3>;
+		status = "ok";
+	};
+
+	pwm_4 {
+		compatible = "microchip,pic32-pwm";
+		microchip,timer = <&PBTIMER23>;
+		microchip,ocmp = <&OCMP4>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&pinctrl_oc4>;
+		status = "ok";
+	};
+
+	pwm_5 {
+		compatible = "microchip,pic32-pwm";
+		microchip,timer = <&PBTIMER23>;
+		microchip,ocmp = <&OCMP5>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&pinctrl_oc5>;
+		status = "ok";
+
+	};
+
+	pwm_6 {
+		compatible = "microchip,pic32-pwm";
+		microchip,timer = <&PBTIMER23>;
+		microchip,ocmp = <&OCMP6>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&pinctrl_oc6>;
+		status = "disabled";
+	};
+
+	pwm_7 {
+		compatible = "microchip,pic32-pwm";
+		microchip,timer = <&PBTIMER23>;
+		microchip,ocmp = <&OCMP7>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&pinctrl_oc7>;
+		status = "ok";
+	};
+
+	pwm_8 {
+		compatible = "microchip,pic32-pwm";
+		microchip,timer = <&PBTIMER23>;
+		microchip,ocmp = <&OCMP8>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&pinctrl_oc8>;
+		status = "disabled";
+	};
+
+	pwm_9 {
+		compatible = "microchip,pic32-pwm";
+		microchip,timer = <&PBTIMER23>;
+		microchip,ocmp = <&OCMP9>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&pinctrl_oc9>;
+		status = "disabled";
+	};
+
 };

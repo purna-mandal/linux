@@ -35,19 +35,27 @@
 		      <0xbf801538 0x57>; /* out */
 		clocks = <&PBCLK1>;
 
-		/* functions */
 		oc_pins1 {
 			pinctrl_oc1: ocmp1_pins {
-				pic32,pins = <PIC32_RP_OUT_RPD1 PIC32_PP_OUT_OC1 PIC32_PIN_CONF_DG_OUT>;
+				pic32,pins = <PIC32_RP_OUT_RPE8 PIC32_PP_OUT_OC1 PIC32_PIN_CONF_DG_OUT>;
 			};
 			pinctrl_oc2: ocmp2_pins {
 				pic32,pins = <PIC32_RP_OUT_RPB6 PIC32_PP_OUT_OC2 PIC32_PIN_CONF_DG_OUT>;
 			};
+			pinctrl_oc3: ocmp3_pins {
+				pic32,pins = <PIC32_RP_OUT_RPD10 PIC32_PP_OUT_OC3 PIC32_PIN_CONF_DG_OUT>;
+			};
 			pinctrl_oc4: ocmp4_pins {
-				pic32,pins = <PIC32_RP_OUT_RPD7 PIC32_PP_OUT_OC4 PIC32_PIN_CONF_DG_OUT>;
+				pic32,pins = <PIC32_RP_OUT_RPG7 PIC32_PP_OUT_OC4 PIC32_PIN_CONF_DG_OUT>;
 			};
 			pinctrl_oc5: ocmp5_pins {
 				pic32,pins = <PIC32_RP_OUT_RPB7 PIC32_PP_OUT_OC5 PIC32_PIN_CONF_DG_OUT>;
+			};
+			pinctrl_oc6: ocmp6_pins {
+				pic32,pins = <PIC32_RP_OUT_RPF4 PIC32_PP_OUT_OC6 PIC32_PIN_CONF_DG_OUT>;
+			};
+			pinctrl_oc7: ocmp7_pins {
+				pic32,pins = <PIC32_RP_OUT_RPD15 PIC32_PP_OUT_OC7 PIC32_PIN_CONF_DG_OUT>;
 			};
 			pinctrl_oc8: ocmp8_pins {
 				pic32,pins = <PIC32_RP_OUT_RPG6 PIC32_PP_OUT_OC8 PIC32_PIN_CONF_DG_OUT>;
@@ -55,18 +63,8 @@
 			pinctrl_oc9: ocmp9_pins {
 				pic32,pins = <PIC32_RP_OUT_RPB2 PIC32_PP_OUT_OC9 PIC32_PIN_CONF_DG_OUT>;
 			};
-#if 0
-			pinctrl_oc3: ocmp3_pins {
-				pic32,pins = <PIC32_RP_OUT_RPB3 PIC32_PP_OUT_OC3 PIC32_PIN_CONF_DG_OUT>;
-			};
-			pinctrl_oc6: ocmp6_pins {
-				pic32,pins = <PIC32_RP_OUT_RPB3 PIC32_PP_OUT_OC6 PIC32_PIN_CONF_DG_OUT>;
-			};
-#endif
-			pinctrl_oc7: ocmp7_pins {
-				pic32,pins = <PIC32_RP_OUT_RPB3 PIC32_PP_OUT_OC7 PIC32_PIN_CONF_DG_OUT>;
-			};
 		};
+
 		usb1 {
 			pinctrl_usb1_vbus: usb1_vbus-0 {
 				pic32,single-pins = <PORT_B 5 PIC32_PIN_CONF_DG_OUT>;
