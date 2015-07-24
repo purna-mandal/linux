@@ -198,6 +198,8 @@
 /* PHY register offsets */
 #define PHY_EXT_PAGE_ACCESS	0x1f
 
+#define EC_QUIRK_USE_SRAM	BIT(1)
+
 #define MAC_BIT(offset) (1 << offset)
 #define MAC_BF(name, value)				\
 	(((value) & ((1 << name##_SIZE) - 1)) << name)
@@ -256,9 +258,8 @@ struct pic32ether_dma_desc {
 struct pic32ether_tx_skb {
 	struct sk_buff		*skb;
 	dma_addr_t		mapping;
-	size_t			size;
-	void			*virt;
 	void			*data;
+	size_t			len;
 };
 
 struct pic32ether {
@@ -293,6 +294,7 @@ struct pic32ether {
 	unsigned int		link;
 	unsigned int		speed;
 	unsigned int		duplex;
+	u32			quirks;
 
 	phy_interface_t		phy_interface;
 };

@@ -40,19 +40,6 @@
 
 #include "pic32_ether.h"
 
-#if defined(CONFIG_MACH_PIC32)
-/*
- * PIC32 has slow RAM. The ethernet controller can't DMA to or from
- * this memory. This enabled a hack, at a major performance cost, to move DMA
- * buffers into KSEG1. The reason this is a huge performance hit is because the
- * net core allocates tx sk buffers from system RAM and doesn't use
- * dma_alloc_coherent() which can be device specific. This means it happens here
- * and then the tx data is memcpy'd to that memory.
- */
-#define USE_KSEG1_DMA_MEM
-
-#endif
-
 #define MAC_RX_BUFFER_SIZE	256 /* must be a multiple of 16 */
 #define RX_RING_SIZE	256 /* must be power of 2 */
 #define RX_RING_BYTES	(sizeof(struct pic32ether_dma_desc) * RX_RING_SIZE)
@@ -510,22 +497,22 @@ static int pic32ether_halt_tx(struct pic32ether *bp)
 	return -ETIMEDOUT;
 }
 
-static void pic32ether_tx_unmap(struct pic32ether *bp, struct pic32ether_tx_skb *tx_skb)
+static void pic32ether_tx_unmap(struct pic32ether *bp,
+				struct pic32ether_tx_skb *tx_skb)
 {
-#ifndef USE_KSEG1_DMA_MEM
-	if (tx_skb->mapping) {
-		dma_unmap_single(&bp->pdev->dev, tx_skb->mapping, tx_skb->size,
-			DMA_TO_DEVICE);
-		tx_skb->mapping = 0;
+	if (bp->quirks & EC_QUIRK_USE_SRAM) {
+		if (tx_skb->mapping) {
+			dma_free_coherent(&bp->pdev->dev, tx_skb->len,
+					tx_skb->data, tx_skb->mapping);
+			tx_skb->mapping = 0;
+		}
+	} else {
+		if (tx_skb->mapping) {
+			dma_unmap_single(&bp->pdev->dev, tx_skb->mapping,
+					tx_skb->len, DMA_TO_DEVICE);
+			tx_skb->mapping = 0;
+		}
 	}
-#else
-	if (tx_skb->mapping) {
-		dma_free_coherent(&bp->pdev->dev,
-				  tx_skb->size,
-				  tx_skb->virt, tx_skb->mapping);
-		tx_skb->mapping = 0;
-	}
-#endif
 
 	if (tx_skb->skb) {
 		dev_kfree_skb_any(tx_skb->skb);
@@ -892,11 +879,7 @@ static int pic32ether_start_xmit(struct sk_buff *skb, struct net_device *dev)
 	struct pic32ether_tx_skb *tx_skb;
 	u32 ctrl;
 	unsigned long flags;
-#ifdef USE_KSEG1_DMA_MEM
-	unsigned char *data;
-	static unsigned char *tx_data;
-	static dma_addr_t tx_mapping;
-#endif
+	void *data;
 
 	netdev_dbg(bp->dev,
 		   "start_xmit: len %u head %p data %p tail %p end %p\n",
@@ -924,42 +907,34 @@ static int pic32ether_start_xmit(struct sk_buff *skb, struct net_device *dev)
 	entry = pic32ether_tx_ring_wrap(bp->tx_head);
 	netdev_vdbg(bp->dev, "Allocated ring entry %u\n", entry);
 
-#ifdef USE_KSEG1_DMA_MEM
-	tx_data = dma_alloc_coherent(&bp->pdev->dev, len,
-				&tx_mapping, GFP_KERNEL);
-	if (!tx_data) {
-		printk("no mem\n");
-		goto unlock;
-	}
+	if (bp->quirks & EC_QUIRK_USE_SRAM) {
+		data = dma_alloc_coherent(&bp->pdev->dev, len,
+					&mapping, GFP_KERNEL);
+		if (!data) {
+			dev_kfree_skb_any(skb);
+			goto unlock;
+		}
 
-	data = tx_data;
-	mapping = tx_mapping;
-
-	/* look away while this happens */
-	skb_copy_from_linear_data(skb, data, len);
-#else
-	mapping = dma_map_single(&bp->pdev->dev, skb->data,
-				len, DMA_TO_DEVICE);
-	if (dma_mapping_error(&bp->pdev->dev, mapping)) {
-		dev_kfree_skb_any(skb);
-		goto unlock;
+		skb_copy_from_linear_data(skb, data, len);
+	} else {
+		data = skb->data;
+		mapping = dma_map_single(&bp->pdev->dev, data,
+					len, DMA_TO_DEVICE);
+		if (dma_mapping_error(&bp->pdev->dev, mapping)) {
+			dev_kfree_skb_any(skb);
+			goto unlock;
+		}
 	}
-#endif
 
 	bp->tx_head++;
 	tx_skb = &bp->tx_skb[entry];
 	tx_skb->skb = skb;
 	tx_skb->mapping = mapping;
-	tx_skb->size = len;
+	tx_skb->data = data;
+	tx_skb->len = len;
 
-#ifdef USE_KSEG1_DMA_MEM
-	tx_skb->virt = data;
 	netdev_vdbg(bp->dev, "Mapped skb data %p to DMA addr %08lx\n",
 		   data, (unsigned long)mapping);
-#else
-	netdev_vdbg(bp->dev, "Mapped skb data %p to DMA addr %08lx\n",
-		   skb->data, (unsigned long)mapping);
-#endif
 
 	ctrl = MAC_BF(BCOUNT, len);
 	ctrl |= MAC_BIT(EOWN);
@@ -1440,13 +1415,27 @@ static const struct net_device_ops pic32ether_netdev_ops = {
 	.ndo_set_mac_address	= eth_mac_addr,
 };
 
+static struct platform_device_id ec_devtype[] = {
+	{
+		.name = "pic32mz-ether",
+		.driver_data = EC_QUIRK_USE_SRAM,
+	}, {
+		/* sentinel */
+	}
+};
+MODULE_DEVICE_TABLE(platform, ec_devtype);
+
 #if defined(CONFIG_OF)
 static const struct of_device_id pic32_dt_ids[] = {
-	{ .compatible = "microchip,pic32-ether" },
+	{ .compatible = "microchip,pic32-ether", .data = &ec_devtype[0], },
 	{ /* sentinel */ }
 };
 MODULE_DEVICE_TABLE(of, pic32_dt_ids);
 #endif
+
+/* try to be somewhere above ebase vectors */
+#define SRAM_BASE_ADDR	0x1000
+#define SRAM_SIZE	SZ_512K
 
 static int __init pic32ether_probe(struct platform_device *pdev)
 {
@@ -1455,12 +1444,10 @@ static int __init pic32ether_probe(struct platform_device *pdev)
 	struct net_device *dev;
 	struct pic32ether *bp;
 	struct phy_device *phydev;
+	const struct of_device_id *of_id;
 	int err = -ENXIO;
 	const char *mac;
 	struct pinctrl *pinctrl;
-#ifdef USE_KSEG1_DMA_MEM
-	u32 base_addr = 0x1000; /* try to be somewhere above ebase vectors */
-#endif
 	int gpio;
 
 	regs = platform_get_resource(pdev, IORESOURCE_MEM, 0);
@@ -1478,18 +1465,6 @@ static int __init pic32ether_probe(struct platform_device *pdev)
 		dev_warn(&pdev->dev, "No pinctrl provided\n");
 	}
 
-#ifdef USE_KSEG1_DMA_MEM
-	if (dma_declare_coherent_memory(&pdev->dev, (dma_addr_t)base_addr,
-						(dma_addr_t)base_addr,
-						SZ_512K - base_addr,
-						DMA_MEMORY_MAP |
-						DMA_MEMORY_EXCLUSIVE) == 0) {
-                dev_err(&pdev->dev, "Failed to declare coherent memory for\n"
-			"ethernet controller device\n");
-                goto err_out;
-        }
-#endif
-
 	err = -ENOMEM;
 	dev = alloc_etherdev(sizeof(*bp));
 	if (!dev)
@@ -1502,6 +1477,23 @@ static int __init pic32ether_probe(struct platform_device *pdev)
 	bp = netdev_priv(dev);
 	bp->pdev = pdev;
 	bp->dev = dev;
+
+	of_id = of_match_device(pic32_dt_ids, &pdev->dev);
+	if (of_id)
+		pdev->id_entry = of_id->data;
+	bp->quirks = pdev->id_entry->driver_data;
+
+	if (bp->quirks & EC_QUIRK_USE_SRAM) {
+		if (dma_declare_coherent_memory(&pdev->dev, (dma_addr_t)SRAM_BASE_ADDR,
+							(dma_addr_t)SRAM_BASE_ADDR,
+							SRAM_SIZE - SRAM_BASE_ADDR,
+							DMA_MEMORY_MAP |
+							DMA_MEMORY_EXCLUSIVE) == 0) {
+			dev_err(&pdev->dev, "Failed to declare coherent memory for\n"
+				"ethernet controller device\n");
+			goto err_out;
+		}
+	}
 
 	spin_lock_init(&bp->lock);
 	INIT_WORK(&bp->tx_error_task, pic32ether_tx_error_task);
