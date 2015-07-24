@@ -18,17 +18,15 @@
 #include <linux/dma-mapping.h>
 #include <linux/err.h>
 #include <linux/init.h>
-#include <linux/interrupt.h>
 #include <linux/list.h>
 #include <linux/module.h>
-#include <linux/of.h>
-#include <linux/of_device.h>
 #include <linux/platform_device.h>
 #include <linux/slab.h>
 #include <linux/spinlock.h>
-#include <linux/sizes.h>
+#include <linux/irq.h>
 #include <linux/of.h>
 #include <linux/of_dma.h>
+
 #include <asm/mach-pic32/pic32.h>
 
 #include "virt-dma.h"
@@ -254,8 +252,6 @@ static int pic32_dma_start_desc(struct pic32_chan *chan)
 		/* Force start the transfer if not in cyclic mode. */
 		pic32_chan_writel(chan, PIC32_DCHECON, PIC32_DCHECON_CFORCE);
 	}
-
-
 
 	return 0;
 }
