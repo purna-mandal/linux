@@ -31,7 +31,7 @@
 		#gpio-range-cells = <3>;
 		compatible = "microchip,pic32-pinctrl", "simple-bus";
 		ranges;
-		reg = <0xbf801400 0x3c>, /* in  */
+		reg = <0xbf801404 0x3c>, /* in  */
 		      <0xbf801538 0x57>; /* out */
 		clocks = <&PBCLK1>;
 
