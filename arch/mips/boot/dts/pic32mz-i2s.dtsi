@@ -8,6 +8,7 @@
 			<&dma DMA_CHANNEL_1>;
 		dma-names = "rx", "tx";
 		clocks = <&PBCLK2>, <&REFCLKO1>;
+		clock-names = "mck0","mck1";
 		pinctrl-names = "default";
 		pinctrl-0 = <&pinctrl_i2s1>;
 	};
@@ -21,6 +22,7 @@
 			<&dma DMA_CHANNEL_3>;
 		dma-names = "rx", "tx";
 		clocks = <&PBCLK2>, <&REFCLKO1>;
+		clock-names = "mck0","mck1";
 	};
 
 	i2s3: i2s@bf821400 {
@@ -32,6 +34,7 @@
 			<&dma DMA_CHANNEL_5>;
 		dma-names = "rx", "tx";
 		clocks = <&PBCLK2>, <&REFCLKO1>;
+		clock-names = "mck0","mck1";
 		status = "disabled";
 	};
 
@@ -44,6 +47,7 @@
 			<&dma DMA_CHANNEL_7>;
 		dma-names = "rx", "tx";
 		clocks = <&PBCLK2>, <&REFCLKO1>;
+		clock-names = "mck0","mck1";
 		status = "disabled";
 	};
 
@@ -56,6 +60,7 @@
 			<&dma DMA_CHANNEL_1>;
 		dma-names = "rx", "tx";
 		clocks = <&PBCLK2>, <&REFCLKO1>;
+		clock-names = "mck0","mck1";
 		status = "disabled";
 	};
 
@@ -68,6 +73,7 @@
 			<&dma DMA_CHANNEL_3>;
 		dma-names = "rx", "tx";
 		clocks = <&PBCLK2>, <&REFCLKO1>;
+		clock-names = "mck0","mck1";
 		status = "disabled";
 	};
 };
