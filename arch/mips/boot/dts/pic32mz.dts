@@ -131,7 +131,8 @@
 
 	pic32_ether: ethernet@bf882000 {
 		compatible = "microchip,pic32-ether";
-		reg = <0xbf882000 0x1000>;
+		reg = <0xbf882000 0x1000>, <0x1000 0x7f000>;
+		reg-names = "regs","mem";
 		interrupts = <ETHERNET_INTERRUPT DEFAULT_INT_PRI IRQ_TYPE_LEVEL_HIGH>;
 		phy-mode = "rmii";
 		mac-address = [00 00 00 00 00 00];
