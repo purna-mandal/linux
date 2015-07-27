@@ -1111,7 +1111,7 @@ static int pic32_sqi_probe(struct platform_device *pdev)
 
 	/* install irq handlers */
 	ret = devm_request_irq(dev, sqi->irq, pic32_sqi_isr,
-			       IRQF_NO_THREAD, dev_name(dev), sqi);
+			       0, dev_name(dev), sqi);
 	if (ret < 0) {
 		dev_err(&pdev->dev, "request-irq %d, failed ?\n", sqi->irq);
 		goto err_free_ring;
