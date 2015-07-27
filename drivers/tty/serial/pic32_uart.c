@@ -779,8 +779,6 @@ static int pic32_uart_probe(struct platform_device *pdev)
 		dev_err(&pdev->dev, "clk enable ?\n");
 		goto err;
 	}
-	/* The peripheral clock be disabled till the port is used */
-	clk_disable_unprepare(sport->clk);
 
 	sport->hw_flow_ctrl = of_property_read_bool(np,
 					"microchip,uart-has-rtscts");
@@ -830,29 +828,14 @@ uart_no_flow_ctrl:
 		goto err_disable_clk;
 	}
 
-#ifdef CONFIG_SERIAL_PIC32_CONSOLE
-	if (is_pic32_console_port(port) &&
-		PIC32_SCONSOLE->flags & CON_ENABLED) {
-
-		/* The peripheral clock has been enabled by console_setup,
-		 * so disable it till the port is used. */
-		pic32_disable_clock(sport);
-	}
-#endif
-
 	platform_set_drvdata(pdev, port);
 
 	dev_info(&pdev->dev, "%s: uart(%d) driver initialized.\n",
 							__func__, uart_idx);
-
-	/* The peripheral clock has to be disabled till the port is used:
-	 * _setup() is called. */
-	pic32_disable_clock(sport);
-
-	return 0;
+	ret = 0;
 
 err_disable_clk:
-	/* clock has been enabled before the err, so disable it. */
+	/* disable clock till the port is used. */
 	pic32_disable_clock(sport);
 err:
 	/* automatic unroll of sport and gpios */
