@@ -69,19 +69,20 @@ static inline unsigned int pic32ether_tx_ring_wrap(unsigned int index)
 	return index & (TX_RING_SIZE - 1);
 }
 
-static inline struct pic32ether_dma_desc *pic32ether_tx_desc(struct pic32ether *bp,
-						unsigned int index)
+static inline struct pic32ether_dma_desc *
+pic32ether_tx_desc(struct pic32ether *bp, unsigned int index)
 {
 	return &bp->tx_ring[pic32ether_tx_ring_wrap(index)];
 }
 
-static inline struct pic32ether_tx_skb *pic32ether_tx_skb(struct pic32ether *bp,
-						unsigned int index)
+static inline struct pic32ether_tx_skb *
+pic32ether_tx_skb(struct pic32ether *bp, unsigned int index)
 {
 	return &bp->tx_skb[pic32ether_tx_ring_wrap(index)];
 }
 
-static inline dma_addr_t pic32ether_tx_dma(struct pic32ether *bp, unsigned int index)
+static inline dma_addr_t
+pic32ether_tx_dma(struct pic32ether *bp, unsigned int index)
 {
 	dma_addr_t offset;
 
@@ -96,13 +97,14 @@ static inline unsigned int pic32ether_rx_ring_wrap(unsigned int index)
 	return index & (RX_RING_SIZE - 1);
 }
 
-static inline struct pic32ether_dma_desc *pic32ether_rx_desc(struct pic32ether *bp,
-						unsigned int index)
+static inline struct pic32ether_dma_desc *
+pic32ether_rx_desc(struct pic32ether *bp, unsigned int index)
 {
 	return &bp->rx_ring[pic32ether_rx_ring_wrap(index)];
 }
 
-static inline void *pic32ether_rx_buffer(struct pic32ether *bp, unsigned int index)
+static inline void *pic32ether_rx_buffer(struct pic32ether *bp,
+					 unsigned int index)
 {
 	return bp->rx_buffers + bp->rx_buffer_size *
 		pic32ether_rx_ring_wrap(index);
@@ -112,11 +114,11 @@ static void pic32ether_set_hwaddr(struct pic32ether *bp)
 {
 	u16 val;
 
-	val = cpu_to_le16(*((u16 *)(bp->dev->dev_addr)));
+	val = cpu_to_le16(*((u16 *)(bp->ndev->dev_addr)));
 	mac_writel(bp, EMAC1SA0, val);
-	val = cpu_to_le16(*((u16 *)(bp->dev->dev_addr + 2)));
+	val = cpu_to_le16(*((u16 *)(bp->ndev->dev_addr + 2)));
 	mac_writel(bp, EMAC1SA1, val);
-	val = cpu_to_le16(*((u16 *)(bp->dev->dev_addr + 4)));
+	val = cpu_to_le16(*((u16 *)(bp->ndev->dev_addr + 4)));
 	mac_writel(bp, EMAC1SA2, val);
 }
 
@@ -144,12 +146,12 @@ static void pic32ether_get_hwaddr(struct pic32ether *bp)
 	}
 
 	if (is_valid_ether_addr(addr)) {
-		memcpy(bp->dev->dev_addr, addr, sizeof(addr));
+		memcpy(bp->ndev->dev_addr, addr, sizeof(addr));
 		return;
 	}
 
-	netdev_info(bp->dev, "invalid hw address, using random\n");
-	eth_hw_addr_random(bp->dev);
+	netdev_dbg(bp->ndev, "invalid hw address, using random\n");
+	eth_hw_addr_random(bp->ndev);
 }
 
 static int pic32ether_mdio_read(struct mii_bus *bus, int mii_id, int regnum)
@@ -166,8 +168,7 @@ static int pic32ether_mdio_read(struct mii_bus *bus, int mii_id, int regnum)
 	/* Must wait for pipeline before checking busy flag */
 	udelay(1);
 
-	while ((mac_readl(bp, EMAC1MIND) &
-				MAC_BIT(EMAC1MIND_MIIMBUSY)))
+	while ((mac_readl(bp, EMAC1MIND) & MAC_BIT(EMAC1MIND_MIIMBUSY)))
 		cpu_relax();
 
 	mac_writel(bp, PIC32_CLR(EMAC1MCMD), MAC_BIT(EMAC1MCMD_READ));
@@ -177,8 +178,8 @@ static int pic32ether_mdio_read(struct mii_bus *bus, int mii_id, int regnum)
 	return value;
 }
 
-static int pic32ether_mdio_write(struct mii_bus *bus, int mii_id, int regnum,
-			   u16 value)
+static int pic32ether_mdio_write(struct mii_bus *bus, int mii_id,
+				 int regnum, u16 value)
 {
 	struct pic32ether *bp = bus->priv;
 
@@ -201,7 +202,7 @@ static int pic32ether_mdio_reset(struct mii_bus *bus)
 {
 	struct pic32ether *bp = bus->priv;
 
-	netdev_vdbg(bp->dev, "pic32ether_mdio_reset\n");
+	netdev_vdbg(bp->ndev, "pic32ether_mdio_reset\n");
 
 	mac_writel(bp, PIC32_SET(EMAC1MCFG), MAC_BIT(EMAC1MCFG_RESETMGMT));
 	mac_writel(bp, PIC32_CLR(EMAC1MCFG), MAC_BIT(EMAC1MCFG_RESETMGMT));
@@ -218,7 +219,7 @@ static int pic32ether_mdio_reset(struct mii_bus *bus)
 
 	/* Set the MII Management Clock (MDC) - no faster than 2.5 MHz */
 	mac_writel(bp, EMAC1MCFG,
-		pic32ether_mdc_clk_div(bp) << EMAC1MCFG_CLKSEL);
+		   pic32ether_mdc_clk_div(bp) << EMAC1MCFG_CLKSEL);
 
 	/* Wait for the operation to finish */
 	while ((mac_readl(bp, EMAC1MIND) & MAC_BIT(EMAC1MIND_MIIMBUSY)))
@@ -234,11 +235,11 @@ static void pic32ether_set_tx_speed(int speed, struct net_device *dev)
 	switch (speed) {
 	case SPEED_10:
 		mac_writel(bp, PIC32_CLR(EMAC1SUPP),
-			MAC_BIT(EMAC1SUPP_SPEEDRMII));
+			   MAC_BIT(EMAC1SUPP_SPEEDRMII));
 		break;
 	case SPEED_100:
 		mac_writel(bp, PIC32_SET(EMAC1SUPP),
-			MAC_BIT(EMAC1SUPP_SPEEDRMII));
+			   MAC_BIT(EMAC1SUPP_SPEEDRMII));
 		break;
 	default:
 		netdev_warn(dev, "unsupported speed: %d\n", speed);
@@ -259,11 +260,12 @@ static void pic32ether_handle_link_change(struct net_device *dev)
 	if (phydev->link) {
 		if ((bp->speed != phydev->speed) ||
 		    (bp->duplex != phydev->duplex)) {
-
-			mac_writel(bp, PIC32_SEL(phydev->duplex == DUPLEX_FULL,
-							EMAC1CFG2),
-				MAC_BIT(EMAC1CFG2_FULLDPLX));
-
+			if (phydev->duplex == DUPLEX_FULL)
+				mac_writel(bp, PIC32_SET(EMAC1CFG2),
+					   MAC_BIT(EMAC1CFG2_FULLDPLX));
+			else
+				mac_writel(bp, PIC32_CLR(EMAC1CFG2),
+					   MAC_BIT(EMAC1CFG2_FULLDPLX));
 			pic32ether_set_tx_speed(phydev->speed, dev);
 
 			if (phydev->duplex == DUPLEX_FULL)
@@ -315,8 +317,8 @@ static int pic32ether_mii_probe(struct net_device *dev)
 		return -ENXIO;
 	}
 
-	netdev_vdbg(bp->dev, "PHY: addr %d, phy_id 0x%08X\n",
-		phydev->addr, phydev->phy_id);
+	netdev_vdbg(bp->ndev, "PHY: addr %d, phy_id 0x%08X\n",
+		    phydev->addr, phydev->phy_id);
 
 	/* attach the mac to the phy */
 	ret = phy_connect_direct(dev, phydev, &pic32ether_handle_link_change,
@@ -350,7 +352,7 @@ static u32 pic32ether_mdc_clk_div(struct pic32ether *bp)
 #ifdef CONFIG_MIPS_PIC32_EPLATFORM
 	pclk_hz = 25000000;
 #else
-	pclk_hz = clk_get_rate(bp->pclk);
+	pclk_hz = clk_get_rate(bp->clk);
 #endif
 
 	if (pclk_hz <= MHZ(10))
@@ -383,7 +385,7 @@ static int pic32ether_mii_init(struct pic32ether *bp)
 	struct device_node *np;
 	int err = -ENXIO, i;
 
-	netdev_vdbg(bp->dev, "pic32ether_mii_init\n");
+	netdev_vdbg(bp->ndev, "pic32ether_mii_init\n");
 
 	pic32ether_reset_hw(bp);
 
@@ -393,7 +395,7 @@ static int pic32ether_mii_init(struct pic32ether *bp)
 		MAC_BIT(EMAC1CFG1_RXENABLE));
 
 	bp->mii_bus = mdiobus_alloc();
-	if (bp->mii_bus == NULL) {
+	if (!bp->mii_bus) {
 		err = -ENOMEM;
 		goto err_out;
 	}
@@ -403,18 +405,18 @@ static int pic32ether_mii_init(struct pic32ether *bp)
 	bp->mii_bus->write = &pic32ether_mdio_write;
 	bp->mii_bus->reset = &pic32ether_mdio_reset;
 	snprintf(bp->mii_bus->id, MII_BUS_ID_SIZE, "%s-%x",
-		bp->pdev->name, bp->pdev->id);
+		 bp->pdev->name, bp->pdev->id);
 	bp->mii_bus->priv = bp;
-	bp->mii_bus->parent = &bp->dev->dev;
+	bp->mii_bus->parent = &bp->ndev->dev;
 	pdata = dev_get_platdata(&bp->pdev->dev);
 
-	bp->mii_bus->irq = kmalloc(sizeof(int)*PHY_MAX_ADDR, GFP_KERNEL);
+	bp->mii_bus->irq = kzalloc(sizeof(int) * PHY_MAX_ADDR, GFP_KERNEL);
 	if (!bp->mii_bus->irq) {
 		err = -ENOMEM;
 		goto err_out_free_mdiobus;
 	}
 
-	dev_set_drvdata(&bp->dev->dev, bp->mii_bus);
+	dev_set_drvdata(&bp->ndev->dev, bp->mii_bus);
 
 	np = bp->pdev->dev.of_node;
 	if (np) {
@@ -451,7 +453,7 @@ static int pic32ether_mii_init(struct pic32ether *bp)
 	if (err)
 		goto err_out_free_mdio_irq;
 
-	err = pic32ether_mii_probe(bp->dev);
+	err = pic32ether_mii_probe(bp->ndev);
 	if (err)
 		goto err_out_unregister_bus;
 
@@ -501,17 +503,15 @@ static void pic32ether_tx_unmap(struct pic32ether *bp,
 				struct pic32ether_tx_skb *tx_skb)
 {
 	if (bp->quirks & EC_QUIRK_USE_SRAM) {
-		if (tx_skb->mapping) {
+		if (tx_skb->mapping)
 			dma_free_coherent(&bp->pdev->dev, tx_skb->len,
-					tx_skb->data, tx_skb->mapping);
-			tx_skb->mapping = 0;
-		}
+					  tx_skb->data, tx_skb->mapping);
+		tx_skb->mapping = 0;
 	} else {
-		if (tx_skb->mapping) {
+		if (tx_skb->mapping)
 			dma_unmap_single(&bp->pdev->dev, tx_skb->mapping,
-					tx_skb->len, DMA_TO_DEVICE);
-			tx_skb->mapping = 0;
-		}
+					 tx_skb->len, DMA_TO_DEVICE);
+		tx_skb->mapping = 0;
 	}
 
 	if (tx_skb->skb) {
@@ -532,17 +532,17 @@ static void pic32ether_tx_error_task(struct work_struct *work)
 
 	spin_lock_irqsave(&bp->lock, flags);
 
-	netdev_err(bp->dev, "pic32ether_tx_error_task: t = %u, h = %u\n",
-		    bp->tx_tail, bp->tx_head);
+	netdev_err(bp->ndev, "pic32ether_tx_error_task: t = %u, h = %u\n",
+		   bp->tx_tail, bp->tx_head);
 
 	/* Make sure nobody is trying to queue up new packets */
-	netif_stop_queue(bp->dev);
+	netif_stop_queue(bp->ndev);
 
 	/* Stop transmission now
 	 * (in case we have just queued new packets)
 	 */
 	if (pic32ether_halt_tx(bp))
-		netdev_err(bp->dev, "BUG: halt tx timed out\n");
+		netdev_err(bp->ndev, "BUG: halt tx timed out\n");
 
 	/* Treat frames in TX queue including the ones that caused the error.
 	 * Free transmit buffers in upper layer.
@@ -550,21 +550,23 @@ static void pic32ether_tx_error_task(struct work_struct *work)
 	for (tail = bp->tx_tail; tail != bp->tx_head; tail++) {
 		u32 ctrl;
 
-		desc = pic32ether_tx_desc(bp, tail);
-		ctrl = desc->ctrl;
 		tx_skb = pic32ether_tx_skb(bp, tail);
 		skb = tx_skb->skb;
 
+		desc = pic32ether_tx_desc(bp, tail);
+		ctrl = desc->ctrl;
 		if (!(ctrl & MAC_BIT(EOWN))) {
-			if (skb) {
-				netdev_vdbg(bp->dev,
-					"txerr skb %u (data %p) TX complete\n",
-					pic32ether_tx_ring_wrap(tail), skb->data);
-				bp->stats.tx_packets++;
-				bp->stats.tx_bytes += skb->len;
-			}
+			if (!skb)
+				continue;
+
+			netdev_vdbg(bp->ndev,
+				    "txerr skb %u (data %p) TX complete\n",
+				    pic32ether_tx_ring_wrap(tail), skb->data);
+			bp->stats.tx_packets++;
+			bp->stats.tx_bytes += skb->len;
 		} else {
-			desc->stat0 = desc->stat1 = 0;
+			desc->stat0 = 0;
+			desc->stat1 = 0;
 			desc->addr = 0;
 			desc->ctrl = MAC_BIT(NPV);
 		}
@@ -576,86 +578,82 @@ static void pic32ether_tx_error_task(struct work_struct *work)
 	mac_writel(bp, ETHTXST, bp->tx_ring_dma);
 
 	/* Make TX ring reflect state of hardware */
-	bp->tx_head = bp->tx_tail = 0;
+	bp->tx_head = 0;
+	bp->tx_tail = 0;
 
 	/* Housework before enabling TX IRQ */
 	mac_writel(bp, PIC32_CLR(ETHIRQ), -1);
 	mac_writel(bp, PIC32_SET(ETHIEN), MAC_TX_EN_FLAGS);
 
 	/* Now we are ready to start transmission again */
-	netif_wake_queue(bp->dev);
+	netif_wake_queue(bp->ndev);
 
 	spin_unlock_irqrestore(&bp->lock, flags);
 }
 
-static void pic32ether_tx_interrupt(struct pic32ether *bp)
+static void pic32ether_tx_clean(struct pic32ether *bp)
 {
+	u32 ctrl;
 	unsigned int tail;
 	unsigned int head;
-
-	netdev_vdbg(bp->dev, "pic32ether_tx_interrupt\n");
+	struct sk_buff *skb;
+	struct pic32ether_tx_skb *tx_skb;
+	struct pic32ether_dma_desc *desc;
 
 	head = bp->tx_head;
-	for (tail = bp->tx_tail; tail != head; tail++) {
-		struct pic32ether_tx_skb *tx_skb;
-		struct sk_buff	*skb;
-		struct pic32ether_dma_desc *desc;
-		u32 ctrl;
+	tail = bp->tx_tail;
 
+	for (; tail != head; tail++) {
 		desc = pic32ether_tx_desc(bp, tail);
-
 		ctrl = desc->ctrl;
-
 		if (ctrl & MAC_BIT(EOWN))
 			break;
 
 		tx_skb = pic32ether_tx_skb(bp, tail);
 		skb = tx_skb->skb;
-
 		if (skb) {
-			netdev_vdbg(bp->dev, "skb %u (data %p) TX complete\n",
-				pic32ether_tx_ring_wrap(tail), skb->data);
+			netdev_vdbg(bp->ndev, "skb %u (data %p) TX complete\n",
+				    pic32ether_tx_ring_wrap(tail), skb->data);
 			bp->stats.tx_packets++;
 			bp->stats.tx_bytes += skb->len;
 		}
-
 		pic32ether_tx_unmap(bp, tx_skb);
 
-		desc->stat0 = desc->stat1 = 0;
+		desc->stat0 = 0;
+		desc->stat1 = 0;
 		desc->addr = 0;
 		desc->ctrl = MAC_BIT(NPV);
 	}
 
 	bp->tx_tail = tail;
-	if (netif_queue_stopped(bp->dev)
-			&& CIRC_CNT(bp->tx_head, bp->tx_tail,
-				    TX_RING_SIZE) <= MAC_TX_WAKEUP_THRESH)
-		netif_wake_queue(bp->dev);
+	if (netif_queue_stopped(bp->ndev) &&
+	    (CIRC_CNT(bp->tx_head, bp->tx_tail, TX_RING_SIZE) <= MAC_TX_WAKEUP_THRESH))
+		netif_wake_queue(bp->ndev);
 }
 
 /* Mark DMA descriptors from begin up to and not including end as unused */
 static void discard_partial_frame(struct pic32ether *bp, unsigned int begin,
 				  unsigned int end)
 {
-	unsigned int frag;
+	unsigned int frame;
+	struct pic32ether_dma_desc *desc;
 
-	netdev_dbg(bp->dev,
-		"discard_partial_frame frags %u - %u\n", begin, end);
+	netdev_err(bp->ndev, "%s: frame [%u - %u]\n", __func__, begin, end);
 
-	for (frag = begin; frag != end; frag++) {
-		struct pic32ether_dma_desc *desc = pic32ether_rx_desc(bp, frag);
-		u32 ctrl;
-		desc->stat0 = desc->stat1 = 0;
-		ctrl = MAC_BIT(EOWN) | MAC_BIT(NPV);
-
-		desc->ctrl = ctrl;
-
+	for (frame = begin; frame != end; frame++) {
+		desc = pic32ether_rx_desc(bp, frame);
+		desc->stat0 = 0;
+		desc->stat1 = 0;
+		desc->ctrl = MAC_BIT(EOWN) | MAC_BIT(NPV);
+		/* allow desc update to complete */
+		wmb();
 		mac_writel(bp, PIC32_SET(ETHCON1), MAC_BIT(ETHCON1_BUFCDEC));
 	}
 }
 
-static int pic32ether_rx_frame(struct pic32ether *bp, unsigned int first_frag,
-			 unsigned int last_frag)
+static int pic32ether_rx_frame(struct pic32ether *bp,
+			       unsigned int first_frag,
+			       unsigned int last_frag)
 {
 	unsigned int len;
 	unsigned int frag;
@@ -666,26 +664,23 @@ static int pic32ether_rx_frame(struct pic32ether *bp, unsigned int first_frag,
 	desc = pic32ether_rx_desc(bp, first_frag);
 	len = MAC_GF(RSV_RECEIVED_BYTE_COUNT, desc->stat1);
 
-	netdev_vdbg(bp->dev, "pic32ether_rx_frame frags %u - %u (len %u)\n",
-		pic32ether_rx_ring_wrap(first_frag),
-		pic32ether_rx_ring_wrap(last_frag), len);
+	netdev_vdbg(bp->ndev, "pic32ether_rx_frame frags %u - %u (len %u)\n",
+		    pic32ether_rx_ring_wrap(first_frag),
+		    pic32ether_rx_ring_wrap(last_frag), len);
 
-	skb = netdev_alloc_skb(bp->dev, len + NET_IP_ALIGN);
+	skb = netdev_alloc_skb(bp->ndev, len + NET_IP_ALIGN);
 	if (!skb) {
-		netdev_dbg(bp->dev, "pic32ether_rx_frame dropped\n");
-
+		netdev_err(bp->ndev, "pic32ether_rx_frame dropped\n");
 		bp->stats.rx_dropped++;
-		discard_partial_frame(bp, first_frag, last_frag+1);
-
+		discard_partial_frame(bp, first_frag, last_frag + 1);
 		return 1;
 	}
 
 	skb_reserve(skb, NET_IP_ALIGN);
-
-	offset = 0;
 	skb_checksum_none_assert(skb);
 	skb_put(skb, len);
 
+	offset = 0;
 	for (frag = first_frag; ; frag++) {
 		unsigned int frag_len;
 
@@ -698,50 +693,49 @@ static int pic32ether_rx_frame(struct pic32ether *bp, unsigned int first_frag,
 		}
 
 		skb_copy_to_linear_data_offset(skb, offset,
-				pic32ether_rx_buffer(bp, frag), frag_len);
+					       pic32ether_rx_buffer(bp, frag),
+					       frag_len);
 
-#if defined(VERBOSE_VERBOSE_DEBUG)
+#if defined(VERBOSE_DEBUG)
 		print_hex_dump(KERN_DEBUG, "data: ", DUMP_PREFIX_OFFSET, 16, 1,
-			pic32ether_rx_buffer(bp, frag), frag_len, true);
+			       pic32ether_rx_buffer(bp, frag), frag_len, true);
 #endif
 
-		offset += frag_len;
-
-		desc = pic32ether_rx_desc(bp, frag);
-		desc->stat0 = desc->stat1 = 0;
+		desc->stat0 = 0;
+		desc->stat1 = 0;
 		desc->ctrl = MAC_BIT(EOWN) | MAC_BIT(NPV);
-
 		mac_writel(bp, PIC32_SET(ETHCON1), MAC_BIT(ETHCON1_BUFCDEC));
 
+		offset += frag_len;
 		if (frag == last_frag)
 			break;
 	}
 
-	skb->protocol = eth_type_trans(skb, bp->dev);
+	skb->protocol = eth_type_trans(skb, bp->ndev);
 
 	skb_checksum_none_assert(skb);
-	if (bp->dev->features & NETIF_F_RXCSUM &&
-		!(bp->dev->flags & IFF_PROMISC))
+	if (bp->ndev->features & NETIF_F_RXCSUM &&
+	    !(bp->ndev->flags & IFF_PROMISC))
 		skb->ip_summed = CHECKSUM_UNNECESSARY;
 
 	bp->stats.rx_packets++;
 	bp->stats.rx_bytes += skb->len;
-	netdev_vdbg(bp->dev, "received skb of length %u\n", skb->len);
+	netdev_vdbg(bp->ndev, "received skb of length %u\n", skb->len);
 	netif_receive_skb(skb);
 
 	return 0;
 }
 
-static int pic32ether_rx(struct pic32ether *bp, int budget)
+static int pic32ether_rx_clean(struct pic32ether *bp, int budget)
 {
 	int received = 0;
-	unsigned int tail;
 	int first_frag = -1;
+	unsigned int tail;
+	u32 ctrl;
+	struct pic32ether_dma_desc *desc;
 
-	for (tail = bp->rx_tail; budget > 0; tail++) {
-		struct pic32ether_dma_desc *desc = pic32ether_rx_desc(bp, tail);
-		u32 ctrl;
-
+	for (tail = bp->rx_tail; budget > 0; ++tail, --budget) {
+		desc = pic32ether_rx_desc(bp, tail);
 		ctrl = desc->ctrl;
 
 		if (ctrl & MAC_BIT(EOWN))
@@ -754,17 +748,10 @@ static int pic32ether_rx(struct pic32ether *bp, int budget)
 		}
 
 		if (ctrl & MAC_BIT(EOP)) {
-			int dropped;
-
 			BUG_ON(first_frag == -1);
-			dropped = pic32ether_rx_frame(bp, first_frag, tail);
-			first_frag = -1;
-			if (!dropped) {
+			if (!pic32ether_rx_frame(bp, first_frag, tail))
 				received++;
-				budget--;
-			} else {
-				netdev_dbg(bp->dev, "dropped frame\n");
-			}
+			first_frag = -1;
 		}
 	}
 
@@ -782,9 +769,9 @@ static int pic32ether_poll(struct napi_struct *napi, int budget)
 	int work_done;
 	u32 status;
 
-	netdev_vdbg(bp->dev, "poll: budget = %d\n", budget);
+	netdev_vdbg(bp->ndev, "poll: budget = %d\n", budget);
 
-	work_done = pic32ether_rx(bp, budget);
+	work_done = pic32ether_rx_clean(bp, budget);
 	if (work_done < budget) {
 		napi_complete(napi);
 
@@ -812,59 +799,61 @@ static irqreturn_t pic32ether_interrupt(int irq, void *dev_id)
 	if (unlikely(!status))
 		return IRQ_NONE;
 
-	netdev_vdbg(bp->dev, "isr = 0x%08lx\n", (unsigned long)status);
+	netdev_vdbg(bp->ndev, "isr = 0x%08lx\n", (unsigned long)status);
 
 	spin_lock(&bp->lock);
 
 	if (status & MAC_BIT(ETHIRQ_RXBUSE)) {
-		netdev_warn(bp->dev, "rx bus error\n");
+		netdev_warn(bp->ndev, "rx bus error\n");
 		mac_writel(bp, PIC32_CLR(ETHIRQ), MAC_BIT(ETHIRQ_RXBUSE));
 	}
 
 	if (status & MAC_BIT(ETHIRQ_RXBUFNA)) {
-		netdev_warn(bp->dev, "rx buf na\n");
+		netdev_warn(bp->ndev, "rx buf na\n");
 		mac_writel(bp, PIC32_CLR(ETHIRQ), MAC_BIT(ETHIRQ_RXBUFNA));
 	}
 
 	if (status & MAC_BIT(ETHIRQ_RXOVFLW)) {
 		/* This is very noisy on EPLATFORM, so silence it. */
 #ifndef CONFIG_PIC32_EPLATFORM
-		netdev_warn(bp->dev, "rx overflow\n");
+		netdev_warn(bp->ndev, "rx overflow\n");
 #endif
 		mac_writel(bp, PIC32_CLR(ETHIRQ), MAC_BIT(ETHIRQ_RXOVFLW));
 	}
 
-	mac_writel(bp, PIC32_CLR(ETHIRQ), MAC_TX_INT_FLAGS);
-
 	/* close possible race with dev_close */
 	if (unlikely(!netif_running(dev))) {
 		mac_writel(bp, PIC32_CLR(ETHIEN), -1);
+		goto out_unlock;
+	}
+
+	if (status & MAC_RX_INT_FLAGS) {
+		/* There's no point taking any more RX interrupts
+		 * until we have processed the buffers. The
+		 * scheduling call may fail if the poll routine
+		 * is already scheduled, so disable interrupts
+		 * now.
+		 */
+		mac_writel(bp, PIC32_CLR(ETHIEN), MAC_BIT(ETHIEN_RXDONEIE)
+			| MAC_BIT(ETHIEN_PKTPENDIE));
+		mac_writel(bp, PIC32_CLR(ETHIRQ), MAC_RX_INT_FLAGS);
+
+		napi_schedule(&bp->napi);
+	}
+
+	if (unlikely(status & (MAC_BIT(ETHIRQ_TXABORT) /*|
+					MAC_BIT(ETHIRQ_TXBUSE)*/))) {
+		mac_writel(bp, PIC32_CLR(ETHIEN), MAC_TX_EN_FLAGS);
+		schedule_work(&bp->tx_error_task);
 	} else {
-		if (status & MAC_RX_INT_FLAGS) {
-			/* There's no point taking any more RX interrupts
-			 * until we have processed the buffers. The
-			 * scheduling call may fail if the poll routine
-			 * is already scheduled, so disable interrupts
-			 * now.
-			 */
-			mac_writel(bp, PIC32_CLR(ETHIEN), MAC_BIT(ETHIEN_RXDONEIE)
-				| MAC_BIT(ETHIEN_PKTPENDIE));
-			mac_writel(bp, PIC32_CLR(ETHIRQ), MAC_RX_INT_FLAGS);
-
-			napi_schedule(&bp->napi);
-		}
-
-		if (unlikely(status & (MAC_BIT(ETHIRQ_TXABORT) |
-						MAC_BIT(ETHIRQ_TXBUSE)))) {
-			mac_writel(bp, PIC32_CLR(ETHIEN), MAC_TX_EN_FLAGS);
-			schedule_work(&bp->tx_error_task);
-		} else {
-
-			if (status & MAC_BIT(ETHIRQ_TXDONE))
-				pic32ether_tx_interrupt(bp);
+		if (status & MAC_BIT(ETHIRQ_TXDONE)) {
+			mac_writel(bp, PIC32_CLR(ETHIRQ),
+				   MAC_BIT(ETHIRQ_TXDONE));
+			pic32ether_tx_clean(bp);
 		}
 	}
 
+out_unlock:
 	spin_unlock(&bp->lock);
 
 	return IRQ_HANDLED;
@@ -881,12 +870,12 @@ static int pic32ether_start_xmit(struct sk_buff *skb, struct net_device *dev)
 	unsigned long flags;
 	void *data;
 
-	netdev_dbg(bp->dev,
-		   "start_xmit: len %u head %p data %p tail %p end %p\n",
-		   skb->len, skb->head, skb->data,
-		   skb_tail_pointer(skb), skb_end_pointer(skb));
+	netdev_vdbg(bp->ndev,
+		    "start_xmit: len %u head %p data %p tail %p end %p\n",
+		    skb->len, skb->head, skb->data,
+		    skb_tail_pointer(skb), skb_end_pointer(skb));
 
-#if defined(VERBOSE_VERBOSE_DEBUG)
+#if defined(VERBOSE_DEBUG)
 	print_hex_dump(KERN_DEBUG, "data: ", DUMP_PREFIX_OFFSET, 16, 1,
 		       skb->data, 16, true);
 #endif
@@ -898,43 +887,44 @@ static int pic32ether_start_xmit(struct sk_buff *skb, struct net_device *dev)
 	if (CIRC_SPACE(bp->tx_head, bp->tx_tail, TX_RING_SIZE) < 1) {
 		netif_stop_queue(dev);
 		spin_unlock_irqrestore(&bp->lock, flags);
-		netdev_err(bp->dev, "BUG! Tx Ring full when queue awake!\n");
-		netdev_dbg(bp->dev, "tx_head = %u, tx_tail = %u\n",
+		netdev_err(bp->ndev, "TX Ring full when queue awake!\n");
+		netdev_dbg(bp->ndev, "tx_head = %u, tx_tail = %u\n",
 			   bp->tx_head, bp->tx_tail);
 		return NETDEV_TX_BUSY;
 	}
 
 	entry = pic32ether_tx_ring_wrap(bp->tx_head);
-	netdev_vdbg(bp->dev, "Allocated ring entry %u\n", entry);
+	bp->tx_head++;
+	spin_unlock_irqrestore(&bp->lock, flags);
+
+	netdev_vdbg(bp->ndev, "allocated ring entry %u\n", entry);
 
 	if (bp->quirks & EC_QUIRK_USE_SRAM) {
 		data = dma_alloc_coherent(&bp->pdev->dev, len,
-					&mapping, GFP_KERNEL);
+					  &mapping, GFP_KERNEL);
 		if (!data) {
 			dev_kfree_skb_any(skb);
-			goto unlock;
+			goto out_done;
 		}
 
 		skb_copy_from_linear_data(skb, data, len);
 	} else {
 		data = skb->data;
 		mapping = dma_map_single(&bp->pdev->dev, data,
-					len, DMA_TO_DEVICE);
+					 len, DMA_TO_DEVICE);
 		if (dma_mapping_error(&bp->pdev->dev, mapping)) {
 			dev_kfree_skb_any(skb);
-			goto unlock;
+			goto out_done;
 		}
 	}
+	netdev_vdbg(bp->ndev, "idx %u, mapped data %p to DMA_addr %08lx(%u)\n",
+		    entry, data, (unsigned long)mapping, len);
 
-	bp->tx_head++;
 	tx_skb = &bp->tx_skb[entry];
 	tx_skb->skb = skb;
 	tx_skb->mapping = mapping;
 	tx_skb->data = data;
 	tx_skb->len = len;
-
-	netdev_vdbg(bp->dev, "Mapped skb data %p to DMA addr %08lx\n",
-		   data, (unsigned long)mapping);
 
 	ctrl = MAC_BF(BCOUNT, len);
 	ctrl |= MAC_BIT(EOWN);
@@ -942,25 +932,30 @@ static int pic32ether_start_xmit(struct sk_buff *skb, struct net_device *dev)
 	ctrl |= MAC_BIT(SOP);
 	ctrl |= MAC_BIT(EOP);
 
+	skb_tx_timestamp(skb);
+
 	desc = &bp->tx_ring[entry];
 
+	spin_lock_irqsave(&bp->lock, flags);
+
 	desc->addr = mapping;
-	desc->stat0 = desc->stat1 = 0;
+	desc->stat0 = 0;
+	desc->stat1 = 0;
 	desc->ctrl = ctrl;
 
-	skb_tx_timestamp(skb);
+	/* allow memory update before starting TX */
+	wmb();
 
 	/* ship it */
 	mac_writel(bp, PIC32_SET(ETHCON1), MAC_BIT(ETHCON1_TXRTS));
 
 	if (CIRC_SPACE(bp->tx_head, bp->tx_tail, TX_RING_SIZE) < 1) {
-		netdev_err(bp->dev, "TX queue full\n");
+		netdev_err(bp->ndev, "TX queue full\n");
 		netif_stop_queue(dev);
 	}
 
-unlock:
 	spin_unlock_irqrestore(&bp->lock, flags);
-
+out_done:
 	return NETDEV_TX_OK;
 }
 
@@ -968,52 +963,54 @@ static void pic32ether_init_rx_buffer_size(struct pic32ether *bp)
 {
 	bp->rx_buffer_size = MAC_RX_BUFFER_SIZE;
 
-	netdev_dbg(bp->dev, "mtu [%u] rx_buffer_size [%Zu]\n",
-		   bp->dev->mtu, bp->rx_buffer_size);
+	netdev_dbg(bp->ndev, "mtu [%u] rx_buffer_size [%Zu]\n",
+		   bp->ndev->mtu, bp->rx_buffer_size);
 }
 
 static void pic32ether_free_rx_buffers(struct pic32ether *bp)
 {
-	if (bp->rx_buffers) {
-		dma_free_coherent(&bp->pdev->dev,
-				  RX_RING_SIZE * bp->rx_buffer_size,
-				  bp->rx_buffers, bp->rx_buffers_dma);
-		bp->rx_buffers = NULL;
-	}
+	if (!bp->rx_buffers)
+		return;
+
+	dmam_free_coherent(&bp->pdev->dev,
+			   RX_RING_SIZE * bp->rx_buffer_size,
+			   bp->rx_buffers, bp->rx_buffers_dma);
+	bp->rx_buffers = NULL;
 }
 
-static void pic32ether_free_consistent(struct pic32ether *bp)
+static void pic32ether_free_ring(struct pic32ether *bp)
 {
+	pic32ether_free_rx_buffers(bp);
+
 	kfree(bp->tx_skb);
 	bp->tx_skb = NULL;
 
-	pic32ether_free_rx_buffers(bp);
 	if (bp->rx_ring) {
-		dma_free_coherent(&bp->pdev->dev, RX_RING_BYTES,
-				  bp->rx_ring, bp->rx_ring_dma);
+		dmam_free_coherent(&bp->pdev->dev, RX_RING_BYTES,
+				   bp->rx_ring, bp->rx_ring_dma);
 		bp->rx_ring = NULL;
 	}
+
 	if (bp->tx_ring) {
-		dma_free_coherent(&bp->pdev->dev, TX_RING_BYTES,
-				  bp->tx_ring, bp->tx_ring_dma);
+		dmam_free_coherent(&bp->pdev->dev, TX_RING_BYTES,
+				   bp->tx_ring, bp->tx_ring_dma);
 		bp->tx_ring = NULL;
 	}
 }
 
-static int pic32ether_alloc_rx_buffers(struct pic32ether *bp)
+static inline int pic32ether_alloc_rx_buffers(struct pic32ether *bp)
 {
 	int size;
 
 	size = RX_RING_SIZE * bp->rx_buffer_size;
-	bp->rx_buffers = dma_alloc_coherent(&bp->pdev->dev, size,
-					    &bp->rx_buffers_dma, GFP_KERNEL);
+	bp->rx_buffers = dmam_alloc_coherent(&bp->pdev->dev, size,
+					     &bp->rx_buffers_dma, GFP_KERNEL);
 	if (!bp->rx_buffers)
 		return -ENOMEM;
-	else
-		netdev_dbg(bp->dev,
-			"Alloc RX buffers of %d bytes at %08lx (mapped %p)\n",
-			size, (unsigned long)bp->rx_buffers_dma,
-			bp->rx_buffers);
+
+	netdev_dbg(bp->ndev,
+		   "alloc RX buffers of %d bytes at %08lx (mapped %p)\n",
+		   size, (unsigned long)bp->rx_buffers_dma, bp->rx_buffers);
 
 	return 0;
 }
@@ -1023,28 +1020,27 @@ static int pic32ether_alloc_rings(struct pic32ether *bp)
 	int size;
 
 	size = TX_RING_SIZE * sizeof(struct pic32ether_tx_skb);
-	bp->tx_skb = kmalloc(size, GFP_KERNEL);
+	bp->tx_skb = devm_kzalloc(&bp->pdev->dev, size, GFP_KERNEL);
 	if (!bp->tx_skb)
 		goto out_err;
 
-	size = RX_RING_BYTES;
-	bp->rx_ring = dma_alloc_coherent(&bp->pdev->dev, size,
-					 &bp->rx_ring_dma, GFP_KERNEL);
+	bp->rx_ring = dmam_alloc_coherent(&bp->pdev->dev, RX_RING_BYTES,
+					  &bp->rx_ring_dma, GFP_KERNEL);
 	if (!bp->rx_ring)
 		goto out_err;
 
-	netdev_dbg(bp->dev,
+	netdev_dbg(bp->ndev,
 		   "Allocated RX ring of %d bytes at %08lx (mapped %p)\n",
-		   size, (unsigned long)bp->rx_ring_dma, bp->rx_ring);
+		   RX_RING_BYTES, (unsigned long)bp->rx_ring_dma, bp->rx_ring);
 
-	size = TX_RING_BYTES;
-	bp->tx_ring = dma_alloc_coherent(&bp->pdev->dev, size,
-					 &bp->tx_ring_dma, GFP_KERNEL);
+	bp->tx_ring = dmam_alloc_coherent(&bp->pdev->dev, TX_RING_BYTES,
+					  &bp->tx_ring_dma, GFP_KERNEL);
 	if (!bp->tx_ring)
 		goto out_err;
-	netdev_dbg(bp->dev,
+
+	netdev_dbg(bp->ndev,
 		   "Allocated TX ring of %d bytes at %08lx (mapped %p)\n",
-		   size, (unsigned long)bp->tx_ring_dma, bp->tx_ring);
+		   TX_RING_BYTES, (unsigned long)bp->tx_ring_dma, bp->tx_ring);
 
 	if (pic32ether_alloc_rx_buffers(bp))
 		goto out_err;
@@ -1052,7 +1048,7 @@ static int pic32ether_alloc_rings(struct pic32ether *bp)
 	return 0;
 
 out_err:
-	pic32ether_free_consistent(bp);
+	pic32ether_free_ring(bp);
 	return -ENOMEM;
 }
 
@@ -1060,37 +1056,38 @@ static void pic32ether_init_rings(struct pic32ether *bp)
 {
 	int i;
 	dma_addr_t addr;
+	struct pic32ether_dma_desc *desc;
 
 	addr = bp->rx_buffers_dma;
 	for (i = 0; i < RX_RING_SIZE; i++) {
-		struct pic32ether_dma_desc* desc = &bp->rx_ring[i];
-
+		desc = &bp->rx_ring[i];
 		desc->ctrl = MAC_BIT(EOWN) | MAC_BIT(NPV);
 		desc->addr = addr;
-		desc->stat0 = desc->stat1 = 0;
-		desc->next = bp->rx_ring_dma +
-			((i+1) * sizeof(struct pic32ether_dma_desc));
+		desc->stat0 = 0;
+		desc->stat1 = 0;
+		desc->next = bp->rx_ring_dma + ((i + 1) * sizeof(*desc));
 		addr += bp->rx_buffer_size;
 	}
 	bp->rx_ring[RX_RING_SIZE - 1].next = bp->rx_ring_dma;
 
 	for (i = 0; i < TX_RING_SIZE; i++) {
-		struct pic32ether_dma_desc* desc = &bp->tx_ring[i];
-
-		desc->ctrl = MAC_BIT(NPV);
+		desc = &bp->tx_ring[i];
 		desc->addr = 0;
-		desc->stat0 = desc->stat1 = 0;
-		desc->next = bp->tx_ring_dma +
-			((i+1) * sizeof(struct pic32ether_dma_desc));
+		desc->stat0 = 0;
+		desc->stat1 = 0;
+		desc->ctrl = MAC_BIT(NPV);
+		desc->next = bp->tx_ring_dma + ((i + 1) * sizeof(*desc));
 	}
 	bp->tx_ring[TX_RING_SIZE - 1].next = bp->tx_ring_dma;
 
-	bp->rx_tail = bp->tx_head = bp->tx_tail = 0;
+	bp->rx_tail = 0;
+	bp->tx_head = 0;
+	bp->tx_tail = 0;
 }
 
 static void pic32ether_reset_mac(struct pic32ether *bp)
 {
-	netdev_vdbg(bp->dev, "pic32ether_reset_mac\n");
+	netdev_vdbg(bp->ndev, "pic32ether_reset_mac\n");
 
 	/* Reset the MAC */
 	mac_writel(bp, PIC32_SET(EMAC1CFG1), MAC_BIT(EMAC1CFG1_SOFTRESET));
@@ -1099,9 +1096,9 @@ static void pic32ether_reset_mac(struct pic32ether *bp)
 	if (bp->phy_interface == PHY_INTERFACE_MODE_RMII) {
 		/* Reset RMII module */
 		mac_writel(bp, PIC32_SET(EMAC1SUPP),
-			MAC_BIT(EMAC1SUPP_RESETRMII));
+			   MAC_BIT(EMAC1SUPP_RESETRMII));
 		mac_writel(bp, PIC32_CLR(EMAC1SUPP),
-			MAC_BIT(EMAC1SUPP_RESETRMII));
+			   MAC_BIT(EMAC1SUPP_RESETRMII));
 	}
 
 	/* MIIM block reset */
@@ -1110,12 +1107,12 @@ static void pic32ether_reset_mac(struct pic32ether *bp)
 
 	/* Set MII management clock divider */
 	mac_writel(bp, EMAC1MCFG,
-		pic32ether_mdc_clk_div(bp) << EMAC1MCFG_CLKSEL);
+		   pic32ether_mdc_clk_div(bp) << EMAC1MCFG_CLKSEL);
 }
 
 static void pic32ether_reset_hw(struct pic32ether *bp)
 {
-	netdev_vdbg(bp->dev, "pic32ether_reset_hw\n");
+	netdev_vdbg(bp->ndev, "pic32ether_reset_hw\n");
 
 	/* Disable RX and TX and halt any existing transmission. */
 	mac_writel(bp, PIC32_CLR(ETHCON1), MAC_BIT(ETHCON1_ON) |
@@ -1145,12 +1142,12 @@ static void pic32ether_reset_hw(struct pic32ether *bp)
 
 static void pic32ether_init_hw(struct pic32ether *bp)
 {
-	netdev_vdbg(bp->dev, "pic32ether_init_hw\n");
+	netdev_vdbg(bp->ndev, "pic32ether_init_hw\n");
 
 	pic32ether_reset_hw(bp);
 	pic32ether_set_hwaddr(bp);
 
-	pic32ether_set_rx_mode(bp->dev);
+	pic32ether_set_rx_mode(bp->ndev);
 
 	mac_writel(bp, EMAC1CFG2, MAC_BIT(EMAC1CFG2_EXCESSDFR) |
 		MAC_BIT(EMAC1CFG2_AUTOPAD) |
@@ -1164,8 +1161,10 @@ static void pic32ether_init_hw(struct pic32ether *bp)
 	/* automatic flow control to kick in when we only have enough
 	 * space for 2 packets and release at half that
 	 */
+
 #define WATERMARK (((MAC_RX_BUFFER_SIZE * RX_RING_SIZE) - 0xC00) / RX_RING_SIZE)
-	mac_writel(bp, ETHRXWM, WATERMARK << 16 | (WATERMARK/2));
+
+	mac_writel(bp, ETHRXWM, WATERMARK << 16 | (WATERMARK / 2));
 
 	/* back to back intergap at half duplex */
 	mac_writel(bp, EMAC1IPGT, 0x12);
@@ -1180,7 +1179,8 @@ static void pic32ether_init_hw(struct pic32ether *bp)
 	bp->duplex = DUPLEX_HALF;
 
 	/* Initialize TX and RX buffers */
-	mac_writel(bp, ETHCON2, MAC_BF(ETHCON2_RXBUFSZ, MAC_RX_BUFFER_SIZE/16));
+	mac_writel(bp, ETHCON2,
+		   MAC_BF(ETHCON2_RXBUFSZ, MAC_RX_BUFFER_SIZE / 16));
 	mac_writel(bp, ETHRXST, bp->rx_ring_dma);
 	mac_writel(bp, ETHTXST, bp->tx_ring_dma);
 
@@ -1216,7 +1216,7 @@ static void pic32ether_set_rx_mode(struct net_device *dev)
 	 * ETHRXFC_BCEN - Accept broadcast
 	 */
 
-	if (bp->dev->flags & IFF_PROMISC) {
+	if (bp->ndev->flags & IFF_PROMISC) {
 		config = MAC_BIT(ETHRXFC_UCEN);
 		config |= MAC_BIT(ETHRXFC_NOTMEEN);
 		config |= MAC_BIT(ETHRXFC_MCEN);
@@ -1233,7 +1233,7 @@ static void pic32ether_set_rx_mode(struct net_device *dev)
 		}
 	}
 
-	if (bp->dev->flags & IFF_BROADCAST)
+	if (bp->ndev->flags & IFF_BROADCAST)
 		config |= MAC_BIT(ETHRXFC_BCEN);
 
 	mac_writel(bp, ETHRXFC, config);
@@ -1244,7 +1244,7 @@ static int pic32ether_open(struct net_device *dev)
 	struct pic32ether *bp = netdev_priv(dev);
 	int err;
 
-	netdev_dbg(bp->dev, "open\n");
+	netdev_dbg(bp->ndev, "open\n");
 
 	/* carrier starts down */
 	netif_carrier_off(dev);
@@ -1260,7 +1260,7 @@ static int pic32ether_open(struct net_device *dev)
 	if (err) {
 		netdev_err(dev, "Unable to allocate DMA memory (error %d)\n",
 			   err);
-		return err;
+		goto out;
 	}
 
 	napi_enable(&bp->napi);
@@ -1268,12 +1268,25 @@ static int pic32ether_open(struct net_device *dev)
 	pic32ether_init_rings(bp);
 	pic32ether_init_hw(bp);
 
+	err = devm_request_irq(&bp->pdev->dev, dev->irq,
+			       pic32ether_interrupt, 0, dev->name, dev);
+	if (err) {
+		netdev_err(dev, "Unable to request IRQ %d (error %d)\n",
+			   dev->irq, err);
+		goto out_err;
+	}
+
 	/* schedule a link state check */
 	phy_start(bp->phy_dev);
 
 	netif_start_queue(dev);
 
 	return 0;
+
+out_err:
+	pic32ether_free_ring(bp);
+out:
+	return err;
 }
 
 static int pic32ether_close(struct net_device *dev)
@@ -1287,12 +1300,13 @@ static int pic32ether_close(struct net_device *dev)
 	if (bp->phy_dev)
 		phy_stop(bp->phy_dev);
 
+	devm_free_irq(&bp->pdev->dev, dev->irq, dev);
 	spin_lock_irqsave(&bp->lock, flags);
 	pic32ether_reset_hw(bp);
 	netif_carrier_off(dev);
 	spin_unlock_irqrestore(&bp->lock, flags);
 
-	pic32ether_free_consistent(bp);
+	pic32ether_free_ring(bp);
 
 	return 0;
 }
@@ -1327,7 +1341,7 @@ static struct net_device_stats *pic32ether_get_stats(struct net_device *dev)
 }
 
 static int pic32ether_get_settings(struct net_device *dev,
-				struct ethtool_cmd *cmd)
+				   struct ethtool_cmd *cmd)
 {
 	struct pic32ether *bp = netdev_priv(dev);
 	struct phy_device *phydev = bp->phy_dev;
@@ -1339,7 +1353,7 @@ static int pic32ether_get_settings(struct net_device *dev,
 }
 
 static int pic32ether_set_settings(struct net_device *dev,
-				struct ethtool_cmd *cmd)
+				   struct ethtool_cmd *cmd)
 {
 	struct pic32ether *bp = netdev_priv(dev);
 	struct phy_device *phydev = bp->phy_dev;
@@ -1433,14 +1447,10 @@ static const struct of_device_id pic32_dt_ids[] = {
 MODULE_DEVICE_TABLE(of, pic32_dt_ids);
 #endif
 
-/* try to be somewhere above ebase vectors */
-#define SRAM_BASE_ADDR	0x1000
-#define SRAM_SIZE	SZ_512K
-
 static int __init pic32ether_probe(struct platform_device *pdev)
 {
 	struct pic32ether_platform_data *pdata;
-	struct resource *regs;
+	struct resource *regs, *mem;
 	struct net_device *dev;
 	struct pic32ether *bp;
 	struct phy_device *phydev;
@@ -1465,10 +1475,11 @@ static int __init pic32ether_probe(struct platform_device *pdev)
 		dev_warn(&pdev->dev, "No pinctrl provided\n");
 	}
 
-	err = -ENOMEM;
 	dev = alloc_etherdev(sizeof(*bp));
-	if (!dev)
+	if (!dev) {
+		err = -ENOMEM;
 		goto err_out;
+	}
 
 	SET_NETDEV_DEV(dev, &pdev->dev);
 
@@ -1476,7 +1487,7 @@ static int __init pic32ether_probe(struct platform_device *pdev)
 
 	bp = netdev_priv(dev);
 	bp->pdev = pdev;
-	bp->dev = dev;
+	bp->ndev = dev;
 
 	of_id = of_match_device(pic32_dt_ids, &pdev->dev);
 	if (of_id)
@@ -1484,13 +1495,22 @@ static int __init pic32ether_probe(struct platform_device *pdev)
 	bp->quirks = pdev->id_entry->driver_data;
 
 	if (bp->quirks & EC_QUIRK_USE_SRAM) {
-		if (dma_declare_coherent_memory(&pdev->dev, (dma_addr_t)SRAM_BASE_ADDR,
-							(dma_addr_t)SRAM_BASE_ADDR,
-							SRAM_SIZE - SRAM_BASE_ADDR,
-							DMA_MEMORY_MAP |
-							DMA_MEMORY_EXCLUSIVE) == 0) {
-			dev_err(&pdev->dev, "Failed to declare coherent memory for\n"
-				"ethernet controller device\n");
+		mem = platform_get_resource_byname(pdev, IORESOURCE_MEM, "mem");
+		if (!mem) {
+			dev_err(&pdev->dev, "no coherent mem resource ?\n");
+			err = -ENOMEM;
+			goto err_out;
+		}
+
+		err = dmam_declare_coherent_memory(&pdev->dev,
+						   (dma_addr_t)mem->start,
+						   (dma_addr_t)mem->start,
+						   resource_size(mem),
+						   DMA_MEMORY_MAP |
+						   DMA_MEMORY_EXCLUSIVE);
+		if (!err) {
+			dev_err(&pdev->dev, "Failed declare_coherent_memory\n"
+				"for ethernet controller device\n");
 			goto err_out;
 		}
 	}
@@ -1499,14 +1519,14 @@ static int __init pic32ether_probe(struct platform_device *pdev)
 	INIT_WORK(&bp->tx_error_task, pic32ether_tx_error_task);
 
 #ifndef CONFIG_MIPS_PIC32_EPLATFORM
-	bp->pclk = devm_clk_get(&pdev->dev, "eth_clk");
-	if (IS_ERR(bp->pclk)) {
-		err = PTR_ERR(bp->pclk);
+	bp->clk = devm_clk_get(&pdev->dev, "eth_clk");
+	if (IS_ERR(bp->clk)) {
+		err = PTR_ERR(bp->clk);
 		dev_err(&pdev->dev, "failed to get eth_clk (%u)\n", err);
 		goto err_out_free_dev;
 	}
 
-	err = clk_prepare_enable(bp->pclk);
+	err = clk_prepare_enable(bp->clk);
 	if (err) {
 		dev_err(&pdev->dev, "failed to enable eth_clk (%u)\n", err);
 		goto err_out_free_dev;
@@ -1521,24 +1541,16 @@ static int __init pic32ether_probe(struct platform_device *pdev)
 	}
 
 	dev->irq = platform_get_irq(pdev, 0);
-	err = devm_request_irq(&pdev->dev, dev->irq, pic32ether_interrupt, 0,
-			dev->name, dev);
-	if (err) {
-		dev_err(&pdev->dev, "Unable to request IRQ %d (error %d)\n",
-			dev->irq, err);
-		goto err_out_disable_clocks;
-	}
-
 	dev->netdev_ops = &pic32ether_netdev_ops;
 
-	netif_napi_add(dev, &bp->napi, pic32ether_poll, 64);
+	netif_napi_add(dev, &bp->napi, pic32ether_poll, NAPI_POLL_WEIGHT);
 
 	dev->ethtool_ops = &pic32ether_ethtool_ops;
 	dev->base_addr = regs->start;
 
 	mac = of_get_mac_address(pdev->dev.of_node);
 	if (mac)
-		ether_addr_copy(bp->dev->dev_addr, mac);
+		ether_addr_copy(bp->ndev->dev_addr, mac);
 	else
 		pic32ether_get_hwaddr(bp);
 
@@ -1562,8 +1574,8 @@ static int __init pic32ether_probe(struct platform_device *pdev)
 	gpio = of_get_named_gpio(pdev->dev.of_node, "reset-gpio", 0);
 	if (gpio_is_valid(gpio)) {
 		err = devm_gpio_request_one(&pdev->dev, gpio,
-					GPIOF_OUT_INIT_HIGH,
-					"pic32_ether reset");
+					    GPIOF_OUT_INIT_HIGH,
+					    "pic32_ether_reset");
 		if (err < 0)
 			goto err_out_unregister_netdev;
 
@@ -1596,7 +1608,7 @@ err_out_unregister_netdev:
 	unregister_netdev(dev);
 err_out_disable_clocks:
 #ifndef CONFIG_MIPS_PIC32_EPLATFORM
-	clk_disable_unprepare(bp->pclk);
+	clk_disable_unprepare(bp->clk);
 #endif
 err_out_free_dev:
 	free_netdev(dev);
@@ -1620,7 +1632,7 @@ static int __exit pic32ether_remove(struct platform_device *pdev)
 		mdiobus_free(bp->mii_bus);
 		unregister_netdev(dev);
 #ifndef CONFIG_MIPS_PIC32_EPLATFORM
-		clk_disable_unprepare(bp->pclk);
+		clk_disable_unprepare(bp->clk);
 #endif
 		free_netdev(dev);
 	}
