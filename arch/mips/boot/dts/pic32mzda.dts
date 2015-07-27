@@ -69,7 +69,7 @@
 		compatible = "microchip,pic32-rtc";
 		reg = <0xbf8c0000 0x60>;
 		interrupts = <REAL_TIME_CLOCK DEFAULT_INT_PRI IRQ_TYPE_EDGE_RISING>;
-		clocks = <&RTCCLK>;
+		clocks = <&PBCLK6>;
 	};
 
 	pic32_ether: ethernet@bf882000 {
