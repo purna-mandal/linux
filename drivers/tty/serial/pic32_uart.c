@@ -828,6 +828,16 @@ uart_no_flow_ctrl:
 		goto err_disable_clk;
 	}
 
+#ifdef CONFIG_SERIAL_PIC32_CONSOLE
+	if (is_pic32_console_port(port) &&
+		PIC32_SCONSOLE->flags & CON_ENABLED) {
+
+		/* The peripheral clock has been enabled by console_setup,
+		 * so disable it till the port is used. */
+		pic32_disable_clock(sport);
+	}
+#endif
+
 	platform_set_drvdata(pdev, port);
 
 	dev_info(&pdev->dev, "%s: uart(%d) driver initialized.\n",
