@@ -24,6 +24,7 @@
 #include <video/of_display_timing.h>
 #include <linux/dma-mapping.h>
 #include <video/videomode.h>
+#include <linux/clk.h>
 #include <asm/mach-pic32/pic32.h>
 
 #include "pic32-lcd.h"
@@ -31,6 +32,7 @@
 #define PIC32_LCD_PALETTE_OFFSET	0x400
 #define PIC32_LCD_PALETTE_COLORS	256
 #define PIC32_LCD_ACCEL			0x54736930
+#define PIC32_CFGCON2			0xF0
 
 #define pic32_readl(base, offset)	__raw_readl((base) + (offset))
 #define pic32_writel(base, offset, val) __raw_writel((val), (base) + (offset))
@@ -55,7 +57,20 @@ struct pic32_lcd_info {
 	unsigned int		smem_len;
 	struct platform_device	*pdev;
 	struct pic32_lcd_pdata	pdata;
+	struct clk		*bus_clk;
+	struct clk		*lcdc_clk;
 };
+
+static void pic32_lcd_config(u32 clr_mask, u32 set_mask)
+{
+	u32 cfgcon2;
+	void __iomem *config_base = ioremap(PIC32_BASE_CONFIG, 0x110);
+	if (!config_base)
+		return;
+	cfgcon2 = (__raw_readl(config_base + PIC32_CFGCON2) & clr_mask) | set_mask;
+	__raw_writel(cfgcon2, config_base + PIC32_CFGCON2);
+	iounmap(config_base);
+}
 
 static const struct fb_videomode *pic32_lcd_choose_mode(struct fb_var_screeninfo *var,
 						     struct fb_info *info)
@@ -74,6 +89,10 @@ static int pic32_lcd_check_var(struct fb_var_screeninfo *var,
 				struct fb_info *info)
 {
 	struct device *dev = info->device;
+	struct pic32_lcd_info *sinfo = info->par;
+	unsigned long clk_value_khz;
+
+	clk_value_khz = clk_get_rate(sinfo->lcdc_clk) / 1000;
 
 	if (!(var->pixclock && var->bits_per_pixel)) {
 		/* choose a suitable mode if possible */
@@ -86,6 +105,12 @@ static int pic32_lcd_check_var(struct fb_var_screeninfo *var,
 	dev_dbg(dev, "  resolution: %ux%u\n", var->xres, var->yres);
 	dev_dbg(dev, "  pixclk:     %lu KHz\n", PICOS2KHZ(var->pixclock));
 	dev_dbg(dev, "  bpp:        %u\n", var->bits_per_pixel);
+	dev_dbg(dev, "  clk:        %lu KHz\n", clk_value_khz);
+
+	if (PICOS2KHZ(var->pixclock) > clk_value_khz) {
+		dev_err(dev, "%lu KHz pixel clock is too fast\n", PICOS2KHZ(var->pixclock));
+		return -EINVAL;
+	}
 
 	/*  FB_VMODE_CONUPDATE and FB_VMODE_SMOOTH_XPAN are equal!
 	 *  as FB_VMODE_SMOOTH_XPAN is only used internally */
@@ -204,7 +229,11 @@ static int pic32_lcd_check_var(struct fb_var_screeninfo *var,
 static int pic32_lcd_set_par(struct fb_info *info)
 {
 	struct pic32_lcd_info *sinfo = info->par;
+	unsigned long value;
+	unsigned long clk_value_khz;
 	u32 mode_reg;
+	u32 clkcon_reg;
+	unsigned long pix_factor = 2;
 
 	if (!sinfo)
 		return -EINVAL;
@@ -268,7 +297,37 @@ static int pic32_lcd_set_par(struct fb_info *info)
 		return -EINVAL;
 	}
 
+	switch (info->var.bits_per_pixel) {
+	case 8:
+	case 16:
+		pic32_lcd_config(-1, BIT(30));
+		break;
+	case 24:
+	case 32:
+		pic32_lcd_config(~BIT(30), 0);
+		break;
+	}
+
 	dev_dbg(info->device, "Detected color mode is %u\n", sinfo->mode);
+
+	clk_value_khz = clk_get_rate(sinfo->lcdc_clk) / 1000;
+
+	value = DIV_ROUND_UP(clk_value_khz, PICOS2KHZ(info->var.pixclock));
+	clkcon_reg = pic32_readl(sinfo->mmio, PIC32_LCD_REG_CLKCON);
+
+	if (value < pix_factor) {
+		dev_notice(info->device, "Bypassing pixel clock divider\n");
+		pic32_writel(sinfo, PIC32_LCD_REG_CLKCON, clkcon_reg & ~0x3F);
+	} else {
+		value = (value / pix_factor) - 1;
+		dev_dbg(info->device, "  * programming CLKVAL = 0x%08lx\n",
+				value);
+		pic32_writel(sinfo, PIC32_LCD_REG_CLKCON, (value & ~0x3F) | value);
+		info->var.pixclock =
+			KHZ2PICOS(clk_value_khz / (pix_factor * (value + 1)));
+		dev_dbg(info->device, "  updated pixclk:     %lu KHz\n",
+					PICOS2KHZ(info->var.pixclock));
+	}
 
 	pic32_writel(sinfo->mmio, PIC32_LCD_REG_LAYER0_STRIDE, info->fix.line_length);
 
@@ -722,6 +781,18 @@ static int __init pic32_lcd_init_fbinfo(struct pic32_lcd_info *sinfo)
 	return ret;
 }
 
+static void pic32_lcd_start_clock(struct pic32_lcd_info *sinfo)
+{
+	clk_prepare_enable(sinfo->bus_clk);
+	clk_prepare_enable(sinfo->lcdc_clk);
+}
+
+static void pic32_lcd_stop_clock(struct pic32_lcd_info *sinfo)
+{
+	clk_disable_unprepare(sinfo->bus_clk);
+	clk_disable_unprepare(sinfo->lcdc_clk);
+}
+
 static struct fb_ops pic32_lcd_ops = {
 	.owner		= THIS_MODULE,
 	.fb_check_var	= pic32_lcd_check_var,
@@ -789,6 +860,19 @@ static int pic32_lcd_probe(struct platform_device *pdev)
 
 	info->fix = pic32_lcd_fix;
 	strcpy(info->fix.id, sinfo->pdev->name);
+
+	/* Enable LCDC Clocks */
+	sinfo->bus_clk = clk_get(dev, "sys_clk");
+	if (IS_ERR(sinfo->bus_clk)) {
+		ret = PTR_ERR(sinfo->bus_clk);
+		goto free_info;
+	}
+	sinfo->lcdc_clk = clk_get(dev, "lcd_clk");
+	if (IS_ERR(sinfo->lcdc_clk)) {
+		ret = PTR_ERR(sinfo->lcdc_clk);
+		goto put_bus_clk;
+	}
+	pic32_lcd_start_clock(sinfo);
 
 	modelist = list_first_entry(&info->modelist,
 			struct fb_modelist, list);
@@ -879,6 +963,8 @@ static int pic32_lcd_probe(struct platform_device *pdev)
 	pic32_writel(sinfo->mmio, PIC32_LCD_REG_BGCOLOR, 0);
 	pic32_writel(sinfo->mmio, PIC32_LCD_REG_INTERRUPT, 1 << 31);
 
+	pic32_lcd_config(-1, BIT(31));
+
 	ret = pic32_lcd_init_fbinfo(sinfo);
 	if (ret < 0) {
 		dev_err(dev, "init fbinfo failed: %d\n", ret);
@@ -927,6 +1013,10 @@ release_intmem:
 	if (map)
 		release_mem_region(info->fix.smem_start, info->fix.smem_len);
 stop_clk:
+	pic32_lcd_stop_clock(sinfo);
+	clk_put(sinfo->lcdc_clk);
+put_bus_clk:
+	clk_put(sinfo->bus_clk);
 free_info:
 	framebuffer_release(info);
 out:
@@ -948,6 +1038,7 @@ static int pic32_lcd_remove(struct platform_device *pdev)
 	pdata = &sinfo->pdata;
 
 	unregister_framebuffer(info);
+	pic32_lcd_stop_clock(sinfo);
 	fb_dealloc_cmap(&info->cmap);
 	free_irq(sinfo->irq, info);
 	iounmap(sinfo->mmio);
@@ -955,6 +1046,8 @@ static int pic32_lcd_remove(struct platform_device *pdev)
 	pic32_lcd_free_video_memory(sinfo);
 
 	framebuffer_release(info);
+
+	pic32_lcd_config(~BIT(31), 0);
 
 	return 0;
 }
