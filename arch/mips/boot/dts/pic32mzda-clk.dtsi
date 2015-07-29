@@ -228,6 +228,17 @@
 			clock-frequency = <25000000>;  /* 25Mhz */
 		};
 
+		/* Reference Oscillator clock, LCD */
+		REFCLKO5:refo5_clk {
+			reg = <0xbf801300 0x20>;
+			compatible = "microchip,pic32-refoclk";
+			clocks = <&SYSCLK>,<&PBCLK1>,<&POSC>,<&FRC>,<&LPRC>,<&SOSC>,<&SYSPLL>,<&REFIx>,<&BFRC>;
+			microchip,clock-indices=<0>,<1>,<2>   ,<3>   ,<4>    , <5>   , <7>   ,     <8>, <9>;
+			#clock-cells = <0>;
+			clock-output-names = "refo5_clk";
+			clock-frequency = <40000000>;  /* 40Mhz */
+		};
+
 		/* Realtime Clock & Calendar clock */
 		RTCCLK: rtcc_clk {
 			reg = <0xbf800C00 0x10>;
