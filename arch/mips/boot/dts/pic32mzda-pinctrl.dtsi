@@ -71,6 +71,18 @@
 			};
 		};
 
+		sdhc1 {
+			pinctrl_sdhc1: sdhc1_pins0 {
+				pic32,single-pins = 
+					<PORT_A 6 PIC32_PIN_CONF_DG>,     /* SDCLK */
+					<PORT_D 4 PIC32_PIN_CONF_DG>,     /* SDCMD */
+					<PORT_G 13 PIC32_PIN_CONF_DG>,    /* SDDATA0 */
+					<PORT_G 12 PIC32_PIN_CONF_DG>,    /* SDDATA1 */
+					<PORT_G 14 PIC32_PIN_CONF_DG>, 	  /* SDDATA2 */
+					<PORT_A 7 PIC32_PIN_CONF_DG>, 	  /* SDDATA3 */
+					<PORT_A 0 PIC32_PIN_CONF_DG>;	  /* SDCD */	
+			};
+		};
 		i2c1 {
 			pinctrl_i2c1: i2c1_0 {
 				pic32,single-pins = <PORT_A 15 PIC32_PIN_CONF_DG>,

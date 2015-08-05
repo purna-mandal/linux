@@ -27,37 +27,33 @@
 #include <linux/mmc/slot-gpio.h>
 #include <linux/io.h>
 #include "sdhci.h"
+#include <asm/mach-pic32/pic32.h>
 
+#define PIC32_CFGCON2                   0xF0
 #define PIC32_MMC_OCR (MMC_VDD_32_33 | MMC_VDD_33_34)
 
 #define DEV_NAME "pic32-sdhci"
 struct pic32_sdhci_pdata {
 	struct platform_device	*pdev;
-	struct clk *clk;
+	struct clk *sys_clk;
+	struct clk *base_clk;
 };
 
 unsigned int pic32_sdhci_get_max_clock(struct sdhci_host *host)
 {
 	struct pic32_sdhci_pdata *sdhci_pdata = sdhci_priv(host);
-	unsigned int clk_rate = clk_get_rate(sdhci_pdata->clk);
+	unsigned int clk_rate = clk_get_rate(sdhci_pdata->base_clk);
 	struct platform_device *pdev = sdhci_pdata->pdev;
-
 	dev_dbg(&pdev->dev, "Sdhc max clock rate: %u\n", clk_rate);
-
-	/* PIC32MZDA_SDHC_TODO: base clock when available */
-	clk_rate = 25000000;
 	return clk_rate;
 }
 
 unsigned int pic32_sdhci_get_min_clock(struct sdhci_host *host)
 {
 	struct pic32_sdhci_pdata *sdhci_pdata = sdhci_priv(host);
-	unsigned int clk_rate = clk_get_rate(sdhci_pdata->clk);
+	unsigned int clk_rate = clk_get_rate(sdhci_pdata->base_clk);
 	struct platform_device *pdev = sdhci_pdata->pdev;
-
 	dev_dbg(&pdev->dev, "Sdhc min clock rate: %u\n", clk_rate);
-
-	clk_rate = 25000000;
 	return clk_rate;
 }
 
@@ -100,21 +96,37 @@ void pic32_sdhci_shared_bus(struct platform_device *pdev)
 static int pic32_sdhci_probe_platform(struct platform_device *pdev,
 				      struct pic32_sdhci_pdata *pdata)
 {
-#define SDH_CAPS_SDH_SLOT_TYPE_MASK	0xC0000000
-#define SDH_SLOT_TYPE_REMOVABLE		0x0
-#define SDH_SLOT_TYPE_EMBEDDED		0x1
-#define SDH_SLOT_TYPE_SHARED_BUS	0x2
+	#define SDH_CAPS_SDH_SLOT_TYPE_MASK	0xC0000000
+	#define SDH_SLOT_TYPE_REMOVABLE		0x0
+	#define SDH_SLOT_TYPE_EMBEDDED		0x1
+	#define SDH_SLOT_TYPE_SHARED_BUS	0x2
 	int ret = 0;
 	struct sdhci_host *host = platform_get_drvdata(pdev);
-	u32 caps_slot_type = (readl(host->ioaddr + SDHCI_CAPABILITIES) &
-					SDH_CAPS_SDH_SLOT_TYPE_MASK) >> 30;
+	host->version = sdhci_readw(host, SDHCI_HOST_VERSION);
+	host->version = (host->version & SDHCI_SPEC_VER_MASK) >> SDHCI_SPEC_VER_SHIFT;
+
+	host->caps = readl(host->ioaddr + SDHCI_CAPABILITIES);
+	if (host->version >= SDHCI_SPEC_300)
+			host->caps1 = sdhci_readl(host, SDHCI_CAPABILITIES_1);
+
+	u32 caps_slot_type = ( host->caps & SDH_CAPS_SDH_SLOT_TYPE_MASK) >> 30;
+
+	host->timeout_clk = (host->caps & SDHCI_TIMEOUT_CLK_MASK) >> SDHCI_TIMEOUT_CLK_SHIFT;
+	if(host->timeout_clk == 0){
+		dev_dbg(&pdev->dev,"Hardware doesn't specify timeout clock frequency.\n");
+		return -1;
+	}
+	if( host->caps & SDHCI_TIMEOUT_CLK_UNIT)
+		host->timeout_clk *= 1000;
+	dev_dbg(&pdev->dev,"timeout clock frequency. %d \n",host->timeout_clk );
 
 	/* PIC32MZDA_SDHC_TODO: !If shared bus is used on Darlington, then
 	 * the bus width, irq and clock should be set via DT */
 
 	/* Card slot connected on shared bus. */
-	if (caps_slot_type == SDH_SLOT_TYPE_SHARED_BUS)
+	if (caps_slot_type == SDH_SLOT_TYPE_SHARED_BUS) {
 		pic32_sdhci_shared_bus(pdev);
+	}
 
 	return ret;
 }
@@ -134,6 +146,7 @@ int pic32_sdhci_probe(struct platform_device *pdev)
 		dev_err(&pdev->dev, "cannot allocate memory for sdhci\n");
 		goto err;
 	}
+
 	sdhci_pdata = sdhci_priv(host);
 	sdhci_pdata->pdev = pdev;
 	platform_set_drvdata(pdev, host);
@@ -146,31 +159,60 @@ int pic32_sdhci_probe(struct platform_device *pdev)
 		goto err_host;
 	}
 
+    pinctrl = devm_pinctrl_get_select_default(&pdev->dev);
+    if (IS_ERR(pinctrl)) {
+    	ret = PTR_ERR(pinctrl);
+            if (ret == -EPROBE_DEFER)
+                    goto err_host;
+            dev_warn(&pdev->dev, "No pinctrl provided\n");
+    }
 	host->ops = &pic32_sdhci_ops;
 	host->irq = platform_get_irq(pdev, 0);
 
-	host->quirks2 = SDHCI_QUIRK2_NO_1_8_V;
-	host->mmc->ocr_avail = PIC32_MMC_OCR;
-
-	/* SDH CLK enable */
-	sdhci_pdata->clk = devm_clk_get(&pdev->dev, NULL);
-	if (IS_ERR(sdhci_pdata->clk)) {
-		ret = PTR_ERR(sdhci_pdata->clk);
+	sdhci_pdata->sys_clk = devm_clk_get(&pdev->dev, NULL);
+	if (IS_ERR(sdhci_pdata->sys_clk)) {
+		ret = PTR_ERR(sdhci_pdata->sys_clk);
 		dev_err(&pdev->dev, "Error getting clock\n");
 		goto err_host;
 	}
 
-#if defined(PIC32MZDA_SDHC_TODO)
 	/* Enable clock when available! */
-	ret = clk_prepare_enable(sdhci_pdata->clk);
+	ret = clk_prepare_enable(sdhci_pdata->sys_clk);
 	if (ret) {
 		dev_dbg(&pdev->dev, "Error enabling clock\n");
 		goto err_host;
 	}
 
-	clk_rate = clk_get_rate(sdhci_pdata->clk);
+	/* SDH CLK enable */
+	sdhci_pdata->base_clk = devm_clk_get(&pdev->dev, NULL);
+	if (IS_ERR(sdhci_pdata->base_clk)) {
+		ret = PTR_ERR(sdhci_pdata->base_clk);
+		dev_err(&pdev->dev, "Error getting clock\n");
+		goto err_host;
+	}
+
+	/* Enable clock when available! */
+	ret = clk_prepare_enable(sdhci_pdata->base_clk);
+	if (ret) {
+		dev_dbg(&pdev->dev, "Error enabling clock\n");
+		goto err_host;
+	}
+
+	clk_rate = clk_get_rate(sdhci_pdata->base_clk);
 	dev_dbg(&pdev->dev, "base clock at: %u\n", clk_rate);
-#endif
+	clk_rate = clk_get_rate(sdhci_pdata->sys_clk);
+	dev_dbg(&pdev->dev, "sys clock at: %u\n", clk_rate);
+
+//	dev_info(&pdev->dev, "base_clk name :%s\n",	__clk_get_name(sdhci_pdata->base_clk));
+//	dev_info(&pdev->dev, "sys_clk name :%s\n", 	__clk_get_name(sdhci_pdata->sys_clk));
+
+	host->quirks2 |= SDHCI_QUIRK2_NO_1_8_V;
+	host->mmc->ocr_avail = PIC32_MMC_OCR;
+	host->quirks |= SDHCI_QUIRK_BROKEN_ADMA | SDHCI_QUIRK_BROKEN_DMA |  SDHCI_QUIRK_MULTIBLOCK_READ_ACMD12 \
+					| SDHCI_QUIRK_BROKEN_TIMEOUT_VAL | SDHCI_QUIRK_BROKEN_CARD_DETECTION;
+//	host->quirks |= SDHCI_QUIRK_RESET_AFTER_REQUEST | SDHCI_QUIRK_CLOCK_BEFORE_RESET
+//					| SDHCI_QUIRK_BROKEN_TIMEOUT_VAL | SDHCI_QUIRK_BROKEN_CARD_DETECTION;
+
 
 	ret = pic32_sdhci_probe_platform(pdev, sdhci_pdata);
 	if (ret) {
@@ -197,6 +239,7 @@ err:
 static int pic32_sdhci_remove(struct platform_device *pdev)
 {
 	struct sdhci_host *host = platform_get_drvdata(pdev);
+	struct pic32_sdhci_pdata *sdhci_pdata = sdhci_priv(host);
 	int dead = 0;
 	u32 scratch;
 
@@ -205,9 +248,8 @@ static int pic32_sdhci_remove(struct platform_device *pdev)
 		dead = 1;
 
 	sdhci_remove_host(host, dead);
-#ifdef PIC32MZDA_SDHC_TODO
-	clk_disable_unprepare(sdhci_pdata->clk);
-#endif
+	clk_disable_unprepare(sdhci_pdata->base_clk);
+	clk_disable_unprepare(sdhci_pdata->sys_clk);
 	sdhci_free_host(host);
 
 	return 0;
@@ -218,9 +260,8 @@ static int pic32_sdhci_suspend(struct device *dev)
 {
 	struct sdhci_host *host = dev_get_drvdata(dev);
 
-#ifdef PIC32MZDA_SDHC_TODO
-	clk_disable(sdhci_pdata->clk);
-#endif
+	clk_disable(sdhci_pdata->base_clk);
+	clk_disable(sdhci_pdata->sys_clk);
 	return sdhci_suspend_host(host);
 }
 
@@ -228,9 +269,8 @@ static int pic32_sdhci_resume(struct device *dev)
 {
 	struct sdhci_host *host = dev_get_drvdata(dev);
 
-#ifdef PIC32MZDA_SDHC_TODO
-	clk_enable(sdhci_pdata->clk);
-#endif
+	clk_enable(sdhci_pdata->base_clk);
+	clk_enable(sdhci_pdata->sys_clk);
 	return sdhci_resume_host(host);
 }
 #endif
