@@ -29,8 +29,19 @@
 #include "sdhci.h"
 #include <asm/mach-pic32/pic32.h>
 
-#define PIC32_CFGCON2                   0xF0
 #define PIC32_MMC_OCR (MMC_VDD_32_33 | MMC_VDD_33_34)
+
+#define SDH_SHARED_BUS_CTRL					0x000000E0
+#define SDH_SHARED_BUS_NR_CLK_PINS_MASK		0x7
+#define SDH_SHARED_BUS_NR_IRQ_PINS_MASK		0x30
+#define SDH_SHARED_BUS_CLK_PINS				0x10
+#define SDH_SHARED_BUS_IRQ_PINS				0x14
+#define SDH_CAPS_SDH_SLOT_TYPE_MASK			0xC0000000
+#define SDH_SLOT_TYPE_REMOVABLE				0x0
+#define SDH_SLOT_TYPE_EMBEDDED				0x1
+#define SDH_SLOT_TYPE_SHARED_BUS			0x2
+#define SDHCI_CTRL_CDSSEL					0x80
+#define SDHCI_CTRL_CDTLVL					0x40
 
 #define DEV_NAME "pic32-sdhci"
 struct pic32_sdhci_pdata {
@@ -57,26 +68,44 @@ unsigned int pic32_sdhci_get_min_clock(struct sdhci_host *host)
 	return clk_rate;
 }
 
+void pic32_sdhci_set_bus_width(struct sdhci_host *host, int width)
+{
+	u8 ctrl;
+
+	ctrl = sdhci_readb(host, SDHCI_HOST_CONTROL);
+	if (width == MMC_BUS_WIDTH_8) {
+		ctrl &= ~SDHCI_CTRL_4BITBUS;
+		if (host->version >= SDHCI_SPEC_300)
+			ctrl |= SDHCI_CTRL_8BITBUS;
+	} else {
+		if (host->version >= SDHCI_SPEC_300)
+			ctrl &= ~SDHCI_CTRL_8BITBUS;
+		if (width == MMC_BUS_WIDTH_4)
+			ctrl |= SDHCI_CTRL_4BITBUS;
+		else
+			ctrl &= ~SDHCI_CTRL_4BITBUS;
+	}
+	/*
+	 * SDHC will not work if JTAG is not Connected.As a workaround fix,
+	 *  set Card Detect Signal Selection bit in SDHC Host Control register and
+	 *  clear Card Detect Test Level bit in SDHC Host Control register
+	 */
+	ctrl &= ~SDHCI_CTRL_CDTLVL;
+	ctrl |= SDHCI_CTRL_CDSSEL;
+	sdhci_writeb(host, ctrl, SDHCI_HOST_CONTROL);
+}
+
 static const struct sdhci_ops pic32_sdhci_ops = {
-	/* PIC32MZDA_SDHC_TODO: This should be removed - leave the sdhci
-	 * layer to do the job. */
 	.get_max_clock = pic32_sdhci_get_max_clock,
 	.get_min_clock = pic32_sdhci_get_min_clock,
-
 	.set_clock = sdhci_set_clock,
-	.set_bus_width = sdhci_set_bus_width,
+	.set_bus_width = pic32_sdhci_set_bus_width,
 	.reset = sdhci_reset,
 	.set_uhs_signaling = sdhci_set_uhs_signaling,
-
 };
 
 void pic32_sdhci_shared_bus(struct platform_device *pdev)
 {
-#define SDH_SHARED_BUS_CTRL		0x000000E0
-#define SDH_SHARED_BUS_NR_CLK_PINS_MASK	0x7
-#define SDH_SHARED_BUS_NR_IRQ_PINS_MASK	0x30
-#define SDH_SHARED_BUS_CLK_PINS		0x10
-#define SDH_SHARED_BUS_IRQ_PINS		0x14
 	struct sdhci_host *host = platform_get_drvdata(pdev);
 	u32 bus = readl(host->ioaddr + SDH_SHARED_BUS_CTRL);
 	u32 clk_pins = (bus & SDH_SHARED_BUS_NR_CLK_PINS_MASK) >> 0;
@@ -96,10 +125,6 @@ void pic32_sdhci_shared_bus(struct platform_device *pdev)
 static int pic32_sdhci_probe_platform(struct platform_device *pdev,
 				      struct pic32_sdhci_pdata *pdata)
 {
-	#define SDH_CAPS_SDH_SLOT_TYPE_MASK	0xC0000000
-	#define SDH_SLOT_TYPE_REMOVABLE		0x0
-	#define SDH_SLOT_TYPE_EMBEDDED		0x1
-	#define SDH_SLOT_TYPE_SHARED_BUS	0x2
 	int ret = 0;
 	struct sdhci_host *host = platform_get_drvdata(pdev);
 	host->version = sdhci_readw(host, SDHCI_HOST_VERSION);
@@ -137,8 +162,9 @@ int pic32_sdhci_probe(struct platform_device *pdev)
 	struct sdhci_host *host;
 	struct resource *iomem;
 	struct pic32_sdhci_pdata *sdhci_pdata;
-	/* unsigned int clk_rate = 0; */
+	unsigned int clk_rate = 0; 
 	int ret;
+	struct pinctrl *pinctrl;
 
 	host = sdhci_alloc_host(dev, sizeof(*sdhci_pdata));
 	if (IS_ERR(host)) {
@@ -203,16 +229,10 @@ int pic32_sdhci_probe(struct platform_device *pdev)
 	clk_rate = clk_get_rate(sdhci_pdata->sys_clk);
 	dev_dbg(&pdev->dev, "sys clock at: %u\n", clk_rate);
 
-//	dev_info(&pdev->dev, "base_clk name :%s\n",	__clk_get_name(sdhci_pdata->base_clk));
-//	dev_info(&pdev->dev, "sys_clk name :%s\n", 	__clk_get_name(sdhci_pdata->sys_clk));
-
 	host->quirks2 |= SDHCI_QUIRK2_NO_1_8_V;
 	host->mmc->ocr_avail = PIC32_MMC_OCR;
 	host->quirks |= SDHCI_QUIRK_BROKEN_ADMA | SDHCI_QUIRK_BROKEN_DMA |  SDHCI_QUIRK_MULTIBLOCK_READ_ACMD12 \
 					| SDHCI_QUIRK_BROKEN_TIMEOUT_VAL | SDHCI_QUIRK_BROKEN_CARD_DETECTION;
-//	host->quirks |= SDHCI_QUIRK_RESET_AFTER_REQUEST | SDHCI_QUIRK_CLOCK_BEFORE_RESET
-//					| SDHCI_QUIRK_BROKEN_TIMEOUT_VAL | SDHCI_QUIRK_BROKEN_CARD_DETECTION;
-
 
 	ret = pic32_sdhci_probe_platform(pdev, sdhci_pdata);
 	if (ret) {

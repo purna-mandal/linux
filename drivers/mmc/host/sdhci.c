@@ -1459,7 +1459,7 @@ void sdhci_set_bus_width(struct sdhci_host *host, int width)
 		else
 			ctrl &= ~SDHCI_CTRL_4BITBUS;
 	}
-	sdhci_writeb(host, ctrl | 0x80, SDHCI_HOST_CONTROL);
+	sdhci_writeb(host, ctrl, SDHCI_HOST_CONTROL);
 }
 EXPORT_SYMBOL_GPL(sdhci_set_bus_width);
 
