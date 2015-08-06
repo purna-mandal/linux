@@ -23,7 +23,7 @@
 #endif
 
 	.macro	kernel_entry_setup
-
+#if 0
 #ifndef CONFIG_SYS_SUPPORTS_ZBOOT
 
 	move a2, zero
@@ -72,6 +72,7 @@ done_dcache:
 	ori v0, CACHE_MODE
 	mtc0 v0, C0_CONFIG
 #endif /* CONFIG_SYS_SUPPORTS_ZBOOT */
+#endif
 	.endm
 
 /*
