@@ -414,9 +414,7 @@ static int pic32_i2s_dev_probe(struct platform_device *pdev)
 	if (IS_ERR(i2s->base))
 		return PTR_ERR(i2s->base);
 
-	/* TODO: virt_to_phys() does not work for SFR, do the proper math manually. */
-	i2s->phys_base = mem->start - KSEG1;
-
+	i2s->phys_base = mem->start;
 	i2s->clk_i2s = devm_clk_get(&pdev->dev, NULL);
 	if (IS_ERR(i2s->clk_i2s)) {
 		dev_err(&pdev->dev, "i2s clock not found.\n");
