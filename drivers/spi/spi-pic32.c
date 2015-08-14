@@ -104,6 +104,7 @@
 
 struct pic32_spi {
 	void __iomem		*regs;
+	dma_addr_t		phys_base;
 	int			fault_irq;
 	int			rx_irq;
 	int			tx_irq;
@@ -565,12 +566,10 @@ static int pic32_spi_dma_config(struct pic32_spi *pic32s, u32 dma_width)
 	int err;
 	struct dma_slave_config cfg;
 	struct spi_master *master = pic32s->master;
-	dma_addr_t phys;
 
-	phys = (dma_addr_t)virt_to_phys((void const volatile *)pic32s->regs);
 	cfg.device_fc		= true;
-	cfg.dst_addr		= phys + SPIxBUF;
-	cfg.src_addr		= phys + SPIxBUF;
+	cfg.dst_addr		= pic32s->phys_base + SPIxBUF;
+	cfg.src_addr		= pic32s->phys_base + SPIxBUF;
 	cfg.dst_addr_width	= dma_width;
 	cfg.src_addr_width	= dma_width;
 	cfg.src_maxburst	= pic32s->fifo_n_elm >> 1; /* fill one-half */
@@ -1008,6 +1007,7 @@ static int pic32_spi_hw_probe(struct platform_device *pdev,
 		dev_err(&pdev->dev, "mem map failed\n");
 		return -ENOMEM;
 	}
+	pic32s->phys_base = mem->start;
 
 	/* get irq resources: err-irq, rx-irq, tx-irq */
 	pic32s->fault_irq = platform_get_irq_byname(pdev, "fault");

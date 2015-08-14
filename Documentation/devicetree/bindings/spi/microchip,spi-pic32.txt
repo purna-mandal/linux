@@ -16,7 +16,7 @@ Example:
 
 spi1:spi@0xbf821000 {
         compatible = "microchip,pic32-spi";
-        reg = <0xbf821000 0x200>;
+        reg = <0x1f821000 0x200>;
         interrupt-parent = <&evic>;
         interrupts = <SPI1_FAULT DEFAULT_INT_PRI IRQ_TYPE_NONE>,
                      <SPI1_RECEIVE_DONE DEFAULT_INT_PRI IRQ_TYPE_NONE>,
