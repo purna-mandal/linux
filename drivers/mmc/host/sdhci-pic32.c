@@ -31,19 +31,25 @@
 
 #define PIC32_MMC_OCR (MMC_VDD_32_33 | MMC_VDD_33_34)
 
-#define SDH_SHARED_BUS_CTRL					0x000000E0
-#define SDH_SHARED_BUS_NR_CLK_PINS_MASK		0x7
-#define SDH_SHARED_BUS_NR_IRQ_PINS_MASK		0x30
-#define SDH_SHARED_BUS_CLK_PINS				0x10
-#define SDH_SHARED_BUS_IRQ_PINS				0x14
-#define SDH_CAPS_SDH_SLOT_TYPE_MASK			0xC0000000
-#define SDH_SLOT_TYPE_REMOVABLE				0x0
-#define SDH_SLOT_TYPE_EMBEDDED				0x1
-#define SDH_SLOT_TYPE_SHARED_BUS			0x2
-#define SDHCI_CTRL_CDSSEL					0x80
-#define SDHCI_CTRL_CDTLVL					0x40
+#define SDH_SHARED_BUS_CTRL		0x000000E0
+#define SDH_SHARED_BUS_NR_CLK_PINS_MASK	0x7
+#define SDH_SHARED_BUS_NR_IRQ_PINS_MASK	0x30
+#define SDH_SHARED_BUS_CLK_PINS		0x10
+#define SDH_SHARED_BUS_IRQ_PINS		0x14
+#define SDH_CAPS_SDH_SLOT_TYPE_MASK	0xC0000000
+#define SDH_SLOT_TYPE_REMOVABLE		0x0
+#define SDH_SLOT_TYPE_EMBEDDED		0x1
+#define SDH_SLOT_TYPE_SHARED_BUS	0x2
+#define SDHCI_CTRL_CDSSEL		0x80
+#define SDHCI_CTRL_CDTLVL		0x40
+
+#define PIC32_CFGCON2		0xF0
+#define ADMA_FIFO_RD_THSHLD	(512 << 4)
+#define ADMA_FIFO_WR_THSHLD	(512 << 16)
+#define ADMA_SET_FIFO_THSHLD	(ADMA_FIFO_RD_THSHLD | ADMA_FIFO_WR_THSHLD)
 
 #define DEV_NAME "pic32-sdhci"
+
 struct pic32_sdhci_pdata {
 	struct platform_device	*pdev;
 	struct clk *sys_clk;
@@ -55,6 +61,7 @@ unsigned int pic32_sdhci_get_max_clock(struct sdhci_host *host)
 	struct pic32_sdhci_pdata *sdhci_pdata = sdhci_priv(host);
 	unsigned int clk_rate = clk_get_rate(sdhci_pdata->base_clk);
 	struct platform_device *pdev = sdhci_pdata->pdev;
+
 	dev_dbg(&pdev->dev, "Sdhc max clock rate: %u\n", clk_rate);
 	return clk_rate;
 }
@@ -64,6 +71,7 @@ unsigned int pic32_sdhci_get_min_clock(struct sdhci_host *host)
 	struct pic32_sdhci_pdata *sdhci_pdata = sdhci_priv(host);
 	unsigned int clk_rate = clk_get_rate(sdhci_pdata->base_clk);
 	struct platform_device *pdev = sdhci_pdata->pdev;
+
 	dev_dbg(&pdev->dev, "Sdhc min clock rate: %u\n", clk_rate);
 	return clk_rate;
 }
@@ -87,8 +95,9 @@ void pic32_sdhci_set_bus_width(struct sdhci_host *host, int width)
 	}
 	/*
 	 * SDHC will not work if JTAG is not Connected.As a workaround fix,
-	 *  set Card Detect Signal Selection bit in SDHC Host Control register and
-	 *  clear Card Detect Test Level bit in SDHC Host Control register
+	 * set Card Detect Signal Selection bit in SDHC Host Control
+	 * register and clear Card Detect Test Level bit in SDHC Host
+	 * Control register.
 	 */
 	ctrl &= ~SDHCI_CTRL_CDTLVL;
 	ctrl |= SDHCI_CTRL_CDSSEL;
@@ -122,36 +131,30 @@ void pic32_sdhci_shared_bus(struct platform_device *pdev)
 	writel(bus, host->ioaddr + SDH_SHARED_BUS_CTRL);
 }
 
+static void pic32_sdhci_adma_fifo_thrhld(u32 clr_mask, u32 set_mask)
+{
+	u32 cfgcon2;
+	void __iomem *config_base = ioremap(PIC32_BASE_CONFIG, 0x110);
+
+	if (!config_base)
+		return;
+	cfgcon2 = (__raw_readl(config_base + PIC32_CFGCON2)&clr_mask)|set_mask;
+	__raw_writel(cfgcon2, config_base + PIC32_CFGCON2);
+	iounmap(config_base);
+}
+
 static int pic32_sdhci_probe_platform(struct platform_device *pdev,
 				      struct pic32_sdhci_pdata *pdata)
 {
 	int ret = 0;
+	u32 caps_slot_type;
 	struct sdhci_host *host = platform_get_drvdata(pdev);
-	host->version = sdhci_readw(host, SDHCI_HOST_VERSION);
-	host->version = (host->version & SDHCI_SPEC_VER_MASK) >> SDHCI_SPEC_VER_SHIFT;
 
+	/* Check card slot connected on shared bus. */
 	host->caps = readl(host->ioaddr + SDHCI_CAPABILITIES);
-	if (host->version >= SDHCI_SPEC_300)
-			host->caps1 = sdhci_readl(host, SDHCI_CAPABILITIES_1);
-
-	u32 caps_slot_type = ( host->caps & SDH_CAPS_SDH_SLOT_TYPE_MASK) >> 30;
-
-	host->timeout_clk = (host->caps & SDHCI_TIMEOUT_CLK_MASK) >> SDHCI_TIMEOUT_CLK_SHIFT;
-	if(host->timeout_clk == 0){
-		dev_dbg(&pdev->dev,"Hardware doesn't specify timeout clock frequency.\n");
-		return -1;
-	}
-	if( host->caps & SDHCI_TIMEOUT_CLK_UNIT)
-		host->timeout_clk *= 1000;
-	dev_dbg(&pdev->dev,"timeout clock frequency. %d \n",host->timeout_clk );
-
-	/* PIC32MZDA_SDHC_TODO: !If shared bus is used on Darlington, then
-	 * the bus width, irq and clock should be set via DT */
-
-	/* Card slot connected on shared bus. */
-	if (caps_slot_type == SDH_SLOT_TYPE_SHARED_BUS) {
+	caps_slot_type = (host->caps & SDH_CAPS_SDH_SLOT_TYPE_MASK) >> 30;
+	if (caps_slot_type == SDH_SLOT_TYPE_SHARED_BUS)
 		pic32_sdhci_shared_bus(pdev);
-	}
 
 	return ret;
 }
@@ -162,7 +165,7 @@ int pic32_sdhci_probe(struct platform_device *pdev)
 	struct sdhci_host *host;
 	struct resource *iomem;
 	struct pic32_sdhci_pdata *sdhci_pdata;
-	unsigned int clk_rate = 0; 
+	unsigned int clk_rate = 0;
 	int ret;
 	struct pinctrl *pinctrl;
 
@@ -185,13 +188,14 @@ int pic32_sdhci_probe(struct platform_device *pdev)
 		goto err_host;
 	}
 
-    pinctrl = devm_pinctrl_get_select_default(&pdev->dev);
-    if (IS_ERR(pinctrl)) {
-    	ret = PTR_ERR(pinctrl);
-            if (ret == -EPROBE_DEFER)
-                    goto err_host;
-            dev_warn(&pdev->dev, "No pinctrl provided\n");
-    }
+	pinctrl = devm_pinctrl_get_select_default(&pdev->dev);
+	if (IS_ERR(pinctrl)) {
+		ret = PTR_ERR(pinctrl);
+		dev_warn(&pdev->dev, "No pinctrl provided %d\n", ret);
+		if (ret == -EPROBE_DEFER)
+			goto err_host;
+	}
+
 	host->ops = &pic32_sdhci_ops;
 	host->irq = platform_get_irq(pdev, 0);
 
@@ -231,14 +235,14 @@ int pic32_sdhci_probe(struct platform_device *pdev)
 
 	host->quirks2 |= SDHCI_QUIRK2_NO_1_8_V;
 	host->mmc->ocr_avail = PIC32_MMC_OCR;
-	host->quirks |= SDHCI_QUIRK_BROKEN_ADMA | SDHCI_QUIRK_BROKEN_DMA |  SDHCI_QUIRK_MULTIBLOCK_READ_ACMD12 \
-					| SDHCI_QUIRK_BROKEN_TIMEOUT_VAL | SDHCI_QUIRK_BROKEN_CARD_DETECTION;
 
 	ret = pic32_sdhci_probe_platform(pdev, sdhci_pdata);
 	if (ret) {
 		dev_err(&pdev->dev, "failed to probe platform!\n");
 		goto err_host;
 	}
+
+	pic32_sdhci_adma_fifo_thrhld(-1, ADMA_SET_FIFO_THSHLD);
 
 	ret = sdhci_add_host(host);
 	if (ret) {
