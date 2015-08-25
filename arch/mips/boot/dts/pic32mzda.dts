@@ -19,6 +19,7 @@
 	aliases {
 		usb1 = &usb1;
 		usb1_phy = &usb1_phy;
+		spi1 = &spi1;
 	};
 
 	cpus {
@@ -296,6 +297,39 @@
 				trigger-name = "tmr5-match";
 				trigger-value = <7>;
 				microchip,timer = <&PBTIMER5>;
+		};
+	};
+
+	spi1:spi@0x1f821000 {
+		#address-cells = <1>;
+		#size-cells = <0>;
+		compatible = "microchip,pic32-spi";
+		reg = <0x1f821000 0x200>;
+		interrupt-parent = <&evic>;
+		interrupts = <SPI1_FAULT DEFAULT_INT_PRI IRQ_TYPE_LEVEL_HIGH>,
+			     <SPI1_RECEIVE_DONE DEFAULT_INT_PRI IRQ_TYPE_LEVEL_HIGH>,
+			     <SPI1_TRANSFER_DONE DEFAULT_INT_PRI IRQ_TYPE_LEVEL_HIGH>;
+		interrupt-names = "fault","rx","tx";
+		pinctrl-names = "default";
+		pinctrl-0 = <&pinctrl_i2s1>;
+		cs-gpios = <&pioD 1 1>; /* #gpio-cells = <2>, first cell is pin# and second one unused */
+		clocks = <&PBCLK2>,<&REFCLKO1>;
+		clock-names = "mck0","mck1";
+	        dmas = <&dma DMA_CHANNEL_2>,
+                       <&dma DMA_CHANNEL_3>;
+                dma-names = "spi-rx", "spi-tx";
+
+		status = "disabled";
+
+		mmc-slot@0 {
+			compatible = "mmc-spi-slot";
+			reg = <0>;
+			voltage-ranges = <3300 3300>;
+			spi-max-frequency = <10000000>;
+			gpios = <&pioJ 0 0 /* Card Detect */
+				 &pioB 13 0 /* Write Protect*/
+				>;
+			status = "ok";
 		};
 	};
 
