@@ -54,6 +54,8 @@ struct pic32_sdhci_pdata {
 	struct platform_device	*pdev;
 	struct clk *sys_clk;
 	struct clk *base_clk;
+	bool support_vsel;
+	bool piomode;
 };
 
 unsigned int pic32_sdhci_get_max_clock(struct sdhci_host *host)
@@ -131,16 +133,26 @@ void pic32_sdhci_shared_bus(struct platform_device *pdev)
 	writel(bus, host->ioaddr + SDH_SHARED_BUS_CTRL);
 }
 
-static void pic32_sdhci_adma_fifo_thrhld(u32 clr_mask, u32 set_mask)
+static int pic32_sdhci_adma_devconf(struct platform_device *pdev, u32 clr_mask,
+							u32 set_mask)
 {
 	u32 cfgcon2;
-	void __iomem *config_base = ioremap(PIC32_BASE_CONFIG, 0x110);
+	int ret = 0;
+	struct resource *iomem_devconf;
+	void __iomem *config_base;
 
-	if (!config_base)
-		return;
-	cfgcon2 = (__raw_readl(config_base + PIC32_CFGCON2)&clr_mask)|set_mask;
-	__raw_writel(cfgcon2, config_base + PIC32_CFGCON2);
-	iounmap(config_base);
+	iomem_devconf = platform_get_resource(pdev, IORESOURCE_MEM, 1);
+	config_base = devm_ioremap_resource(&pdev->dev, iomem_devconf);
+	if (IS_ERR(config_base)) {
+		ret = PTR_ERR(config_base);
+		dev_err(&pdev->dev, "unable to map devconf iomem: %d\n", ret);
+		return ret;
+	}
+
+	cfgcon2 = (readl(config_base + PIC32_CFGCON2) & clr_mask) | set_mask;
+	writel(cfgcon2, config_base + PIC32_CFGCON2);
+	devm_iounmap(&pdev->dev, config_base);
+	return 0;
 }
 
 static int pic32_sdhci_probe_platform(struct platform_device *pdev,
@@ -158,6 +170,38 @@ static int pic32_sdhci_probe_platform(struct platform_device *pdev,
 
 	return ret;
 }
+
+#ifdef CONFIG_OF
+static inline int
+sdhci_pic32_probe_dts(struct platform_device *pdev,
+			 struct pic32_sdhci_pdata *boarddata)
+{
+	struct device_node *np = pdev->dev.of_node;
+
+	if (!np)
+		return -ENODEV;
+
+	if (of_find_property(np, "no-1-8-v", NULL))
+		boarddata->support_vsel = true;
+	else
+		boarddata->support_vsel = false;
+
+	if (of_find_property(np, "piomode", NULL))
+		boarddata->piomode = true;
+	else
+		boarddata->piomode = false;
+
+	return 0;
+}
+#else
+static inline int
+sdhci_pic32_probe_dts(struct platform_device *pdev,
+			 struct pic32_sdhci_pdata *boarddata)
+{
+	return -ENODEV;
+}
+#endif
+
 
 int pic32_sdhci_probe(struct platform_device *pdev)
 {
@@ -180,12 +224,24 @@ int pic32_sdhci_probe(struct platform_device *pdev)
 	sdhci_pdata->pdev = pdev;
 	platform_set_drvdata(pdev, host);
 
+	if (sdhci_pic32_probe_dts(pdev, sdhci_pdata) < 0) {
+		ret = -EINVAL;
+		dev_err(&pdev->dev, "no device tree information %d\n", ret);
+		goto err_host1;
+	}
+
 	iomem = platform_get_resource(pdev, IORESOURCE_MEM, 0);
 	host->ioaddr = devm_ioremap_resource(&pdev->dev, iomem);
 	if (IS_ERR(host->ioaddr)) {
 		ret = PTR_ERR(host->ioaddr);
 		dev_err(&pdev->dev, "unable to map iomem: %d\n", ret);
 		goto err_host;
+	}
+
+	if (!sdhci_pdata->piomode) {
+		ret = pic32_sdhci_adma_devconf(pdev, ~0, ADMA_SET_FIFO_THSHLD);
+		if (ret)
+			goto err_host;
 	}
 
 	pinctrl = devm_pinctrl_get_select_default(&pdev->dev);
@@ -199,7 +255,7 @@ int pic32_sdhci_probe(struct platform_device *pdev)
 	host->ops = &pic32_sdhci_ops;
 	host->irq = platform_get_irq(pdev, 0);
 
-	sdhci_pdata->sys_clk = devm_clk_get(&pdev->dev, NULL);
+	sdhci_pdata->sys_clk = devm_clk_get(&pdev->dev, "sys_clk");
 	if (IS_ERR(sdhci_pdata->sys_clk)) {
 		ret = PTR_ERR(sdhci_pdata->sys_clk);
 		dev_err(&pdev->dev, "Error getting clock\n");
@@ -214,7 +270,7 @@ int pic32_sdhci_probe(struct platform_device *pdev)
 	}
 
 	/* SDH CLK enable */
-	sdhci_pdata->base_clk = devm_clk_get(&pdev->dev, NULL);
+	sdhci_pdata->base_clk = devm_clk_get(&pdev->dev, "base_clk");
 	if (IS_ERR(sdhci_pdata->base_clk)) {
 		ret = PTR_ERR(sdhci_pdata->base_clk);
 		dev_err(&pdev->dev, "Error getting clock\n");
@@ -233,7 +289,12 @@ int pic32_sdhci_probe(struct platform_device *pdev)
 	clk_rate = clk_get_rate(sdhci_pdata->sys_clk);
 	dev_dbg(&pdev->dev, "sys clock at: %u\n", clk_rate);
 
-	host->quirks2 |= SDHCI_QUIRK2_NO_1_8_V;
+	if (sdhci_pdata->support_vsel)
+		host->quirks2 |= SDHCI_QUIRK2_NO_1_8_V;
+
+	if (sdhci_pdata->piomode)
+		host->quirks |= SDHCI_QUIRK_BROKEN_ADMA | SDHCI_QUIRK_BROKEN_DMA;
+
 	host->mmc->ocr_avail = PIC32_MMC_OCR;
 
 	ret = pic32_sdhci_probe_platform(pdev, sdhci_pdata);
@@ -241,8 +302,6 @@ int pic32_sdhci_probe(struct platform_device *pdev)
 		dev_err(&pdev->dev, "failed to probe platform!\n");
 		goto err_host;
 	}
-
-	pic32_sdhci_adma_fifo_thrhld(-1, ADMA_SET_FIFO_THSHLD);
 
 	ret = sdhci_add_host(host);
 	if (ret) {
@@ -254,6 +313,8 @@ int pic32_sdhci_probe(struct platform_device *pdev)
 	return 0;
 
 err_host:
+	devm_iounmap(&pdev->dev, host->ioaddr);
+err_host1:
 	sdhci_free_host(host);
 err:
 	dev_err(&pdev->dev, "pic32-sdhci probe failed: %d\n", ret);
@@ -274,6 +335,7 @@ static int pic32_sdhci_remove(struct platform_device *pdev)
 	sdhci_remove_host(host, dead);
 	clk_disable_unprepare(sdhci_pdata->base_clk);
 	clk_disable_unprepare(sdhci_pdata->sys_clk);
+	devm_iounmap(&pdev->dev, host->ioaddr);
 	sdhci_free_host(host);
 
 	return 0;
@@ -321,5 +383,5 @@ static struct platform_driver pic32_sdhci_driver = {
 module_platform_driver(pic32_sdhci_driver);
 
 MODULE_DESCRIPTION("Microchip PIC32 SDHCI driver");
-MODULE_AUTHOR("Pistirica Sorin Andrei");
+MODULE_AUTHOR("Pistirica Sorin Andrei & Sandeep Sheriker");
 MODULE_LICENSE("GPL v2");
