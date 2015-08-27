@@ -7,7 +7,7 @@
  * Licensed under GPLv2 or later.
  */
 
-#include <dt-bindings/pinctrl/pic32.h>
+#include <dt-bindings/pinctrl/pic32mzda.h>
 #include <dt-bindings/gpio/gpio.h>
 #include <dt-bindings/interrupt-controller/microchip,pic32mz-evic.h>
 
@@ -31,8 +31,8 @@
 		#gpio-range-cells = <3>;
 		compatible = "microchip,pic32-pinctrl", "simple-bus";
 		ranges;
-		reg = <0xbf801400 0x3c>, /* in  */
-		      <0xbf801538 0x57>; /* out */
+		reg = <0xbf801400 0x100>, /* in  */
+		      <0xbf801500 0x200>; /* out */
 		clocks = <&PBCLK1>;
 
 		oc_pins1 {
