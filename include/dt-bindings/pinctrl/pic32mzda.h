@@ -150,8 +150,9 @@
 #define PP_C1TX		80
 #define PP_C2TX		81
 #define PP_SENTINEL	82
+#define PP_U6TX		83
 /* add above this line and update the PP_MAX accordingly */
-#define PP_MAX		83
+#define PP_MAX		84
 
 /* MUX INPUT ----------------------------------------------------------------*/
 /* Peripheral pins: BUCKET A */
