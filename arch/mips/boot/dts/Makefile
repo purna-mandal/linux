@@ -11,11 +11,11 @@ dtb-$(CONFIG_DTB_RT3883_EVAL)		+= rt3883_eval.dtb
 dtb-$(CONFIG_DTB_MT7620A_EVAL)		+= mt7620a_eval.dtb
 dtb-$(CONFIG_MIPS_SEAD3)		+= sead3.dtb
 ifdef CONFIG_PIC32MZ_PLAND
-dtb-$(CONFIG_MIPS_PIC32MZ)		+= pic32mz_pland.dtb.o
+dtb-$(CONFIG_MIPS_PIC32MZ)		+= pic32mz_pland.dtb
 else
-dtb-$(CONFIG_MIPS_PIC32MZ)		+= pic32mz.dtb.o
+dtb-$(CONFIG_MIPS_PIC32MZ)		+= pic32mz.dtb
 endif
-dtb-$(CONFIG_MIPS_PIC32MZDA)		+= pic32mzda.dtb.o
+dtb-$(CONFIG_MIPS_PIC32MZDA)		+= pic32mzda.dtb
 
 obj-y		+= $(patsubst %.dtb, %.dtb.o, $(dtb-y))
 
