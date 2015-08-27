@@ -316,7 +316,7 @@ static int pic32_lcd_set_par(struct fb_info *info)
 	clkcon_reg = pic32_readl(sinfo->mmio, PIC32_LCD_REG_CLKCON);
 
 	if (value < pix_factor) {
-		dev_notice(info->device, "Bypassing pixel clock divider\n");
+		dev_dbg(info->device, "Bypassing pixel clock divider\n");
 		pic32_writel(sinfo, PIC32_LCD_REG_CLKCON, clkcon_reg & ~0x3F);
 	} else {
 		value = (value / pix_factor) - 1;
