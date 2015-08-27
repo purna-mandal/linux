@@ -260,11 +260,11 @@ static int pic32_lcd_set_par(struct fb_info *info)
 		     XY16TOREG32(info->var.xres + info->var.right_margin,
 				 info->var.yres + info->var.lower_margin));
 	pic32_writel(sinfo->mmio, PIC32_LCD_REG_BLANKINGXY,
-		     XY16TOREG32(info->var.xres + info->var.hsync_len,
-				 info->var.yres + info->var.vsync_len));
+		     XY16TOREG32(info->var.xres + info->var.right_margin + info->var.hsync_len,
+				 info->var.yres + info->var.lower_margin + info->var.vsync_len));
 	pic32_writel(sinfo->mmio, PIC32_LCD_REG_BACKPORCHXY,
-		     XY16TOREG32(info->var.xres + info->var.left_margin,
-				 info->var.yres + info->var.upper_margin));
+		     XY16TOREG32(info->var.xres + info->var.right_margin + info->var.hsync_len + info->var.left_margin,
+				 info->var.yres + info->var.lower_margin + info->var.vsync_len + info->var.upper_margin));
 
 	if (info->var.bits_per_pixel <= 8)
 		info->fix.visual = info->var.red.offset ?
