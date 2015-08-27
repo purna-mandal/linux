@@ -26,13 +26,65 @@ const char *get_system_type(void)
 	return "PIC32MZDA";
 }
 
+static ulong get_fdtaddr_from_env(void)
+{
+	ulong ftaddr = 0;
+	char *p;
+
+	p = fw_getenv("fdtaddr");
+	if (p)
+		ftaddr = memparse(p, NULL);
+
+	return ftaddr;
+}
+
+static ulong get_fdtaddr(void)
+{
+	ulong ftaddr = 0;
+
+	pr_info("Determined boot loader arguments\n");
+	pr_info("arg0 0x%08lx, arg1 0x%08lx, arg2 0x%08lx, arg3 0x%08lx, builtin_dtb 0x%08lx\n",
+		(ulong)fw_arg0, (ulong)fw_arg1, (ulong)fw_arg2, (ulong)fw_arg3,
+		(ulong)__dtb_start);
+
+	if ((fw_arg0 == -2) && fw_arg1 && !fw_arg2 && !fw_arg3)
+		return (ulong)fw_arg1;
+
+	ftaddr = get_fdtaddr_from_env();
+	if (ftaddr)
+		return ftaddr;
+
+	if (__dtb_start < __dtb_end)
+		ftaddr = (ulong) __dtb_start;
+
+	return ftaddr;
+}
+
+
 void __init plat_mem_setup(void)
 {
+	void *dtb;
+
+	dtb = (void *)get_fdtaddr();
+	if (!dtb) {
+		pr_err("pic32: no DTB found.\n");
+		return;
+	}
+
 	/*
 	 * Load the builtin device tree. This causes the chosen node to be
 	 * parsed resulting in our memory appearing.
 	 */
-	__dt_setup_arch(&__dtb_start);
+	__dt_setup_arch(dtb);
+
+	pr_info("Found following command lines\n");
+	pr_info(" boot_command_line: %s\n", boot_command_line);
+	pr_info(" arcs_cmdline     : %s\n", arcs_cmdline);
+#ifdef CONFIG_CMDLINE_BOOL
+	pr_info(" builtin_cmdline  : %s\n", CONFIG_CMDLINE);
+#endif
+	if (dtb != __dtb_start)
+		strlcpy(arcs_cmdline, boot_command_line, COMMAND_LINE_SIZE);
 }
 
 void __init device_tree_init(void)
