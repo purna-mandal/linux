@@ -16,7 +16,7 @@
 
 #define ARCH_NR_GPIOS 352
 
-#define gpio_to_irq(gpio)      -1
+#define gpio_to_irq(gpio)      __gpio_to_irq(gpio)
 
 #define gpio_get_value __gpio_get_value
 #define gpio_set_value __gpio_set_value
