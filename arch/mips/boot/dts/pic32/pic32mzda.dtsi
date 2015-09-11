@@ -31,6 +31,21 @@
 		serial3 = &uart4;
 		serial4 = &uart5;
 		serial5 = &uart6;
+		i2s1 = &i2s1;
+		i2s2 = &i2s2;
+		i2s3 = &i2s3;
+		i2s4 = &i2s4;
+		i2s5 = &i2s5;
+		i2s6 = &i2s6;
+		spi1 = &spi1;
+		spi2 = &spi2;
+		spi3 = &spi3;
+		spi4 = &spi4;
+		spi5 = &spi5;
+		spi6 = &spi6;
+		spi7 = &sqi1;
+		usb1 = &usb1;
+		usb1_phy = &usb1_phy;
 	};
 
 	cpus {
@@ -77,6 +92,165 @@
 		#interrupt-cells = <2>;
 		reg = <0x1f810000 0x1000>;
 		microchip,external-irqs = <3 8 13 18 23>;
+	};
+
+	/* 16-bit class-a timer */
+	PBTIMER1:pbtimer1 {
+		#timer-cells = <0>;
+		reg = <0x1f840000 0x30>;
+		compatible = "microchip,pic32mzda-timerA";
+		interrupts = <4 IRQ_TYPE_EDGE_RISING>;
+		clocks = <&PBCLK3>, <&SOSC>, <&LPRC>;
+		microchip,clock-indices = <0>, <1>, <5>;
+		timer-id = <1>;
+		microchip,timer-class-A;  /* class A timer */
+		microchip,timer-version = <2>; /* v2 timer */
+	};
+
+	/* 32-bit class-b timer */
+	PBTIMER23:pbtimer23 {
+		#timer-cells = <0>;
+		compatible = "microchip,pic32mzda-timer";
+		reg = <0x1f840200 0x400>;
+		interrupts = <14 IRQ_TYPE_EDGE_RISING>;
+		clocks = <&PBCLK3>, <&TxCKI>;
+		timer-id = <2>;
+		microchip,timer-32bit;	 /* class B, 32-bit combined timer */
+	};
+
+	/* 16-bit class-b timer */
+	PBTIMER4:pbtimer4 {
+		#timer-cells = <0>;
+		compatible = "microchip,pic32mzda-timer";
+		reg = <0x1f840600 0x200>;
+		interrupts = <19 IRQ_TYPE_EDGE_RISING>;
+		clocks = <&PBCLK3>, <&TxCKI>;
+		timer-id = <4>;
+	};
+
+	/* 16-bit class-b timer */
+	PBTIMER5:pbtimer5 {
+		#timer-cells = <0>;
+		compatible = "microchip,pic32mzda-timer";
+		reg = <0x1f840800 0x200>;
+		interrupts = <24 IRQ_TYPE_EDGE_RISING>;
+		clocks = <&PBCLK3>, <&TxCKI>;
+		timer-id = <5>;
+		microchip,timer-adc; /* can trigger ADC on match */
+	};
+
+	/* 32-bit class-b timer */
+	PBTIMER67:pbtimer67 {
+		#timer-cells = <0>;
+		compatible = "microchip,pic32mzda-timer";
+		reg = <0x1f840A00 0x400>;
+		interrupts = <32 IRQ_TYPE_EDGE_RISING>;
+		clocks = <&PBCLK3>, <&TxCKI>;
+		timer-id = <6>;
+		microchip,timer-32bit;
+	};
+
+	/* 32-bit class-b timer */
+	PBTIMER89:pbtimer89 {
+		#timer-cells = <0>;
+		compatible = "microchip,pic32mzda-timer";
+		reg = <0x1f840E00 0x400>;
+		interrupts = <40 IRQ_TYPE_EDGE_RISING>;
+		clocks = <&PBCLK3>, <&TxCKI>;
+		timer-id = <8>;
+		microchip,timer-32bit;
+	};
+
+	/* 32-bit time-base and 32-bit compare */
+	OCMP1:oc1 {
+		#oc-cells = <0>;
+		compatible = "microchip,pic32mzda-ocmp";
+		reg = <0x1f844000 0x30>;
+		interrupts = <0>;
+		oc-id = <1>;
+		microchip,oc-32bit;
+		microchip,oc-adc;
+	};
+
+	/* 16-bit time-base, hence 16-bit count comparision */
+	OCMP2:oc2 {
+		#oc-cells = <0>;
+		compatible = "microchip,pic32mzda-ocmp";
+		reg = <0x1f844200 0x30>;
+		interrupts = <0>;
+		oc-id = <2>;
+		microchip,oc-adc;
+		microchip,oc-32bit;
+	};
+
+	OCMP3:oc3 {
+		#oc-cells = <0>;
+		compatible = "microchip,pic32mzda-ocmp";
+		reg = <0x1f844400 0x30>;
+		interrupts = <0>;
+		oc-id = <3>;
+		microchip,oc-adc;
+		microchip,oc-32bit;
+	};
+
+	OCMP4:oc4 {
+		#oc-cells = <0>;
+		compatible = "microchip,pic32mzda-ocmp";
+		reg = <0x1f844600 0x30>;
+		interrupts = <0>;
+		oc-id = <4>;
+		microchip,oc-adc;
+		microchip,oc-32bit;
+	};
+
+	OCMP5:oc5 {
+		#oc-cells = <0>;
+		compatible = "microchip,pic32mzda-ocmp";
+		reg = <0x1f844800 0x30>;
+		interrupts = <0>;
+		oc-id = <5>;
+		microchip,oc-adc;
+		microchip,oc-32bit;
+	};
+
+	OCMP6:oc6 {
+		#oc-cells = <0>;
+		compatible = "microchip,pic32mzda-ocmp";
+		reg = <0x1f844A00 0x30>;
+		interrupts = <0>;
+		oc-id = <2>;
+		microchip,oc-adc;
+		microchip,oc-32bit;
+	};
+
+	OCMP7:oc7 {
+		#oc-cells = <0>;
+		compatible = "microchip,pic32mzda-ocmp";
+		reg = <0x1f844C00 0x30>;
+		interrupts = <0>;
+		oc-id = <7>;
+		microchip,oc-adc;
+		microchip,oc-32bit;
+	};
+
+	OCMP8:oc8 {
+		#oc-cells = <0>;
+		compatible = "microchip,pic32mzda-ocmp";
+		reg = <0x1f844E00 0x30>;
+		interrupts = <0>;
+		oc-id = <8>;
+		microchip,oc-adc;
+		microchip,oc-32bit;
+	};
+
+	OCMP9:oc9 {
+		#oc-cells = <0>;
+		compatible = "microchip,pic32mzda-ocmp";
+		reg = <0x1f845000 0x30>;
+		interrupts = <0>;
+		oc-id = <9>;
+		microchip,oc-adc;
+		microchip,oc-32bit;
 	};
 
 	pic32_pinctrl: pinctrl@1f801400{
@@ -229,6 +403,56 @@
 		gpio-ranges = <&pic32_pinctrl 0 144 16>;
 	};
 
+	eth0: ethernet@1f882000 {
+		compatible = "microchip,pic32mzda-ec";
+		reg = <0x1f882000 0x1000>, <0x1000 0x7f000>;
+		reg-names = "regs", "mem";
+		interrupts = <153 IRQ_TYPE_LEVEL_HIGH>;
+		phy-mode = "rmii";
+		clock-names = "eth_clk";
+		clocks = <&PBCLK5>;
+		status = "disabled";
+	};
+
+	rtc0: rtc@1f8c0000 {
+		compatible = "microchip,pic32mzda-rtc";
+		reg = <0x1f8c0000 0x60>;
+		interrupts = <166 IRQ_TYPE_EDGE_RISING>;
+		clocks = <&PBCLK6>;
+	};
+
+	watchdog@1f800800 {
+		compatible = "microchip,pic32mzda-wdt";
+		reg = <0x1f800800 0x200>;
+		clocks = <&LPRC>;
+	};
+
+	watchdog@1f800a00 {
+		compatible = "microchip,pic32mzda-dmt";
+		reg = <0x1f800a00 0x80>;
+		clocks = <&PBCLK7>;
+	};
+
+	rng: rng@1f8e6000 {
+		compatible = "microchip,pic32mzda-rng";
+		reg = <0x1f8e6000 0x1000>;
+		clocks = <&PBCLK5>;
+	};
+
+	dma: dma-controller@1f811000 {
+		compatible = "microchip,pic32mzda-dma";
+		reg = <0x1f811000 0x2000>;
+		interrupts = <134 IRQ_TYPE_EDGE_RISING>,
+			<135 IRQ_TYPE_EDGE_RISING>,
+			<136 IRQ_TYPE_EDGE_RISING>,
+			<137 IRQ_TYPE_EDGE_RISING>,
+			<138 IRQ_TYPE_EDGE_RISING>,
+			<139 IRQ_TYPE_EDGE_RISING>,
+			<140 IRQ_TYPE_EDGE_RISING>,
+			<141 IRQ_TYPE_EDGE_RISING>;
+		#dma-cells = <1>;
+	};
+
 	sdhci: sdhci@1f8ec000 {
 		compatible = "microchip,pic32mzda-sdhci";
 		reg = <0x1f8ec000 0x100>;
@@ -237,6 +461,229 @@
 		clock-names = "base_clk", "sys_clk";
 		bus-width = <4>;
 		cap-sd-highspeed;
+		status = "disabled";
+	};
+
+	lcd: fb@1f8ea000 {
+		compatible = "microchip,pic32mzda-lcd";
+		reg = <0x1f8ea000 0x1000>;
+		interrupts = <192 IRQ_TYPE_LEVEL_HIGH>;
+		clocks = <&REFCLKO5>, <&SYSCLK>;
+		clock-names = "lcd_clk", "sys_clk";
+		status = "disabled";
+	};
+
+	usb1: usb@1f8e3000 {
+		compatible = "microchip,pic32mzda-usb";
+		reg = <0x1f8e3000 0x1000>,
+		      <0x1f884000 0x1000>;
+		reg-names = "mc", "control";
+		interrupts = <132 IRQ_TYPE_EDGE_RISING>,
+			<133 IRQ_TYPE_LEVEL_HIGH>;
+		interrupt-names = "mc", "dma", "over_current";
+		dr_mode = "host";
+		mentor,multipoint = <1>;
+		mentor,num-eps = <8>;
+		mentor,ram-bits = <11>;
+		mentor,power = <500>;
+		phys = <&usb1_phy>;
+		clocks = <&PBCLK5>;
+		clock-names = "usb_clk";
+		status = "disabled";
+	};
+
+	usb1_phy: hsusb1_phy@0 {
+		compatible = "usb-nop-xceiv";
+		reg = <0x1f8e4000 0x1000>;
+		clocks = <&UPLL>;
+		clock-names = "main_clk";
+		clock-frequency = <24000000>;
+		status = "disabled";
+	};
+
+	i2s1: i2s@1f821000 {
+		compatible = "microchip,pic32mzda-i2s";
+		reg = <0x1f821000 0x200>;
+		interrupts = <110 IRQ_TYPE_LEVEL_HIGH>,
+			<111 IRQ_TYPE_LEVEL_HIGH>;
+		dmas = <&dma 134>, <&dma 135>;
+		dma-names = "rx", "tx";
+		clocks = <&PBCLK2>, <&REFCLKO1>;
+		clock-names = "mck0", "mck1";
+		status = "disabled";
+	};
+
+	i2s2: i2s@1f821200 {
+		compatible = "microchip,pic32mzda-i2s";
+		reg = <0x1f821200 0x200>;
+		interrupts = <143 IRQ_TYPE_LEVEL_HIGH>,
+			<144 IRQ_TYPE_LEVEL_HIGH>;
+		dmas = <&dma 136>, <&dma 137>;
+		dma-names = "rx", "tx";
+		clocks = <&PBCLK2>, <&REFCLKO1>;
+		clock-names = "mck0", "mck1";
+		status = "disabled";
+	};
+
+	i2s3: i2s@1f821400 {
+		compatible = "microchip,pic32mzda-i2s";
+		reg = <0x1f821400 0x200>;
+		interrupts = <155 IRQ_TYPE_LEVEL_HIGH>,
+			<156 IRQ_TYPE_LEVEL_HIGH>;
+		dmas = <&dma 138>, <&dma 139>;
+		dma-names = "rx", "tx";
+		clocks = <&PBCLK2>, <&REFCLKO1>;
+		clock-names = "mck0", "mck1";
+		status = "disabled";
+	};
+
+	i2s4: i2s@1f821600 {
+		compatible = "microchip,pic32mzda-i2s";
+		reg = <0x1f821600 0x200>;
+		interrupts = <164 IRQ_TYPE_LEVEL_HIGH>,
+			<165 IRQ_TYPE_LEVEL_HIGH>;
+		dmas = <&dma 140>, <&dma 141>;
+		dma-names = "rx", "tx";
+		clocks = <&PBCLK2>, <&REFCLKO1>;
+			clock-names = "mck0", "mck1";
+		status = "disabled";
+	};
+
+	i2s5: i2s@1f821800 {
+		compatible = "microchip,pic32mzda-i2s";
+		reg = <0x1f821800 0x200>;
+		interrupts = <177 IRQ_TYPE_LEVEL_HIGH>,
+			<178 IRQ_TYPE_LEVEL_HIGH>;
+		dmas = <&dma 134>, <&dma 135>;
+		dma-names = "rx", "tx";
+		clocks = <&PBCLK2>, <&REFCLKO1>;
+		clock-names = "mck0", "mck1";
+		status = "disabled";
+	};
+
+	i2s6: i2s@1f821A00 {
+		compatible = "microchip,pic32mzda-i2s";
+		reg = <0x1f821A00 0x200>;
+		interrupts = <186 IRQ_TYPE_LEVEL_HIGH>,
+			<187 IRQ_TYPE_LEVEL_HIGH>;
+		dmas = <&dma 136>, <&dma 137>;
+		dma-names = "rx", "tx";
+		clocks = <&PBCLK2>, <&REFCLKO1>;
+		clock-names = "mck0", "mck1";
+		status = "disabled";
+	};
+
+	adc1: adc@1f84b000 {
+		compatible = "microchip,pic32mzda-adc";
+		reg = <0x1f84b000 0x300>;
+		interrupts = <44 IRQ_TYPE_LEVEL_HIGH>;
+		status = "disabled";
+	};
+
+	spi1:spi@0x1f821000 {
+		#address-cells = <1>;
+		#size-cells = <0>;
+		compatible = "microchip,pic32mzda-spi";
+		reg = <0x1f821000 0x200>;
+		interrupts = <109 IRQ_TYPE_LEVEL_HIGH>,
+			<110 IRQ_TYPE_LEVEL_HIGH>,
+			<111 IRQ_TYPE_LEVEL_HIGH>;
+		interrupt-names = "fault", "rx", "tx";
+		clocks = <&PBCLK2>, <&REFCLKO1>;
+		clock-names = "mck0", "mck1";
+		dmas = <&dma 134>, <&dma 135>;
+		dma-names = "spi-rx", "spi-tx";
+		status = "disabled";
+	};
+
+	spi2:spi@0x1f821200 {
+		#address-cells = <1>;
+		#size-cells = <0>;
+		compatible = "microchip,pic32mzda-spi";
+		reg = <0x1f821200 0x200>;
+		interrupts = <142 IRQ_TYPE_LEVEL_HIGH>,
+			<143 IRQ_TYPE_LEVEL_HIGH>,
+			<144 IRQ_TYPE_LEVEL_HIGH>;
+		interrupt-names = "fault", "rx", "tx";
+		clocks = <&PBCLK2>, <&REFCLKO1>;
+		clock-names = "mck0", "mck1";
+		dmas = <&dma 136>, <&dma 137>;
+		dma-names = "spi-rx", "spi-tx";
+		status = "disabled";
+	};
+
+	spi3:spi@0x1f821400 {
+		#address-cells = <1>;
+		#size-cells = <0>;
+		compatible = "microchip,pic32mzda-spi";
+		reg = <0x1f821400 0x200>;
+		interrupts = <154 IRQ_TYPE_LEVEL_HIGH>,
+			<155 IRQ_TYPE_LEVEL_HIGH>,
+			<156 IRQ_TYPE_LEVEL_HIGH>;
+		interrupt-names = "fault", "rx", "tx";
+		clocks = <&PBCLK2>, <&REFCLKO1>;
+		clock-names = "mck0", "mck1";
+		dmas = <&dma 138>, <&dma 139>;
+		dma-names = "spi-rx", "spi-tx";
+		status = "disabled";
+	};
+
+	spi4:spi@0x1f821600 {
+		#address-cells = <1>;
+		#size-cells = <0>;
+		compatible = "microchip,pic32mzda-spi";
+		reg = <0x1f821600 0x200>;
+		interrupts = <163 IRQ_TYPE_LEVEL_HIGH>,
+			<164 IRQ_TYPE_LEVEL_HIGH>,
+			<165 IRQ_TYPE_LEVEL_HIGH>;
+		interrupt-names = "fault", "rx", "tx";
+		clocks = <&PBCLK2>, <&REFCLKO1>;
+		clock-names = "mck0", "mck1";
+		dmas = <&dma 140>, <&dma 141>;
+		dma-names = "spi-rx", "spi-tx";
+		status = "disabled";
+	};
+
+	spi5:spi@0x1f821800 {
+		#address-cells = <1>;
+		#size-cells = <0>;
+		compatible = "microchip,pic32mzda-spi";
+		reg = <0x1f821800 0x200>;
+		interrupts = <176 IRQ_TYPE_LEVEL_HIGH>,
+			<177 IRQ_TYPE_LEVEL_HIGH>,
+			<178 IRQ_TYPE_LEVEL_HIGH>;
+		interrupt-names = "fault", "rx", "tx";
+		clocks = <&PBCLK2>, <&REFCLKO1>;
+		clock-names = "mck0", "mck1";
+		dmas = <&dma 134>, <&dma 135>;
+		dma-names = "spi-rx", "spi-tx";
+		status = "disabled";
+	};
+
+	spi6:spi@0x1f821A00 {
+		#address-cells = <1>;
+		#size-cells = <0>;
+		compatible = "microchip,pic32mzda-spi";
+		reg = <0x1f821A00 0x200>;
+		interrupts = <185 IRQ_TYPE_LEVEL_HIGH>,
+			<186 IRQ_TYPE_LEVEL_HIGH>,
+			<187 IRQ_TYPE_LEVEL_HIGH>;
+		interrupt-names = "fault", "rx", "tx";
+		clocks = <&PBCLK2>, <&REFCLKO1>;
+		clock-names = "mck0", "mck1";
+		dmas = <&dma 136>, <&dma 137>;
+		dma-names = "spi-rx", "spi-tx";
+		status = "disabled";
+	};
+
+	sqi1:sqi@0x1f8e2000 {
+		#address-cells = <1>;
+		#size-cells = <0>;
+		compatible = "microchip,pic32mzda-sqi";
+		reg = <0x1f8e2000 0x200>;
+		clocks = <&REFCLKO2>, <&PBCLK5>;
+		clock-names = "spi_ck", "reg_ck";
+		interrupts = <169 IRQ_TYPE_LEVEL_HIGH>;
 		status = "disabled";
 	};
 
@@ -297,6 +744,51 @@
 			<189 IRQ_TYPE_LEVEL_HIGH>,
 			<190 IRQ_TYPE_LEVEL_HIGH>;
 		clocks = <&rootclk PB2CLK>;
+		status = "disabled";
+	};
+
+	i2c1: i2c@1f820000 {
+		compatible = "microchip,pic32mzda-i2c";
+		reg = <0x1f820000 512>;
+		interrupts = <117 IRQ_TYPE_LEVEL_HIGH>;
+		clock-frequency = <100000>;
+		clocks = <&PBCLK2>;
+		status = "disabled";
+	};
+
+	i2c2: i2c@1f820200 {
+		compatible = "microchip,pic32mzda-i2c";
+		reg = <0x1f820200 512>;
+		interrupts = <150 IRQ_TYPE_LEVEL_HIGH>;
+		clock-frequency = <100000>;
+		clocks = <&PBCLK2>;
+		status = "disabled";
+	};
+
+	i2c3: i2c@1f820400 {
+		compatible = "microchip,pic32mzda-i2c";
+		reg = <0x1f820400 512>;
+		interrupts = <162 IRQ_TYPE_LEVEL_HIGH>;
+		clock-frequency = <100000>;
+		clocks = <&PBCLK2>;
+		status = "disabled";
+	};
+
+	i2c4: i2c@1f820600 {
+		compatible = "microchip,pic32mzda-i2c";
+		reg = <0x1f820600 512>;
+		interrupts = <175 IRQ_TYPE_LEVEL_HIGH>;
+		clock-frequency = <100000>;
+		clocks = <&PBCLK2>;
+		status = "disabled";
+	};
+
+	i2c5: i2c@1f820800 {
+		compatible = "microchip,pic32mzda-i2c";
+		reg = <0x1f820800 512>;
+		interrupts = <184 IRQ_TYPE_LEVEL_HIGH>;
+		clock-frequency = <100000>;
+		clocks = <&PBCLK2>;
 		status = "disabled";
 	};
 };

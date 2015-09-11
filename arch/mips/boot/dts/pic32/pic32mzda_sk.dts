@@ -77,6 +77,22 @@
 			gpios = <&gpio1 14 0>;
 		};
 	};
+
+	pwm8 {
+		compatible = "microchip,pic32mzda-pwm";
+		microchip,timer = <&PBTIMER23>;
+		microchip,ocmp = <&OCMP8>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&pinctrl_oc8>;
+	};
+};
+
+&eth0 {
+	mac-address = [00 00 00 00 00 00];
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_eth0>;
+	reset-gpio = <&gpio8 15 0>;
+	status = "okay";
 };
 
 &uart2 {
@@ -91,6 +107,29 @@
 	status = "okay";
 };
 
+&i2c3 {
+	#address-cells = <1>;
+	#size-cells = <0>;
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_i2c3>;
+	status = "okay";
+};
+
+&usb1 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_usb1>;
+	status = "okay";
+
+	usb_overcurrent@0 {
+		interrupt-parent = <&gpio1>;
+		interrupts = <11 IRQ_TYPE_EDGE_FALLING>;
+	};
+};
+
+&usb1_phy {
+	status = "okay";
+};
+
 &sdhci {
 	pinctrl-names = "default";
 	pinctrl-0 = <&pinctrl_sdhc1>;
@@ -100,10 +139,63 @@
 	assigned-clock-rates = <50000000>, <25000000>, <40000000>;
 };
 
+&spi2 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_spi2>;
+	cs-gpios = <&gpio3 0 GPIO_ACTIVE_LOW>, <&gpio3 14 GPIO_ACTIVE_LOW>;
+	status = "okay";
+};
+
 &pic32_pinctrl {
+
+	pinctrl_usb1: usb1_oc-0 {
+		pins = "B11";
+		input-enable;
+		microchip,digital;
+	};
+
+	pinctrl_oc8: ocmp8_pins {
+		pins = "B8";
+		function = "OC8";
+		microchip,digital;
+		output-low;
+	};
 
 	pinctrl_sdhc1: sdhc1_pins0 {
 		pins = "A6", "D4", "G13", "G12", "G14", "A7", "A0";
+		microchip,digital;
+	};
+
+	pinctrl_i2c3: i2c3_0 {
+		pins = "F8", "F2";
+		microchip,digital;
+	};
+
+	pinctrl_spi2: spi2_0 {
+		spi2-common {
+			pins = "G6", "D0", "D14";
+			microchip,digital;
+			output-low;
+		};
+
+		spi2-tx {
+			pins = "G8";
+			function = "SDO2";
+			microchip,digital;
+			output-low;
+		};
+
+		spi2-rx {
+			pins = "D7";
+			function = "SDI2";
+			microchip,digital;
+			input-enable;
+		};
+	};
+
+	pinctrl_eth0: eth0_0 {
+		pins = "D11", "D6", "H13", "H8", "H5", "F3",
+			"J11", "J9", "J8", "J1", "J15";
 		microchip,digital;
 	};
 
