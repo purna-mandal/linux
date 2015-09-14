@@ -1,0 +1,49 @@
+* PIC32 DMA Controller
+
+The PIC32 DMA controller has 8 channels in total.
+Each DMA channel is capable of
+ - memory-to-device, device-to-memory and memory-to-memory transfer.
+ - Automatic flow-control & abort based on peripheral interrupt sources.
+ - One-Shot or Auto-Repeat Block Transfer.
+
+Required properties:
+- compatible: Should be "microchip,pic32mzda-dma".
+- reg: Should contain DMA registers location and length.
+- interrupts: Should contain the DMA interrupts associated
+		to the DMA channels in ascending order.
+Example:
+
+	dma: dma-controller@1f811000 {
+		compatible = "microchip,pic32mzda-dma";
+		reg = <0x1f811000 0x2000>;
+		interrupts = <134 IRQ_TYPE_EDGE_RISING>,
+			<135 IRQ_TYPE_EDGE_RISING>,
+			<136 IRQ_TYPE_EDGE_RISING>,
+			<137 IRQ_TYPE_EDGE_RISING>,
+			<138 IRQ_TYPE_EDGE_RISING>,
+			<139 IRQ_TYPE_EDGE_RISING>,
+			<140 IRQ_TYPE_EDGE_RISING>,
+			<141 IRQ_TYPE_EDGE_RISING>;
+		#dma-cells = <1>;
+	};
+
+DMA clients connected to the PIC32 DMA controller must use the format
+described in the dma.txt file, using a two-cell specifier for each channel.
+
+Each dma request consists of 2 cells:
+ 1. phandle pointing to the DMA controller
+ 2. DMA channel number.
+
+Example:
+
+	i2s1: i2s@1f821000 {
+		compatible = "microchip,pic32mzda-i2s";
+		reg = <0x1f821000 0x200>;
+		interrupts = <110 IRQ_TYPE_LEVEL_HIGH>,
+			<111 IRQ_TYPE_LEVEL_HIGH>;
+		dmas = <&dma 134>,
+			<&dma 135>;
+		dma-names = "rx", "tx";
+		clocks = <&PBCLK2>, <&REFCLKO1>;
+		clock-names = "mck0","mck1";
+	};
