@@ -1,0 +1,595 @@
+/*
+ * Copyright (C) 2015 Microchip Technology Inc.  All rights reserved.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 as
+ * published by the Free Software Foundation.
+ *
+ */
+
+/dts-v1/;
+
+#include <dt-bindings/gpio/gpio.h>
+#include <dt-bindings/interrupt-controller/irq.h>
+
+#include "pic32mzda.dtsi"
+
+/ {
+	compatible = "microchip,pic32mzda-evk", "microchip,pic32mzda";
+	model = "Microchip PIC32MZDA EVK Board";
+
+	memory {
+		device_type = "memory";
+		reg = <0x08000000 0x08000000>;
+	};
+
+	chosen {
+		bootargs = "earlyprintk=ttyPIC1,115200n8r console=ttyPIC1,115200n8";
+	};
+
+	leds0 {
+		compatible = "gpio-leds";
+		pinctrl-names = "default";
+		pinctrl-0 = <&user_leds_s0>;
+
+		led@1 {
+			label = "pic32mzda_sk:red:led1";
+			gpios = <&gpio7 0 GPIO_ACTIVE_HIGH>;
+			linux,default-trigger = "heartbeat";
+		};
+
+		led@2 {
+			label = "pic32mzda_sk:yellow:led2";
+			gpios = <&gpio7 1 GPIO_ACTIVE_HIGH>;
+			linux,default-trigger = "mmc0";
+		};
+
+		led@3 {
+			label = "pic32mzda_sk:green:led3";
+			gpios = <&gpio7 2 GPIO_ACTIVE_HIGH>;
+			default-state = "on";
+		};
+	};
+
+	leds1 {
+		compatible = "gpio-leds";
+		pinctrl-names = "default";
+		pinctrl-0 = <&user_leds_s1>;
+
+		led@4 {
+			label = "pic32mzda_evk:red:led4";
+			gpios = <&gpio7 7 GPIO_ACTIVE_HIGH>;
+			default-state = "on";
+		};
+
+		led@5 {
+			label = "pic32mzda_evk:green:led5";
+			gpios = <&gpio7 10 GPIO_ACTIVE_HIGH>;
+			default-state = "on";
+		};
+
+		led@6 {
+			label = "pic32mzda_evk:orange:led6";
+			gpios = <&gpio7 9 GPIO_ACTIVE_HIGH>;
+			default-state = "on";
+		};
+	};
+
+	keys0 {
+		compatible = "gpio-keys";
+		pinctrl-0 = <&user_buttons_s0>;
+		pinctrl-names = "default";
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		button@sw1 {
+			label = "ESC";
+			linux,code = <1>;
+			gpios = <&gpio1 12 0>;
+		};
+
+		button@sw2 {
+			label = "Home";
+			linux,code = <102>;
+			gpios = <&gpio1 13 0>;
+		};
+
+		button@sw3 {
+			label = "Menu";
+			linux,code = <139>;
+			gpios = <&gpio1 14 0>;
+		};
+	};
+
+	keys1 {
+		compatible = "gpio-keys";
+		pinctrl-0 = <&user_buttons_s1>;
+		pinctrl-names = "default";
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		button@sw4 {
+			label = "Up";
+			linux,code = <103>;
+			gpios = <&gpio4 4 0>;
+		};
+
+		button@sw5 {
+			label = "Left";
+			linux,code = <105>;
+			gpios = <&gpio1 5 0>;
+		};
+
+		button@sw6 {
+			label = "Enter";
+			linux,code = <28>;
+			gpios = <&gpio9 1 0>;
+		};
+
+		button@sw7 {
+			label = "Right";
+			linux,code = <106>;
+			gpios = <&gpio9 2 0>;
+		};
+
+		button@sw8 {
+			label = "Down";
+			linux,code = <108>;
+			gpios = <&gpio6 6 0>;
+		};
+
+		button@sw9 {
+			label = "ESC";
+			linux,code = <1>;
+			gpios = <&gpio7 11 0>;
+		};
+	};
+
+	sound {
+		compatible = "microchip,snd-pic32mzda-proto";
+		microchip,cpu-dai = <&i2s1 &i2s1>;
+		microchip,audio-codec = <&wm8731>;
+	};
+
+	pwm1 {
+		compatible = "microchip,pic32mzda-pwm";
+		microchip,timer = <&PBTIMER23>;
+		microchip,ocmp = <&OCMP1>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&pinctrl_oc1>;
+	};
+
+	pwm4 {
+		compatible = "microchip,pic32mzda-pwm";
+		microchip,timer = <&PBTIMER23>;
+		microchip,ocmp = <&OCMP4>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&pinctrl_oc4>;
+	};
+
+	backlight {
+		compatible = "gpio-backlight";
+		pinctrl-names = "default";
+		pinctrl-0 = <&pinctrl_backlight>;
+		gpios = <&gpio7 6 GPIO_ACTIVE_HIGH>;
+		default-on;
+	};
+
+	i2c1b {
+		#address-cells = <1>;
+		#size-cells = <0>;
+		compatible = "i2c-gpio";
+		gpios = <&gpio0 15 GPIO_ACTIVE_HIGH>,
+			<&gpio0 14 GPIO_ACTIVE_HIGH>;
+		i2c-gpio,delay-us = <1>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&pinctrl_i2c1>;
+
+		touchscreen: mtch6303_i2c@25 {
+			compatible = "microchip,mtch6303_i2c";
+			reg = <0x25>;
+			pinctrl-names = "default";
+			pinctrl-0 = <&pinctrl_i2c1_mtch6303>;
+			interrupt-parent = <&gpio2>;
+			interrupts = <14 IRQ_TYPE_EDGE_FALLING>;
+		};
+	};
+
+	i2c2b {
+		#address-cells = <1>;
+		#size-cells = <0>;
+		compatible = "i2c-gpio";
+		gpios = <&gpio0 3 GPIO_ACTIVE_HIGH>,
+			<&gpio0 2 GPIO_ACTIVE_HIGH>;
+		i2c-gpio,delay-us = <4>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&pinctrl_i2c2>;
+
+		wm8731: wm8731@1a {
+			compatible = "wlf,wm8731";
+			reg = <0x1a>;
+		};
+	};
+};
+
+&eth0 {
+	mac-address = [00 00 00 00 00 00];
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_eth0>;
+	reset-gpio = <&gpio8 15 0>;
+	status = "okay";
+};
+
+&uart2 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_uart2>;
+	status = "okay";
+};
+
+&uart4 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_uart4>;
+	status = "okay";
+};
+
+&uart6 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_uart6
+			&pinctrl_uart6_cts
+			&pinctrl_uart6_rts>;
+	status = "okay";
+};
+
+&lcd {
+	bits-per-pixel = <32>;
+	pic32,transp-length = <0>;
+	pic32,red-offset = <16>;
+	pic32,grayscale = <0>;
+	status = "okay";
+
+	display-timings {
+		native-mode = <&timing1>;
+
+		timing0: 480x272 {
+			pixclock = <40000000>;
+			clock-frequency = <40000000>;
+			hactive = <480>;
+			vactive = <272>;
+			hfront-porch = <1>;
+			hback-porch = <42>;
+			hsync-len = <2>;
+			vback-porch = <40>;
+			vfront-porch = <21>;
+			vsync-len = <23>;
+		};
+
+		timing1: 800x480 {
+			pixclock = <40000000>;
+			clock-frequency = <40000000>;
+			hactive = <800>;
+			hfront-porch = <48>;
+			hsync-len = <40>;
+			hback-porch = <88>;
+			vactive = <480>;
+			vfront-porch = <3>;
+			vsync-len = <13>;
+			vback-porch = <32>;
+		};
+	};
+};
+
+&i2c3 {
+	#address-cells = <1>;
+	#size-cells = <0>;
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_i2c3>;
+	status = "disabled";
+};
+
+&usb1 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_usb1>;
+	status = "okay";
+
+	usb_overcurrent@0 {
+		interrupt-parent = <&gpio1>;
+		interrupts = <11 IRQ_TYPE_EDGE_FALLING>;
+	};
+};
+
+&usb1_phy {
+	status = "okay";
+};
+
+&sdhci {
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_sdhc1>;
+	status = "okay";
+};
+
+&i2s1 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_i2s1>;
+	status = "okay";
+};
+
+&spi4 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_spi4>;
+	status = "disabled";
+};
+
+&spi6 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_spi6>;
+	cs-gpios = <&gpio2 1 GPIO_ACTIVE_LOW>;
+	status = "disabled";
+};
+
+&adc1 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_adc1>;
+	enabled-channel-mask = <0x10000000>;
+	resolution = <12>;
+	vref = <3300>;
+	status = "okay";
+
+	trigger@0 {
+		trigger-name = "int0-external-interrupt";
+		trigger-value = <4>;
+	};
+
+	trigger@1 {
+		trigger-name = "tmr1-match";
+		trigger-value = <5>;
+		microchip,timer = <&PBTIMER1>;
+	};
+
+	trigger@2 {
+		trigger-name = "tmr3-match";
+		trigger-value = <6>;
+		microchip,timer = <&PBTIMER23>;
+	};
+
+	trigger@3 {
+		trigger-name = "tmr5-match";
+		trigger-value = <7>;
+		microchip,timer = <&PBTIMER5>;
+	};
+};
+
+&pic32_pinctrl {
+
+	pinctrl_usb1: usb1_oc-0 {
+		pins = "B11";
+		microchip,digital;
+		input-enable;
+	};
+
+	pinctrl_backlight: backlight-0 {
+		pins = "H6";
+		microchip,digital;
+		output-low;
+	};
+
+	pinctrl_oc1: ocmp1_pins {
+		pins = "B2";
+		function = "OC1";
+		microchip,digital;
+		output-low;
+	};
+
+	pinctrl_oc4: ocmp4_pins {
+		pins = "E5";
+		function = "OC4";
+		microchip,digital;
+		output-low;
+	};
+
+	pinctrl_sdhc1: sdhc1_pins0 {
+		pins = "A6", "D4", "G13", "G12", "G14",
+		"A7", "A0";
+		microchip,digital;
+	};
+
+	pinctrl_i2c1: i2c1_0 {
+		pins = "A14", "A15";
+		microchip,digital;
+	};
+
+	pinctrl_i2c1_mtch6303: pinctrl_i2c1_mtch6303_0 {
+		pins = "C14";
+		microchip,digital;
+		input-enable;
+	};
+
+	pinctrl_i2c2: i2c2_0 {
+		pins = "A3", "A2";
+		microchip,digital;
+	};
+
+	pinctrl_i2c3: i2c3_0 {
+		pins = "F8", "F2";
+		microchip,digital;
+	};
+
+	pinctrl_i2s1: i2s1_0 {
+
+		pinctrl_i2s-clk {
+			pins = "D1";
+			microchip,digital;
+		};
+
+		pinctrl_i2s-rx {
+			pins = "B10";
+			function = "SDI1";
+			microchip,digital;
+		};
+
+		pinctrl_i2s-tx {
+			pins = "D7";
+			function = "SDO1";
+			microchip,digital;
+		};
+
+		pinctrl_i2s-syncout {
+			pins = "B15";
+			function = "SS1OUT";
+			microchip,digital;
+		};
+
+		pinctrl_i2s-syncin {
+			pins = "B15";
+			function = "SS1IN";
+			microchip,digital;
+		};
+	};
+
+	pinctrl_spi4: spi4_0 {
+
+		pinctrl_spi-clk {
+			pins = "D10";
+			microchip,digital;
+		};
+
+		pinctrl_spi-rx {
+			pins = "G7";
+			function = "SDI4";
+			microchip,digital;
+		};
+
+		pinctrl_spi-tx {
+			pins = "B2";
+			function = "SDO4";
+			microchip,digital;
+		};
+
+		pinctrl_spi-syncout {
+			pins = "E9";
+			function = "SS4OUT";
+			microchip,digital;
+		};
+
+		pinctrl_spi-syncin {
+			pins = "E9";
+			function = "SS4IN";
+			microchip,digital;
+		};
+	};
+
+	pinctrl_spi6: spi6_0 {
+
+		pinctrl_spi-clk-cs {
+			pins = "D15", "C1";
+			microchip,digital;
+		};
+
+		pinctrl_spi-rx {
+			pins = "E8";
+			function = "SDI6";
+			microchip,digital;
+		};
+
+		pinctrl_spi-tx {
+			pins = "D5";
+			function = "SDO6";
+			microchip,digital;
+		};
+	};
+
+	pinctrl_eth0: eth0_0 {
+		pins = "D11", "D6", "H13", "H8", "H5", "F3",
+		"J11", "J9", "J8", "J1", "J15";
+		microchip,digital;
+	};
+
+	user_leds_s0: user_leds_s0 {
+		pins = "H0", "H1", "H2";
+		output-low;
+		microchip,digital;
+	};
+
+	user_leds_s1: user_leds_s1 {
+		pins = "H7", "H10", "H9";
+		output-low;
+		microchip,digital;
+	};
+
+	user_buttons_s0: user_buttons_s0 {
+		pins = "B12", "B13", "B14";
+		microchip,digital;
+		input-enable;
+		bias-pull-up;
+	};
+
+	user_buttons_s1: user_buttons_s1 {
+		pins = "E4", "B5", "K1", "G6", "H11";
+		microchip,digital;
+		input-enable;
+	};
+
+	pinctrl_uart2: pinctrl_uart2 {
+		uart2-tx {
+			pins = "G9";
+			function = "U2TX";
+			microchip,digital;
+			output-low;
+		};
+		uart2-rx {
+			pins = "B0";
+			function = "U2RX";
+			microchip,digital;
+			input-enable;
+		};
+	};
+
+	pinctrl_uart4: uart4-0 {
+		uart4-tx {
+			pins = "C3";
+			function = "U4TX";
+			microchip,digital;
+			output-low;
+		};
+		uart4-rx {
+			pins = "C2";
+			function = "U4RX";
+			microchip,digital;
+			input-enable;
+		};
+	};
+
+	pinctrl_uart6: uart6-0 {
+		uart6-tx {
+			pins = "B8";
+			function = "U6TX";
+			microchip,digital;
+			output-low;
+		};
+		uart6-rx {
+			pins = "D0";
+			function = "U6RX";
+			microchip,digital;
+			input-enable;
+		};
+	};
+
+	pinctrl_uart6_cts: pinctrl_uart6_cts {
+		pins = "B9";
+		function = "U6CTS";
+		microchip,digital;
+		input-enable;
+	};
+
+	pinctrl_uart6_rts: pinctrl_uart6_rts {
+		pins = "C4";
+		function = "U6RTS";
+		microchip,digital;
+		output-low;
+	};
+
+	pinctrl_adc1: adc1_0 {
+		pins = "A10";
+		microchip,analog-level;
+		input-enable;
+	};
+};
