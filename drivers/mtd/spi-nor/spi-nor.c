@@ -76,6 +76,7 @@ struct flash_info {
 					 * SPI_NOR_HAS_LOCK.
 					 */
 #define SST_UNLOCK		BIT(10)	/* SST unlock block protect */
+#define SPI_NOR_QUAD_WRITE	BIT(11) /* Flash supports Quad Write */
 };
 
 #define JEDEC_MFR(info)	((info)->id[0])
@@ -920,7 +921,8 @@ static const struct flash_info spi_nor_ids[] = {
 	{ "sst25wf040",  INFO(0xbf2504, 0, 64 * 1024,  8, SECT_4K | SST_WRITE) },
 	{ "sst25wf080",  INFO(0xbf2505, 0, 64 * 1024, 16, SECT_4K | SST_WRITE) },
 	{ "sst26vf032",  INFO(0xbf2602, 0, 64 * 1024, 64, SECT_4K | SST_UNLOCK) },
-	{ "sst26vf032b", INFO(0xbf2642, 0, 64 * 1024, 64, SECT_4K | SPI_NOR_QUAD_READ | SST_UNLOCK) },
+	{ "sst26vf032b", INFO(0xbf2642, 0, 64 * 1024, 64, SECT_4K | SST_UNLOCK |
+	 SPI_NOR_QUAD_READ | SPI_NOR_QUAD_WRITE) },
 
 	/* ST Microelectronics -- newer production may have feature updates */
 	{ "m25p05",  INFO(0x202010,  0,  32 * 1024,   2, 0) },
@@ -1442,7 +1444,11 @@ int spi_nor_scan(struct spi_nor *nor, const char *name, enum read_mode mode)
 		return -EINVAL;
 	}
 
-	nor->program_opcode = SPINOR_OP_PP;
+	/* Quad page program, if device supports it */
+	if ((mode & SPI_NOR_QUAD) && (info->flags & SPI_NOR_QUAD_WRITE))
+		nor->program_opcode = SPINOR_OP_QUAD_PP;
+	else
+		nor->program_opcode = SPINOR_OP_PP;
 
 	if (info->addr_width)
 		nor->addr_width = info->addr_width;
