@@ -473,6 +473,16 @@
 		status = "disabled";
 	};
 
+	gpu0: gpu@1f8eb000 {
+		compatible = "microchip,pic32mzda-gpu";
+		reg = <0x1f8eb000 0x1000>, <0x0 0x100000>;
+		reg-names = "gpu_base", "gpu_mem";
+		interrupts = <193 IRQ_TYPE_LEVEL_HIGH>;
+		interrupt-names = "gpu_irq";
+		clocks = <&rootclk SCLK>;
+		clock-names = "sys_clk";
+	};
+
 	usb1: usb@1f8e3000 {
 		compatible = "microchip,pic32mzda-usb";
 		reg = <0x1f8e3000 0x1000>,
