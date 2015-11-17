@@ -4,6 +4,10 @@ PIC32MZDA Starter Kit
 Required root node properties:
     - compatible = "microchip,pic32mzda-sk", "microchip,pic32mzda"
 
+PIC32MZDA Evaluation Kit
+Required root node properties:
+    - compatible = "microchip,pic32mzda-evk", "microchip,pic32mzda"
+
 CPU nodes:
 ----------
 A "cpus" node is required.  Required properties:
