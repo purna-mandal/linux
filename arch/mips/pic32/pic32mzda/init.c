@@ -17,6 +17,7 @@
 #include <linux/of_fdt.h>
 #include <linux/of_platform.h>
 #include <linux/platform_data/sdhci-pic32.h>
+#include <linux/platform_data/lcd-pic32.h>
 
 #include <asm/fw/fw.h>
 #include <asm/mips-boards/generic.h>
@@ -115,8 +116,15 @@ static struct pic32_sdhci_platform_data sdhci_data = {
 	.setup_dma = pic32_set_sdhci_adma_fifo_threshold,
 };
 
+static struct pic32_lcd_pdata glcd_data = {
+	.enable = pic32_enable_lcd,
+	.disable = pic32_disable_lcd,
+	.set_mode = pic32_set_lcd_mode,
+};
+
 static struct of_dev_auxdata pic32_auxdata_lookup[] __initdata = {
 	OF_DEV_AUXDATA("microchip,pic32mzda-sdhci", 0, "sdhci", &sdhci_data),
+	OF_DEV_AUXDATA("microchip,pic32mzda-lcd", 0, "glcd", &glcd_data),
 	{ /* sentinel */}
 };
 
