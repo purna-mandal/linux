@@ -307,6 +307,20 @@
 	status = "okay";
 };
 
+&can1 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_can1>;
+	transceiver-gpio = <&gpio4 7 GPIO_ACTIVE_HIGH>;
+	status = "okay";
+};
+
+&can2 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_can2>;
+	transceiver-gpio = <&gpio1 4 GPIO_ACTIVE_HIGH>;
+	status = "okay";
+};
+
 &i2s1 {
 	pinctrl-names = "default";
 	pinctrl-0 = <&pinctrl_i2s1>;
@@ -591,5 +605,45 @@
 		pins = "A10";
 		microchip,analog-level;
 		input-enable;
+	};
+
+	pinctrl_can1: can1_0 {
+		can1-tx {
+			pins = "G8";
+			function = "C1TX";
+			microchip,digital;
+			output-low;
+		};
+		can1-rx {
+			pins = "B3";
+			function = "C1RX";
+			microchip,digital;
+			input-enable;
+		};
+		can1-stby {
+			pins = "E7";
+			microchip,digital;
+			output-low;
+		};
+	};
+
+	pinctrl_can2: can2_0 {
+		can2-tx {
+			pins = "B2";
+			function = "C2TX";
+			microchip,digital;
+			output-low;
+		};
+		can2-rx {
+			pins = "E9";
+			function = "C2RX";
+			microchip,digital;
+			input-enable;
+		};
+		can2-stby {
+			pins = "b4";
+			microchip,digital;
+			output-low;
+		};
 	};
 };
