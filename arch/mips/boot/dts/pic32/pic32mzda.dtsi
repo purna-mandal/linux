@@ -795,8 +795,7 @@
 	can1: can@1f880000 {
 		compatible = "microchip,pic32mzda-can";
 		reg = <0x1f880000 512>;
-		interrupts = <CONTROL_AREA_NETWORK_1 DEFAULT_INT_PRI
-				IRQ_TYPE_LEVEL_HIGH>;
+		interrupts = <151 IRQ_TYPE_LEVEL_HIGH>;
 		clocks = <&PBCLK5>;
 		clock-names = "can_clk";
 		status = "disabled";
@@ -805,8 +804,7 @@
 	can2: can@1f881000 {
 		compatible = "microchip,pic32mzda-can";
 		reg = <0x1f881000 512>;
-		interrupts = <CONTROL_AREA_NETWORK_2 DEFAULT_INT_PRI
-				IRQ_TYPE_LEVEL_HIGH>;
+		interrupts = <152 IRQ_TYPE_LEVEL_HIGH>;
 		clocks = <&PBCLK5>;
 		clock-names = "can_clk";
 		status = "disabled";
