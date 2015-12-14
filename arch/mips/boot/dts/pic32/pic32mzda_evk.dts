@@ -157,6 +157,7 @@
 		microchip,ocmp = <&OCMP1>;
 		pinctrl-names = "default";
 		pinctrl-0 = <&pinctrl_oc1>;
+		status = "disabled";
 	};
 
 	pwm4 {
@@ -641,7 +642,7 @@
 			input-enable;
 		};
 		can2-stby {
-			pins = "b4";
+			pins = "B4";
 			microchip,digital;
 			output-low;
 		};
