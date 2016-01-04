@@ -2155,6 +2155,15 @@ static int pic32_pinctrl_probe(struct platform_device *pdev)
 	struct pic32_pinctrl *pctl;
 	struct resource *res;
 	int ret;
+	int i;
+
+	for (i = 0; i < ARRAY_SIZE(pic32_gpio_banks); i++) {
+		if (!pic32_gpio_banks[i].reg_base) {
+			dev_warn(&pdev->dev,
+				"GPIO chip %d not registered yet\n", i);
+			return -EPROBE_DEFER;
+		}
+	}
 
 	pctl = devm_kzalloc(&pdev->dev, sizeof(*pctl), GFP_KERNEL);
 	if (!pctl)
