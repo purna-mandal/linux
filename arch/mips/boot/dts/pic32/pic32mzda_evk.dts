@@ -552,7 +552,7 @@
 			pins = "G9";
 			function = "U2TX";
 			microchip,digital;
-			output-low;
+			output-high;
 		};
 		uart2-rx {
 			pins = "B0";
@@ -567,7 +567,7 @@
 			pins = "C3";
 			function = "U4TX";
 			microchip,digital;
-			output-low;
+			output-high;
 		};
 		uart4-rx {
 			pins = "C2";
@@ -582,7 +582,7 @@
 			pins = "B8";
 			function = "U6TX";
 			microchip,digital;
-			output-low;
+			output-high;
 		};
 		uart6-rx {
 			pins = "D0";
