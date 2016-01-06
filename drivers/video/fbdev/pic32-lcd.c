@@ -40,7 +40,6 @@
 #define XY16TOREG32(x, y)	((x) << 16 | ((y) & 0xffff))
 #define CLAMP255(i)		(((i) < 0) ? 0 : ((i) > 255) ? 255 : (i))
 
-/* LCD Controller info data structure, stored in device platform_data */
 struct pic32_lcd_info {
 	u32			pseudo_palette[PIC32_LCD_PALETTE_COLORS];
 	u32			mode;
@@ -225,14 +224,13 @@ static int pic32_lcd_set_par(struct fb_info *info)
 	if (!sinfo)
 		return -EINVAL;
 
-	dev_dbg(info->device, "%s:\n", __func__);
 	dev_dbg(info->device, "  * resolution: %ux%u (%ux%u virtual)\n",
 		info->var.xres, info->var.yres,
 		info->var.xres_virtual, info->var.yres_virtual);
 
 	mode_reg = pic32_readl(sinfo->mmio, PIC32_LCD_REG_MODE);
-	pic32_writel(sinfo->mmio, PIC32_LCD_REG_MODE, mode_reg &
-		     ~PIC32_LCD_CONFIG_ENABLE);
+	mode_reg &= ~PIC32_LCD_CONFIG_ENABLE;
+	pic32_writel(sinfo->mmio, PIC32_LCD_REG_MODE, mode_reg);
 
 	pic32_writel(sinfo->mmio, PIC32_LCD_REG_LAYER0_RESXY,
 		     XY16TOREG32(info->var.xres, info->var.yres));
@@ -272,15 +270,18 @@ static int pic32_lcd_set_par(struct fb_info *info)
 		info->fix.line_length = info->var.xres_virtual;
 		break;
 	case 16:
+		info->fix.visual = FB_VISUAL_TRUECOLOR;
 		sinfo->mode = info->var.transp.length ?
 			PIC32_LCD_MODE_RGBA5551 : PIC32_LCD_MODE_RGB565;
 		info->fix.line_length = info->var.xres_virtual << 1;
 		break;
 	case 24:
+		info->fix.visual = FB_VISUAL_TRUECOLOR;
 		sinfo->mode = PIC32_LCD_MODE_RGB888;
 		info->fix.line_length = info->var.xres_virtual * 3;
 		break;
 	case 32:
+		info->fix.visual = FB_VISUAL_TRUECOLOR;
 		sinfo->mode = (info->var.transp.length ||
 			info->var.red.offset == 16) ?
 			PIC32_LCD_MODE_ARGB8888 : PIC32_LCD_MODE_RGBA8888;
@@ -326,18 +327,20 @@ static int pic32_lcd_set_par(struct fb_info *info)
 			PICOS2KHZ(info->var.pixclock));
 	}
 
+	pic32_writel(sinfo->mmio, PIC32_LCD_REG_BGCOLOR, 0xFFFF0000);
+
 	pic32_writel(sinfo->mmio, PIC32_LCD_REG_LAYER0_STRIDE,
 		     info->fix.line_length);
 
-	pic32_writel(sinfo->mmio, PIC32_LCD_REG_LAYER0_MODE, 0
-		     | (0xff << 16)
-		     | sinfo->mode
-		     | (1 << 8)
-		     | PIC32_LCD_CONFIG_ENABLE);
+	pic32_writel(sinfo->mmio, PIC32_LCD_REG_LAYER0_MODE,
+		PIC32_LCD_CONFIG_ENABLE
+		| (0xff << 16)
+		| (1 << 8)
+		| sinfo->mode);
 
 	/* set mode in registers */
 	pic32_writel(sinfo->mmio, PIC32_LCD_REG_MODE,
-		     mode_reg | PIC32_LCD_CONFIG_ENABLE);
+		     mode_reg | PIC32_LCD_CONFIG_ENABLE | PIC32_LCD_CONFIG_PCLKPOL);
 
 	return 0;
 }
@@ -573,23 +576,23 @@ static int pic32_lcd_blank(int blank_mode, struct fb_info *info)
 
 	switch (blank_mode) {
 	case FB_BLANK_UNBLANK:
-	case FB_BLANK_NORMAL:
 		pic32_writel(sinfo->mmio, PIC32_LCD_REG_MODE,
-			     mode_reg | PIC32_LCD_CONFIG_ENABLE);
-		break;
-	case FB_BLANK_VSYNC_SUSPEND:
-	case FB_BLANK_HSYNC_SUSPEND:
+			(mode_reg | PIC32_LCD_CONFIG_ENABLE) &
+			~PIC32_LCD_CONFIG_FORCEBLANK);
 		break;
 	case FB_BLANK_POWERDOWN:
 		pic32_writel(sinfo->mmio, PIC32_LCD_REG_MODE,
 			     mode_reg & ~PIC32_LCD_CONFIG_ENABLE);
 		break;
+	case FB_BLANK_NORMAL:
+		pic32_writel(sinfo->mmio, PIC32_LCD_REG_MODE,
+			     mode_reg | PIC32_LCD_CONFIG_FORCEBLANK);
+		break;
 	default:
 		return -EINVAL;
 	}
 
-	/* let fbcon do a soft blank for us */
-	return ((blank_mode == FB_BLANK_NORMAL) ? 1 : 0);
+	return 0;
 }
 
 static irqreturn_t pic32_lcd_vsync_interrupt(int irq, void *dev_id)
@@ -873,7 +876,6 @@ static int pic32_lcd_probe(struct platform_device *pdev)
 	info->fix = pic32_lcd_fix;
 	strcpy(info->fix.id, sinfo->pdev->name);
 
-	/* Enable LCDC Clocks */
 	sinfo->bus_clk = clk_get(dev, "sys_clk");
 	if (IS_ERR(sinfo->bus_clk)) {
 		ret = PTR_ERR(sinfo->bus_clk);
@@ -938,7 +940,6 @@ static int pic32_lcd_probe(struct platform_device *pdev)
 		}
 	}
 
-	/* LCDC registers */
 	info->fix.mmio_start = regs->start;
 	info->fix.mmio_len = resource_size(regs);
 
@@ -950,7 +951,7 @@ static int pic32_lcd_probe(struct platform_device *pdev)
 
 	sinfo->mmio = ioremap(info->fix.mmio_start, info->fix.mmio_len);
 	if (!sinfo->mmio) {
-		dev_err(dev, "cannot map LCDC registers\n");
+		dev_err(dev, "cannot map registers\n");
 		ret = -ENOMEM;
 		goto release_mem;
 	}
@@ -972,8 +973,8 @@ static int pic32_lcd_probe(struct platform_device *pdev)
 	pic32_writel(sinfo->mmio, PIC32_LCD_REG_CLKCON, 0 | (5 << 8));
 	pic32_writel(sinfo->mmio, PIC32_LCD_REG_LAYER0_BASEADDR,
 		     info->fix.smem_start);
-	pic32_writel(sinfo->mmio, PIC32_LCD_REG_BGCOLOR, 0);
-	pic32_writel(sinfo->mmio, PIC32_LCD_REG_INTERRUPT, 1 << 31);
+	pic32_writel(sinfo->mmio, PIC32_LCD_REG_BGCOLOR, 0xFFFF0000);
+	pic32_writel(sinfo->mmio, PIC32_LCD_REG_INTERRUPT, BIT(31));
 
 	sinfo->pdata = dev->platform_data;
 	if (sinfo->pdata && sinfo->pdata->enable)
@@ -1032,8 +1033,6 @@ put_bus_clk:
 free_info:
 	framebuffer_release(info);
 out:
-	dev_dbg(dev, "%s FAILED\n", __func__);
-
 	return ret;
 }
 
