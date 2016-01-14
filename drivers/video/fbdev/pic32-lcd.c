@@ -686,10 +686,14 @@ static int pic32_lcd_alloc_video_memory(struct pic32_lcd_info *sinfo)
 	struct fb_var_screeninfo *var = &info->var;
 	unsigned int smem_len;
 
-	smem_len = (var->xres_virtual * var->yres_virtual
-		    * ((var->bits_per_pixel + 7) / 8));
+	/*
+	 * TODO: The driver needs to support changing the framebuffer size in
+	 * order to accomodate mode switching. It does not do this, so allocate
+	 * a framebuffer that is a "max" supported size for now.
+	 */
+	smem_len = 800 * 480 * 4;
 
-	info->fix.smem_len = max(smem_len, sinfo->smem_len);
+	info->fix.smem_len = smem_len;
 
 	info->screen_base =
 		dma_alloc_coherent(info->device, info->fix.smem_len,
@@ -699,6 +703,7 @@ static int pic32_lcd_alloc_video_memory(struct pic32_lcd_info *sinfo)
 	if (!info->screen_base)
 		return -ENOMEM;
 
+	/* We are allocating this memory, so go ahead and blank it out. */
 	memset(info->screen_base, 0, info->fix.smem_len);
 
 	return 0;
