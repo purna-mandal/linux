@@ -322,12 +322,18 @@ static int of_timer_clk_register(struct pic32_pb_timer *timer)
 	if (!parents)
 		return -ENOMEM;
 
-	ret = pic32_of_clk_get_parent_indices(np, &timer->clk_idx, num);
-	if (ret)
-		goto err_parents;
-
 	for (i = 0; i < num; i++)
 		parents[i] = of_clk_get_parent_name(np, i);
+
+	timer->clk_idx = kcalloc(num, sizeof(u32), GFP_KERNEL);
+	if (!timer->clk_idx) {
+		ret = -ENOMEM;
+		goto err_parents;
+	}
+
+	ret = pic32_of_clk_get_parent_indices(np, timer->clk_idx, num);
+	if (ret)
+		goto err_parents_idx;
 
 	snprintf(clk_name, sizeof(clk_name), "%s_clk", np->name);
 	init.name = clk_name;
@@ -350,11 +356,13 @@ static int of_timer_clk_register(struct pic32_pb_timer *timer)
 	timer->clk = clk_register(NULL, &timer->hw);
 
 	ret = PTR_ERR_OR_ZERO(timer->clk);
-	if (ret) {
-		kfree(timer->clk_idx);
-		goto err_parents;
-	}
+	if (ret)
+		goto err_parents_idx;
 
+	goto err_parents;
+
+err_parents_idx:
+	kfree(timer->clk_idx);
 err_parents:
 	kfree(parents);
 	return ret;
