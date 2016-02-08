@@ -683,7 +683,6 @@ static inline void pic32_lcd_free_video_memory(struct pic32_lcd_info *sinfo)
 static int pic32_lcd_alloc_video_memory(struct pic32_lcd_info *sinfo)
 {
 	struct fb_info *info = sinfo->info;
-	struct fb_var_screeninfo *var = &info->var;
 	unsigned int smem_len;
 
 	/*
