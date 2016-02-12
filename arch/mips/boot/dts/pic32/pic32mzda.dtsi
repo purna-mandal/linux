@@ -590,7 +590,7 @@
 		status = "disabled";
 	};
 
-	spi1:spi@0x1f821000 {
+	spi1: spi@1f821000 {
 		#address-cells = <1>;
 		#size-cells = <0>;
 		compatible = "microchip,pic32mzda-spi";
@@ -606,7 +606,7 @@
 		status = "disabled";
 	};
 
-	spi2:spi@0x1f821200 {
+	spi2: spi@1f821200 {
 		#address-cells = <1>;
 		#size-cells = <0>;
 		compatible = "microchip,pic32mzda-spi";
@@ -622,7 +622,7 @@
 		status = "disabled";
 	};
 
-	spi3:spi@0x1f821400 {
+	spi3: spi@1f821400 {
 		#address-cells = <1>;
 		#size-cells = <0>;
 		compatible = "microchip,pic32mzda-spi";
@@ -638,7 +638,7 @@
 		status = "disabled";
 	};
 
-	spi4:spi@0x1f821600 {
+	spi4: spi@1f821600 {
 		#address-cells = <1>;
 		#size-cells = <0>;
 		compatible = "microchip,pic32mzda-spi";
@@ -654,7 +654,7 @@
 		status = "disabled";
 	};
 
-	spi5:spi@0x1f821800 {
+	spi5: spi@1f821800 {
 		#address-cells = <1>;
 		#size-cells = <0>;
 		compatible = "microchip,pic32mzda-spi";
@@ -670,7 +670,7 @@
 		status = "disabled";
 	};
 
-	spi6:spi@0x1f821A00 {
+	spi6: spi@1f821A00 {
 		#address-cells = <1>;
 		#size-cells = <0>;
 		compatible = "microchip,pic32mzda-spi";
@@ -686,7 +686,7 @@
 		status = "disabled";
 	};
 
-	sqi1:sqi@0x1f8e2000 {
+	sqi1: sqi@1f8e2000 {
 		#address-cells = <1>;
 		#size-cells = <0>;
 		compatible = "microchip,pic32mzda-sqi";
