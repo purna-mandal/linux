@@ -247,7 +247,7 @@
 	pic32,red-offset = <16>;
 	pic32,grayscale = <0>;
 	status = "okay";
-	assigned-clocks = <&REFCLKO5>;
+	assigned-clocks = <&rootclk REF5CLK>;
 	assigned-clock-rates = <40000000>;
 
 	display-timings {
@@ -308,7 +308,7 @@
 	pinctrl-names = "default";
 	pinctrl-0 = <&pinctrl_sdhc1>;
 	status = "okay";
-	assigned-clocks = <&REFCLKO4>;
+	assigned-clocks = <&rootclk REF4CLK>;
 	assigned-clock-rates = <25000000>;
 };
 
