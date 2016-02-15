@@ -48,6 +48,40 @@ struct timer_ops {
 	u32 (*read_period)(struct pic32_pb_timer *tmr);
 };
 
+/* pic32_of_clk_get_parent_indices - get parent clk hardware indices.
+ * @np: pointer to clock node
+ * @table_p: pointer to array to store parent clk indices
+ * @nr_parents: number of parents
+ *
+ * This is useful specifically for mux clocks where some of possible parent
+ * clocks logically is dropped thereby creating a discontinuous linear
+ * sequence. This API refers OF property "microchip,clock-indices" of the
+ * device node to find hardware id(s) corresponding to each input clock source.
+ */
+int pic32_of_clk_get_parent_indices(struct device_node *np,
+				    u32 *table_p,
+				    int nr_parents)
+{
+	struct property *prop;
+	const __be32 *pv;
+	int i;
+
+	if (!table_p || !nr_parents)
+		return -EINVAL;
+
+	prop = of_find_property(np, "microchip,clock-indices", NULL);
+	if (!prop)
+		return 0;
+
+	for (i = 0, pv = NULL; i < nr_parents; i++) {
+		pv = of_prop_next_u32(prop, pv, &table_p[i]);
+		if (!pv)
+			return -EINVAL;
+	}
+
+	return 0;
+}
+
 u32 pbt_read_count(struct pic32_pb_timer *timer)
 {
 	return timer->ops->read_count(timer);

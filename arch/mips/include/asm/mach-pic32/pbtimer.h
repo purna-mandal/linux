@@ -345,7 +345,4 @@ struct pbtimer_platform_data {
 
 void __init of_pic32_pb_timer_init(void);
 
-int pic32_of_clk_get_parent_indices(struct device_node *np,
-				    u32 *table_p, int count);
-
 #endif /* __PIC32_TIMER_H */
