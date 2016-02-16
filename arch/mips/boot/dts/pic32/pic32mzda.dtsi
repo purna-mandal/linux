@@ -95,12 +95,12 @@
 	};
 
 	/* 16-bit class-a timer */
-	PBTIMER1:pbtimer1 {
+	PBTIMER1: pbtimer1@1f840000 {
 		#timer-cells = <0>;
 		reg = <0x1f840000 0x30>;
 		compatible = "microchip,pic32mzda-timerA";
 		interrupts = <4 IRQ_TYPE_EDGE_RISING>;
-		clocks = <&PBCLK3>, <&SOSC>, <&LPRC>;
+		clocks = <&rootclk PB3CLK>, <&rootclk SOSCCLK>, <&rootclk LPRCCLK>;
 		microchip,clock-indices = <0>, <1>, <5>;
 		timer-id = <1>;
 		microchip,timer-class-A;  /* class A timer */
@@ -108,61 +108,61 @@
 	};
 
 	/* 32-bit class-b timer */
-	PBTIMER23:pbtimer23 {
+	PBTIMER23: pbtimer23@1f840200 {
 		#timer-cells = <0>;
 		compatible = "microchip,pic32mzda-timer";
 		reg = <0x1f840200 0x400>;
 		interrupts = <14 IRQ_TYPE_EDGE_RISING>;
-		clocks = <&PBCLK3>, <&TxCKI>;
+		clocks = <&rootclk PB3CLK>, <&txcki>;
 		timer-id = <2>;
 		microchip,timer-32bit;	 /* class B, 32-bit combined timer */
 	};
 
 	/* 16-bit class-b timer */
-	PBTIMER4:pbtimer4 {
+	PBTIMER4: pbtimer4@1f840600 {
 		#timer-cells = <0>;
 		compatible = "microchip,pic32mzda-timer";
 		reg = <0x1f840600 0x200>;
 		interrupts = <19 IRQ_TYPE_EDGE_RISING>;
-		clocks = <&PBCLK3>, <&TxCKI>;
+		clocks = <&rootclk PB3CLK>, <&txcki>;
 		timer-id = <4>;
 	};
 
 	/* 16-bit class-b timer */
-	PBTIMER5:pbtimer5 {
+	PBTIMER5: pbtimer5@1f840800 {
 		#timer-cells = <0>;
 		compatible = "microchip,pic32mzda-timer";
 		reg = <0x1f840800 0x200>;
 		interrupts = <24 IRQ_TYPE_EDGE_RISING>;
-		clocks = <&PBCLK3>, <&TxCKI>;
+		clocks = <&rootclk PB3CLK>, <&txcki>;
 		timer-id = <5>;
 		microchip,timer-adc; /* can trigger ADC on match */
 	};
 
 	/* 32-bit class-b timer */
-	PBTIMER67:pbtimer67 {
+	PBTIMER67: pbtimer67@1f840a00 {
 		#timer-cells = <0>;
 		compatible = "microchip,pic32mzda-timer";
-		reg = <0x1f840A00 0x400>;
+		reg = <0x1f840a00 0x400>;
 		interrupts = <32 IRQ_TYPE_EDGE_RISING>;
-		clocks = <&PBCLK3>, <&TxCKI>;
+		clocks = <&rootclk PB3CLK>, <&txcki>;
 		timer-id = <6>;
 		microchip,timer-32bit;
 	};
 
 	/* 32-bit class-b timer */
-	PBTIMER89:pbtimer89 {
+	PBTIMER89: pbtimer89@1f840e00 {
 		#timer-cells = <0>;
 		compatible = "microchip,pic32mzda-timer";
-		reg = <0x1f840E00 0x400>;
+		reg = <0x1f840e00 0x400>;
 		interrupts = <40 IRQ_TYPE_EDGE_RISING>;
-		clocks = <&PBCLK3>, <&TxCKI>;
+		clocks = <&rootclk PB3CLK>, <&txcki>;
 		timer-id = <8>;
 		microchip,timer-32bit;
 	};
 
 	/* 32-bit time-base and 32-bit compare */
-	OCMP1:oc1 {
+	OCMP1: oc1@1f844000 {
 		#oc-cells = <0>;
 		compatible = "microchip,pic32mzda-ocmp";
 		reg = <0x1f844000 0x30>;
@@ -173,7 +173,7 @@
 	};
 
 	/* 16-bit time-base, hence 16-bit count comparision */
-	OCMP2:oc2 {
+	OCMP2: oc2@1f844200 {
 		#oc-cells = <0>;
 		compatible = "microchip,pic32mzda-ocmp";
 		reg = <0x1f844200 0x30>;
@@ -183,7 +183,7 @@
 		microchip,oc-32bit;
 	};
 
-	OCMP3:oc3 {
+	OCMP3: oc3@1f844400 {
 		#oc-cells = <0>;
 		compatible = "microchip,pic32mzda-ocmp";
 		reg = <0x1f844400 0x30>;
@@ -193,7 +193,7 @@
 		microchip,oc-32bit;
 	};
 
-	OCMP4:oc4 {
+	OCMP4: oc4@1f844600 {
 		#oc-cells = <0>;
 		compatible = "microchip,pic32mzda-ocmp";
 		reg = <0x1f844600 0x30>;
@@ -203,7 +203,7 @@
 		microchip,oc-32bit;
 	};
 
-	OCMP5:oc5 {
+	OCMP5: oc5@1f844800 {
 		#oc-cells = <0>;
 		compatible = "microchip,pic32mzda-ocmp";
 		reg = <0x1f844800 0x30>;
@@ -213,17 +213,17 @@
 		microchip,oc-32bit;
 	};
 
-	OCMP6:oc6 {
+	OCMP6: oc6@1f844a00 {
 		#oc-cells = <0>;
 		compatible = "microchip,pic32mzda-ocmp";
-		reg = <0x1f844A00 0x30>;
+		reg = <0x1f844a00 0x30>;
 		interrupts = <0>;
 		oc-id = <2>;
 		microchip,oc-adc;
 		microchip,oc-32bit;
 	};
 
-	OCMP7:oc7 {
+	OCMP7: oc7@1f844c00 {
 		#oc-cells = <0>;
 		compatible = "microchip,pic32mzda-ocmp";
 		reg = <0x1f844C00 0x30>;
@@ -233,17 +233,17 @@
 		microchip,oc-32bit;
 	};
 
-	OCMP8:oc8 {
+	OCMP8: oc8@1f844e00 {
 		#oc-cells = <0>;
 		compatible = "microchip,pic32mzda-ocmp";
-		reg = <0x1f844E00 0x30>;
+		reg = <0x1f844e00 0x30>;
 		interrupts = <0>;
 		oc-id = <8>;
 		microchip,oc-adc;
 		microchip,oc-32bit;
 	};
 
-	OCMP9:oc9 {
+	OCMP9: oc9@1f845000 {
 		#oc-cells = <0>;
 		compatible = "microchip,pic32mzda-ocmp";
 		reg = <0x1f845000 0x30>;
@@ -410,7 +410,7 @@
 		interrupts = <153 IRQ_TYPE_LEVEL_HIGH>;
 		phy-mode = "rmii";
 		clock-names = "eth_clk";
-		clocks = <&PBCLK5>;
+		clocks = <&rootclk PB5CLK>;
 		status = "disabled";
 	};
 
@@ -418,25 +418,25 @@
 		compatible = "microchip,pic32mzda-rtc";
 		reg = <0x1f8c0000 0x60>;
 		interrupts = <166 IRQ_TYPE_EDGE_RISING>;
-		clocks = <&PBCLK6>;
+		clocks = <&rootclk PB6CLK>;
 	};
 
 	watchdog@1f800800 {
 		compatible = "microchip,pic32mzda-wdt";
 		reg = <0x1f800800 0x200>;
-		clocks = <&LPRC>;
+		clocks = <&rootclk LPRCCLK>;
 	};
 
 	watchdog@1f800a00 {
 		compatible = "microchip,pic32mzda-dmt";
 		reg = <0x1f800a00 0x80>;
-		clocks = <&PBCLK7>;
+		clocks = <&rootclk PB7CLK>;
 	};
 
 	rng: rng@1f8e6000 {
 		compatible = "microchip,pic32mzda-rng";
 		reg = <0x1f8e6000 0x1000>;
-		clocks = <&PBCLK5>;
+		clocks = <&rootclk PB5CLK>;
 	};
 
 	dma: dma-controller@1f811000 {
@@ -468,7 +468,7 @@
 		compatible = "microchip,pic32mzda-lcd";
 		reg = <0x1f8ea000 0x1000>;
 		interrupts = <192 IRQ_TYPE_LEVEL_HIGH>;
-		clocks = <&REFCLKO5>, <&SYSCLK>;
+		clocks = <&rootclk REF5CLK>, <&rootclk SCLK>;
 		clock-names = "lcd_clk", "sys_clk";
 		status = "disabled";
 	};
@@ -497,7 +497,7 @@
 		mentor,ram-bits = <11>;
 		mentor,power = <500>;
 		phys = <&usb1_phy>;
-		clocks = <&PBCLK5>;
+		clocks = <&rootclk PB5CLK>;
 		clock-names = "usb_clk";
 		status = "disabled";
 	};
@@ -505,7 +505,7 @@
 	usb1_phy: hsusb1_phy@0 {
 		compatible = "usb-nop-xceiv";
 		reg = <0x1f8e4000 0x1000>;
-		clocks = <&UPLL>;
+		clocks = <&rootclk UPLLCLK>;
 		clock-names = "main_clk";
 		clock-frequency = <24000000>;
 		status = "disabled";
@@ -518,7 +518,7 @@
 			<111 IRQ_TYPE_LEVEL_HIGH>;
 		dmas = <&dma 134>, <&dma 135>;
 		dma-names = "rx", "tx";
-		clocks = <&PBCLK2>, <&REFCLKO1>;
+		clocks = <&rootclk PB2CLK>, <&rootclk REF1CLK>;
 		clock-names = "mck0", "mck1";
 		status = "disabled";
 	};
@@ -530,7 +530,7 @@
 			<144 IRQ_TYPE_LEVEL_HIGH>;
 		dmas = <&dma 136>, <&dma 137>;
 		dma-names = "rx", "tx";
-		clocks = <&PBCLK2>, <&REFCLKO1>;
+		clocks = <&rootclk PB2CLK>, <&rootclk REF1CLK>;
 		clock-names = "mck0", "mck1";
 		status = "disabled";
 	};
@@ -542,7 +542,7 @@
 			<156 IRQ_TYPE_LEVEL_HIGH>;
 		dmas = <&dma 138>, <&dma 139>;
 		dma-names = "rx", "tx";
-		clocks = <&PBCLK2>, <&REFCLKO1>;
+		clocks = <&rootclk PB2CLK>, <&rootclk REF1CLK>;
 		clock-names = "mck0", "mck1";
 		status = "disabled";
 	};
@@ -554,8 +554,8 @@
 			<165 IRQ_TYPE_LEVEL_HIGH>;
 		dmas = <&dma 140>, <&dma 141>;
 		dma-names = "rx", "tx";
-		clocks = <&PBCLK2>, <&REFCLKO1>;
-			clock-names = "mck0", "mck1";
+		clocks = <&rootclk PB2CLK>, <&rootclk REF1CLK>;
+		clock-names = "mck0", "mck1";
 		status = "disabled";
 	};
 
@@ -566,7 +566,7 @@
 			<178 IRQ_TYPE_LEVEL_HIGH>;
 		dmas = <&dma 134>, <&dma 135>;
 		dma-names = "rx", "tx";
-		clocks = <&PBCLK2>, <&REFCLKO1>;
+		clocks = <&rootclk PB2CLK>, <&rootclk REF1CLK>;
 		clock-names = "mck0", "mck1";
 		status = "disabled";
 	};
@@ -578,7 +578,7 @@
 			<187 IRQ_TYPE_LEVEL_HIGH>;
 		dmas = <&dma 136>, <&dma 137>;
 		dma-names = "rx", "tx";
-		clocks = <&PBCLK2>, <&REFCLKO1>;
+		clocks = <&rootclk PB2CLK>, <&rootclk REF1CLK>;
 		clock-names = "mck0", "mck1";
 		status = "disabled";
 	};
@@ -599,8 +599,8 @@
 			<110 IRQ_TYPE_LEVEL_HIGH>,
 			<111 IRQ_TYPE_LEVEL_HIGH>;
 		interrupt-names = "fault", "rx", "tx";
-		clocks = <&PBCLK2>, <&REFCLKO1>;
-		clock-names = "mck0", "mck1";
+		clocks = <&rootclk PB2CLK>;
+		clock-names = "mck0";
 		dmas = <&dma 134>, <&dma 135>;
 		dma-names = "spi-rx", "spi-tx";
 		status = "disabled";
@@ -615,8 +615,8 @@
 			<143 IRQ_TYPE_LEVEL_HIGH>,
 			<144 IRQ_TYPE_LEVEL_HIGH>;
 		interrupt-names = "fault", "rx", "tx";
-		clocks = <&PBCLK2>, <&REFCLKO1>;
-		clock-names = "mck0", "mck1";
+		clocks = <&rootclk PB2CLK>;
+		clock-names = "mck0";
 		dmas = <&dma 136>, <&dma 137>;
 		dma-names = "spi-rx", "spi-tx";
 		status = "disabled";
@@ -631,8 +631,8 @@
 			<155 IRQ_TYPE_LEVEL_HIGH>,
 			<156 IRQ_TYPE_LEVEL_HIGH>;
 		interrupt-names = "fault", "rx", "tx";
-		clocks = <&PBCLK2>, <&REFCLKO1>;
-		clock-names = "mck0", "mck1";
+		clocks = <&rootclk PB2CLK>;
+		clock-names = "mck0";
 		dmas = <&dma 138>, <&dma 139>;
 		dma-names = "spi-rx", "spi-tx";
 		status = "disabled";
@@ -647,8 +647,8 @@
 			<164 IRQ_TYPE_LEVEL_HIGH>,
 			<165 IRQ_TYPE_LEVEL_HIGH>;
 		interrupt-names = "fault", "rx", "tx";
-		clocks = <&PBCLK2>, <&REFCLKO1>;
-		clock-names = "mck0", "mck1";
+		clocks = <&rootclk PB2CLK>;
+		clock-names = "mck0";
 		dmas = <&dma 140>, <&dma 141>;
 		dma-names = "spi-rx", "spi-tx";
 		status = "disabled";
@@ -663,8 +663,8 @@
 			<177 IRQ_TYPE_LEVEL_HIGH>,
 			<178 IRQ_TYPE_LEVEL_HIGH>;
 		interrupt-names = "fault", "rx", "tx";
-		clocks = <&PBCLK2>, <&REFCLKO1>;
-		clock-names = "mck0", "mck1";
+		clocks = <&rootclk PB2CLK>;
+		clock-names = "mck0";
 		dmas = <&dma 134>, <&dma 135>;
 		dma-names = "spi-rx", "spi-tx";
 		status = "disabled";
@@ -679,8 +679,8 @@
 			<186 IRQ_TYPE_LEVEL_HIGH>,
 			<187 IRQ_TYPE_LEVEL_HIGH>;
 		interrupt-names = "fault", "rx", "tx";
-		clocks = <&PBCLK2>, <&REFCLKO1>;
-		clock-names = "mck0", "mck1";
+		clocks = <&rootclk PB2CLK>;
+		clock-names = "mck0";
 		dmas = <&dma 136>, <&dma 137>;
 		dma-names = "spi-rx", "spi-tx";
 		status = "disabled";
@@ -691,8 +691,9 @@
 		#size-cells = <0>;
 		compatible = "microchip,pic32mzda-sqi";
 		reg = <0x1f8e2000 0x200>;
-		clocks = <&REFCLKO2>, <&PBCLK5>;
+		clocks = <&rootclk REF2CLK>, <&rootclk PB5CLK>;
 		clock-names = "spi_ck", "reg_ck";
+		interrupt-parent = <&evic>;
 		interrupts = <169 IRQ_TYPE_LEVEL_HIGH>;
 		status = "disabled";
 	};
@@ -762,7 +763,7 @@
 		reg = <0x1f820000 512>;
 		interrupts = <117 IRQ_TYPE_LEVEL_HIGH>;
 		clock-frequency = <100000>;
-		clocks = <&PBCLK2>;
+		clocks = <&rootclk PB2CLK>;
 		status = "disabled";
 	};
 
@@ -771,7 +772,7 @@
 		reg = <0x1f820200 512>;
 		interrupts = <150 IRQ_TYPE_LEVEL_HIGH>;
 		clock-frequency = <100000>;
-		clocks = <&PBCLK2>;
+		clocks = <&rootclk PB2CLK>;
 		status = "disabled";
 	};
 
@@ -780,7 +781,7 @@
 		reg = <0x1f820400 512>;
 		interrupts = <162 IRQ_TYPE_LEVEL_HIGH>;
 		clock-frequency = <100000>;
-		clocks = <&PBCLK2>;
+		clocks = <&rootclk PB2CLK>;
 		status = "disabled";
 	};
 
@@ -789,7 +790,7 @@
 		reg = <0x1f820600 512>;
 		interrupts = <175 IRQ_TYPE_LEVEL_HIGH>;
 		clock-frequency = <100000>;
-		clocks = <&PBCLK2>;
+		clocks = <&rootclk PB2CLK>;
 		status = "disabled";
 	};
 
@@ -798,7 +799,7 @@
 		reg = <0x1f820800 512>;
 		interrupts = <184 IRQ_TYPE_LEVEL_HIGH>;
 		clock-frequency = <100000>;
-		clocks = <&PBCLK2>;
+		clocks = <&rootclk PB2CLK>;
 		status = "disabled";
 	};
 
@@ -806,7 +807,7 @@
 		compatible = "microchip,pic32mzda-can";
 		reg = <0x1f880000 512>;
 		interrupts = <151 IRQ_TYPE_LEVEL_HIGH>;
-		clocks = <&PBCLK5>;
+		clocks = <&rootclk PB5CLK>;
 		clock-names = "can_clk";
 		status = "disabled";
 	};
@@ -815,7 +816,7 @@
 		compatible = "microchip,pic32mzda-can";
 		reg = <0x1f881000 512>;
 		interrupts = <152 IRQ_TYPE_LEVEL_HIGH>;
-		clocks = <&PBCLK5>;
+		clocks = <&rootclk PB5CLK>;
 		clock-names = "can_clk";
 		status = "disabled";
 	};
