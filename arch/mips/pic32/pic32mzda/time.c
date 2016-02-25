@@ -66,7 +66,13 @@ void __init plat_time_init(void)
 	pr_info("CPU Clock: %ldMHz\n", rate / 1000000);
 	mips_hpt_frequency = rate / 2;
 
-	of_pic32_pb_timer_init();
-	of_pic32_oc_init();
 	clocksource_probe();
 }
+
+static int __init pic32mzda_driver_init(void)
+{
+	of_pic32_pb_timer_init();
+	of_pic32_oc_init();
+	return 0;
+}
+arch_initcall(pic32mzda_driver_init);
