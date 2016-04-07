@@ -119,14 +119,15 @@
 	pinctrl-names = "default";
 	pinctrl-0 = <&pinctrl_usb1>;
 	status = "okay";
-
-	usb_overcurrent@0 {
-		interrupt-parent = <&gpio1>;
-		interrupts = <11 IRQ_TYPE_EDGE_FALLING>;
-	};
 };
 
 &usb1_phy {
+	status = "okay";
+};
+
+&usb1_overcurrent {
+	interrupt-parent = <&gpio1>;
+	interrupts = <11 IRQ_TYPE_EDGE_FALLING>;
 	status = "okay";
 };
 
@@ -135,7 +136,7 @@
 	pinctrl-0 = <&pinctrl_sdhc1>;
 	status = "okay";
 	assigned-clocks = <&rootclk REF2CLK>, <&rootclk REF4CLK>,
-		<&rootclk REF5CLK>;
+			  <&rootclk REF5CLK>;
 	assigned-clock-rates = <50000000>, <25000000>, <40000000>;
 };
 
