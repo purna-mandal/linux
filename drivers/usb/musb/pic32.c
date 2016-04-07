@@ -206,6 +206,54 @@ static irqreturn_t pic32_musb_interrupt(int irq, void *hci)
 	if (is_host_active(musb) && musb->int_usb & MUSB_INTR_BABBLE)
 		dev_err(dev, "CAUTION: Babble interrupt occurred!\n");
 
+	/* Use ID change IRQ to switch appropriately between halves of the OTG
+	 * state machine. Managing DEVCTL.SESSION per Mentor docs requires that
+	 * we know its value but DEVCTL.BDEVICE is invalid without
+	 * DEVCTL.SESSION set. Also, DRVVBUS pulses for SRP (but not at 5V) ...
+	 */
+
+	if (0 /*TODO: update when OTG is required*/) {
+		u8 devctl = musb_readb(musb->mregs, MUSB_DEVCTL);
+		int usb_id = 0;
+		int err;
+
+		err = musb->int_usb & MUSB_INTR_VBUSERROR;
+		if (err) {
+			/*
+			 * The Mentor core doesn't debounce VBUS as needed
+			 * to cope with device connect current spikes. This
+			 * means it's not uncommon for bus-powered devices
+			 * to get VBUS errors during enumeration.
+			 *
+			 * This is a workaround, but newer RTL from Mentor
+			 * seems to allow a better one: "re"-starting sessions
+			 * without waiting for VBUS to stop registering in
+			 * devctl.
+			 */
+			musb->int_usb &= ~MUSB_INTR_VBUSERROR;
+			musb->xceiv->otg->state = OTG_STATE_A_WAIT_VFALL;
+			mod_timer(&glue->timer, jiffies + POLL_SECONDS * HZ);
+			WARNING("VBUS error workaround (delay coming)\n");
+		} else if (usb_id == 0) {
+			MUSB_HST_MODE(musb);
+			musb->xceiv->otg->default_a = 1;
+			musb->xceiv->otg->state = OTG_STATE_A_WAIT_VRISE;
+			del_timer(&glue->timer);
+		} else {
+			musb->is_active = 0;
+			MUSB_DEV_MODE(musb);
+			musb->xceiv->otg->default_a = 0;
+			musb->xceiv->otg->state = OTG_STATE_B_IDLE;
+		}
+
+		/* NOTE: this must complete power-on within 100 ms. */
+		dev_dbg(dev, "VBUS %s (%s)%s, devctl %02x\n",
+			usb_id ? "on" : "off",
+			usb_otg_state_string(musb->xceiv->otg->state),
+			err ? " ERROR" : "", devctl);
+		ret = IRQ_HANDLED;
+	}
+
 	/* Drop spurious RX and TX if device is disconnected */
 	if (musb->int_usb & MUSB_INTR_DISCONNECT) {
 		musb->int_tx = 0;
