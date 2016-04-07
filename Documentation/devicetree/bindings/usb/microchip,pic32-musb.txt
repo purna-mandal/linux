@@ -1,0 +1,56 @@
+Microchip PIC32 MUSB DRC/OTG controller
+-------------------------------------------
+
+Required properties:
+ - compatible       : should be "microchip,pic32mzda-usb".
+ - reg              : offset and length of "MUSB Core Registers" and
+		      "USB Clock & Reset Registers".
+ - reg-names        : should be "mc", and "usbcr" in order
+ - clocks           : clock specifier for the musb controller clock
+ - interrupts       : interrupt number for MUSB Core General interrupt
+		      and DMA interrupt
+ - interrupt-names  : must be "mc" and "dma" in order.
+ - dr_mode          : should be one of "host", "peripheral" or "otg".
+ - microchip,power  : should be "500". This signifies the controller can supply
+		      up to 500mA when operating in host mode.
+ - usb-phy          : phandle of the USB PHY.
+ - usb-overcurrent  : phandle of MUSB over-current node. It should have
+		      interrupt number for over-current detection logic.
+
+Optional properties:
+ - microchip,fifo-mode: specifies layout of internal SRAM for end-point fifos.
+			Defaults 0.
+
+Example:
+	aliases {
+		usb1 = &usb1;
+		phy1 = &usb1_phy;
+	};
+
+	usb1: usb@1f8e3000 {
+		compatible = "microchip,pic32mzda-usb";
+		reg = <0x1f8e3000 0x1000>,
+		      <0x1f884000 0x1000>;
+		reg-names = "mc", "usbcr";
+		interrupts = <132 IRQ_TYPE_EDGE_RISING>,
+			     <133 IRQ_TYPE_LEVEL_HIGH>;
+		interrupt-names = "mc", "dma";
+		clocks = <&rootclk PB5CLK>;
+		dr_mode = "host";
+		microchip,power = <500>;
+		usb-phy = <&usb1_phy>;
+		usb-overcurrent = <&usb1_overcurrent>;
+	};
+
+	usb1_phy: usb-phy@1f8e4000 {
+		compatible = "usb-nop-xceiv";
+		reg = <0x1f8e4000 0x1000>;
+		clocks = <&rootclk UPLLCLK>;
+		clock-names = "main_clk";
+		clock-frequency = <24000000>;
+	};
+
+	usb1_overcurrent: usb-overcurrent@0 {
+		interrupt-parent = <&gpio1>;
+		interrupts = <11 IRQ_TYPE_EDGE_FALLING>;
+	};
