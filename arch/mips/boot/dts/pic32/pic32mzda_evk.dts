@@ -293,14 +293,15 @@
 	pinctrl-names = "default";
 	pinctrl-0 = <&pinctrl_usb1>;
 	status = "okay";
-
-	usb_overcurrent@0 {
-		interrupt-parent = <&gpio1>;
-		interrupts = <11 IRQ_TYPE_EDGE_FALLING>;
-	};
 };
 
 &usb1_phy {
+	status = "okay";
+};
+
+&usb1_overcurrent {
+	interrupt-parent = <&gpio1>;
+	interrupts = <11 IRQ_TYPE_EDGE_FALLING>;
 	status = "okay";
 };
 
