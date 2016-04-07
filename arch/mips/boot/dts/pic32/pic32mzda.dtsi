@@ -487,10 +487,10 @@
 		compatible = "microchip,pic32mzda-usb";
 		reg = <0x1f8e3000 0x1000>,
 		      <0x1f884000 0x1000>;
-		reg-names = "mc", "control";
+		reg-names = "mc", "usbcr";
 		interrupts = <132 IRQ_TYPE_EDGE_RISING>,
-			<133 IRQ_TYPE_LEVEL_HIGH>;
-		interrupt-names = "mc", "dma", "over_current";
+			     <133 IRQ_TYPE_LEVEL_HIGH>;
+		interrupt-names = "mc", "dma";
 		dr_mode = "host";
 		mentor,multipoint = <1>;
 		mentor,num-eps = <8>;
@@ -499,6 +499,7 @@
 		phys = <&usb1_phy>;
 		clocks = <&rootclk PB5CLK>;
 		clock-names = "usb_clk";
+		usb_overcurrent=<&usb1_overcurrent>;
 		status = "disabled";
 	};
 
@@ -508,6 +509,10 @@
 		clocks = <&rootclk UPLLCLK>;
 		clock-names = "main_clk";
 		clock-frequency = <24000000>;
+		status = "disabled";
+	};
+
+	usb1_overcurrent: hsusb1_oc@0 {
 		status = "disabled";
 	};
 
