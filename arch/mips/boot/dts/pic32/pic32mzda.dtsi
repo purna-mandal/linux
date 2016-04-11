@@ -491,19 +491,15 @@
 		interrupts = <132 IRQ_TYPE_EDGE_RISING>,
 			     <133 IRQ_TYPE_LEVEL_HIGH>;
 		interrupt-names = "mc", "dma";
-		dr_mode = "host";
-		mentor,multipoint = <1>;
-		mentor,num-eps = <8>;
-		mentor,ram-bits = <11>;
-		mentor,power = <500>;
-		phys = <&usb1_phy>;
 		clocks = <&rootclk PB5CLK>;
-		clock-names = "usb_clk";
-		usb_overcurrent=<&usb1_overcurrent>;
+		dr_mode = "host";
+		microchip,power = <500>;
+		usb-phy = <&usb1_phy>;
+		usb-overcurrent=<&usb1_overcurrent>;
 		status = "disabled";
 	};
 
-	usb1_phy: hsusb1_phy@0 {
+	usb1_phy: usb-phy@1f8e4000 {
 		compatible = "usb-nop-xceiv";
 		reg = <0x1f8e4000 0x1000>;
 		clocks = <&rootclk UPLLCLK>;
@@ -512,7 +508,7 @@
 		status = "disabled";
 	};
 
-	usb1_overcurrent: hsusb1_oc@0 {
+	usb1_overcurrent: usb-overcurrent@0 {
 		status = "disabled";
 	};
 
