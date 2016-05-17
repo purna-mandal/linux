@@ -39,12 +39,12 @@ static int pic32_pwm_config(struct pwm_chip *chip, struct pwm_device *pwm,
 	dev_vdbg(chip->dev, "dty %d, period %d\n", duty_ns, period_ns);
 
 	/* Sanity check: already enabled and same period? */
-	if (test_bit(PWMF_ENABLED, &pwm->flags) && (period_ns != pwm->period)) {
+	if (pwm_is_enabled(pwm) && (period_ns != pwm_get_period(pwm))) {
 		dev_err(chip->dev, "cannot change PWM period while enabled\n");
 		return -EBUSY;
 	}
 
-	if (period_ns == pwm->period)
+	if (period_ns == pwm_get_period(pwm))
 		goto out_duty;
 
 	/* Set period with timer */
